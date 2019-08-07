@@ -162,7 +162,8 @@ def generate_cutouts(pipeline_dict, window_size=128, window_shift=None, transfor
 
                     cutouts.append(cutout)
 
-    df = pd.DataFrame(data={'id':np.arange(len(cutouts)), 'original_image':original_image_names,
+    df = pd.DataFrame(data={'id':np.array(np.arange(len(cutouts)),dtype='str'), 
+                            'original_image':original_image_names,
                             'x':x_vals, 'y':y_vals, 'ra':ra, 'dec':dec, 'peak_flux':peak_flux})
 
     pipeline_dict[output_key] = xarray.DataArray(cutouts, coords = {'id':df.id}, dims=['id','dim_1','dim_2'])

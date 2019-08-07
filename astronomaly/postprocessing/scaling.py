@@ -28,6 +28,6 @@ def scale_features(pipeline_dict, input_key, output_key=''):
     if output_key == '':
         output_key = input_key+'_scaled'
     pipeline_dict[output_key] = xarray.DataArray(
-        output, coords={'id': pipeline_dict['metadata'].id}, dims=['id', 'features'], name=output_key)
+        output, coords={'id': pipeline_dict[input_key].id}, dims=['id', 'features'], name=output_key)
 
     return pipeline_dict

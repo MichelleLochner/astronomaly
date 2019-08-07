@@ -18,6 +18,8 @@ import {AlgorithmTab} from './components/AlgorithmTab'
 import {AnomalyTab} from './components/AnomalyTab'
 import {ClusteringTab} from './components/ClusteringTab'
 
+const DATA_TYPE = 'light_curve';
+
 const styles = theme =>({
   root: {
     // backgroundColor: 'white',
@@ -108,8 +110,8 @@ class App extends React.Component {
               centered
             >
               <Tab label="Algorithm" />
-              <Tab label="Anomaly Scoring" id={this.state.id}/>
-              <Tab label="Clustering" />
+              <Tab label="Anomaly Scoring" id={this.state.id} datatype={DATA_TYPE}/>
+              <Tab label="Clustering" datatype={DATA_TYPE}/>
             </Tabs>
           </AppBar>
 

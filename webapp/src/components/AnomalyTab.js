@@ -7,8 +7,11 @@ import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
-import PinchZoomPan from "react-responsive-pinch-zoom-pan";
+import {PlotImage} from './PlotImage.js';
 import TextField from '@material-ui/core/TextField';
+import {TimeSeriesPlot} from './PlotLightCurve.js';
+import {ObjectDisplayer} from './ObjectDisplayer.js';
+import {PlotContainer} from './PlotContainer.js'
 
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -65,38 +68,6 @@ class MakePlot extends React.Component {
       }
 }
 
-class PlotImage extends React.Component{
-  constructor(props){
-    super(props);
-    this.getImage = this.getImage.bind(this);
-    this.state = {src:""}
-  }
-
-  getImage() {
-    let prom = fetch("image", {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(this.props.id)
-    })
-    .then(res => {return res.blob()})
-    .then((image) => {document.getElementById("img").src=URL.createObjectURL(image)})
-    .catch(console.log);
-  }
-
-  render() {
-    this.getImage(this.props.id);
-    return (
-      <div style={{width:"400px", height:"400px"}}>
-      <PinchZoomPan position="center" maxScale={10} zoomButtons={false}>
-        <img id="img" src=""/>
-      </PinchZoomPan>
-      </div>
-    )
-  }
-
-}
 
 
 export class AnomalyTab extends React.Component {
@@ -107,11 +78,20 @@ export class AnomalyTab extends React.Component {
     this.handleChangeAlgorithmClick = this.handleChangeAlgorithmClick.bind(this);
     this.changeAlgorithm = this.changeAlgorithm.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
+    this.updateOriginalID = this.updateOriginalID.bind(this);
+    this.getLightCurve = this.getLightCurve.bind(this);
+    this.updateObjectData = this.updateObjectData.bind(this);
 
     this.state = {id:0,
-                 src:''};
+                 img_src:'',
+                 original_id:'-1',
+                 light_curve_data:{data:[],errors:[]},
+                 features:{}};
+    
     // this.getImage(this.state.id);
   }
+
+  
     
   handleForwardBackwardClick(e){
     const whichButton = e.currentTarget.id;
@@ -126,7 +106,7 @@ export class AnomalyTab extends React.Component {
       if (newID<0) {newID=0}
     }
 
-    this.setState({id:newID});
+    this.setState({id:newID}, this.updateOriginalID(newID));
     // this.getImage(newID);
   }
 
@@ -156,14 +136,71 @@ export class AnomalyTab extends React.Component {
     })
     .then(res => res.json())
     .then((data) => {
-      this.setState({id:0})})
+      this.setState({id:0}, this.updateOriginalID(0));
+    })
     .catch(console.log)
   }
 
+  updateObjectData(newOriginalId){
+    this.getLightCurve(newOriginalId);
+    this.getFeatures(newOriginalId);
+  }
 
+  getLightCurve(original_id){
+    fetch("getlightcurve", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    // .then((res)=> {console.log(res);
+    //               return res})
+    .then((res) => this.setState({light_curve_data:res}))
+    .catch(console.log);
+  }
+
+  getFeatures(original_id){
+    fetch("getfeatures", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    // .then((res)=> {console.log(res);
+    //               return res})
+    .then((res) => this.setState({features:res}))
+    .catch(console.log);
+  }
+
+  updateOriginalID(ind){
+    fetch("/getindex", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(ind)
+    })
+    .then(res => res.json())
+    .then((res) => {
+      this.setState({original_id:res}, this.updateObjectData(res));
+    })
+    // .then(() => console.log('getOriginalID called'))
+    // .then(() => console.log(this.state.id))
+    // .then(() => console.log(this.state.original_id))
+    .catch(console.log)
+  }
+
+  componentDidMount(){
+    if (this.state.original_id == '-1'){
+      this.updateOriginalID(this.state.id);}
+  }
+ 
 
   render() {
-    
       return(
           <div>
               <Grid component='div' container spacing={3}>
@@ -174,7 +211,7 @@ export class AnomalyTab extends React.Component {
                       {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3}>
                         <Grid item xs={12} align="center">
-                          <PlotImage id={this.state.id}/>
+                          <PlotContainer datatype={this.props.datatype} original_id={this.state.original_id} light_curve_data={this.state.light_curve_data}/>
                         </Grid>
                         <Grid item xs={12} align="center">
                           <Grid container spacing={3}>
@@ -233,8 +270,24 @@ export class AnomalyTab extends React.Component {
                       </Grid>
                   </Grid>
 
-                  <Grid item xs={4}>
-                      {/* <h1> Metadata</h1> */}
+                  <Grid item xs={2}>
+                    <Grid container alignItems="center" spacing={5}>
+                      <Grid item xs={12}>
+                          <Card raised={true}>
+                            <Typography color="textSecondary" gutterBottom>
+                              Metadata
+                            </Typography>
+                            <Typography variant="body1" component="p">
+                              <b>Object Name</b> : {this.state.original_id}
+                              <br/>
+                            </Typography>
+                          </Card>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <ObjectDisplayer title='Features' object={this.state.features} />
+                        </Grid>
+                      </Grid>
                   </Grid>
                   <Grid item xs={12}>
                       <div></div>

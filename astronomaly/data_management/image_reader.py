@@ -26,21 +26,26 @@ def read_images(directory='', list_of_files=[], fits_index=0):
     """
     images = []
 
-    if len(directory) != 0:
+    if len(list_of_files) != 0 and len(directory)==0:
+        # Assume the list of files are absolute paths
+        fls = list_of_files
+    elif len(list_of_files) != 0 and len(directory)!=0:
+        # Assume the list of files are relative paths to directory
+        fls = list_of_files
+        fls = [os.path.join(directory, f) for f in fls]
+    elif len(directory) != 0:
+        #Assume directory contains all the files we need
         fls = os.listdir(directory)
         fls.sort()
-        for f in fls:
-            extension = f.split('.')[-1]
-            if extension in known_file_types:
-                astro_img = AstroImage(os.path.join(directory, f), file_type=extension, fits_index=fits_index)
-                images.append(astro_img)
-
-    if len(list_of_files) != 0:
-        for f in list_of_files:
-            extension = f.split('.')[-1]
-            if extension in known_file_types:
-                astro_img = AstroImage(f, file_type=extension, fits_index=fits_index)
-                images.append(astro_img)
+        fls = [os.path.join(directory, f) for f in fls]
+    else:
+        fls = []
+    
+    for f in fls:
+        extension = f.split('.')[-1]
+        if extension in known_file_types:
+            astro_img = AstroImage(f, file_type=extension, fits_index=fits_index)
+            images.append(astro_img)
 
     if len(images) == 0:
         print("No images found")

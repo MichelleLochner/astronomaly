@@ -44,8 +44,7 @@ def convert_anomaly_score(pipeline_dict, input_column, output_column='', lower_i
 
     if convert_integer:
         scores = round(scores)
-
-    df[output_column] = scores.astype(int)
+    df[output_column] = scores
 
     return pipeline_dict
 

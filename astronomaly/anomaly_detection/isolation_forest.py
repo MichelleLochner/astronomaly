@@ -39,7 +39,7 @@ def run_isolation_forest(pipeline_dict, input_key, output_column_name='', contam
     if 'ml_scores' in pipeline_dict:
         pipeline_dict['ml_scores'][output_column_name] = scores
     else:
-        pipeline_dict['ml_scores'] = pd.DataFrame({'id':df.id, output_column_name: scores})
+        pipeline_dict['ml_scores'] = pd.DataFrame({'id':feats.coords['id'].values, output_column_name: scores})
 
     pipeline_dict['iforest_object_'+input_key] = iforest
 
