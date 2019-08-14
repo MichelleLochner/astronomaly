@@ -12,12 +12,18 @@ import os
 
 # Various functions that are called by the REST API in run.py
 
-which_data = 'light_curve'
+which_data = 'image'
+which_dataset = 'hsc'
 
 # pipeline_dict = pipeline.run_pipeline(image_dir='/home/michelle/BigData/Anomaly/GOODS_S/', features='psd', dim_reduct='pca')
 # Image downloaded from here: https://archive.stsci.edu/pub/hlsp/goods/v2/
-image_dir = '/home/michelle/BigData/Anomaly/'
-
+if which_dataset == 'deep2':
+    image_dir = '/home/michelle/BigData/Anomaly/'
+    cutouts_file = ''
+elif which_dataset == 'hsc':
+    cutouts_file = '/home/michelle/BigData/Anomaly/hsc_data/imarr_i20.0_100k.npy'
+    anomaly_file = '/home/michelle/BigData/Anomaly/hsc_data/anomaly_score.csv'
+    image_dir = ''
 
 
 
@@ -34,10 +40,11 @@ if which_data == 'image':
     scaled = 'scaled'
     anomaly_algo = 'iforest'
     clustering = 'tsne'
-    pipeline_dict = image_pipeline.run_pipeline(image_dir=image_dir, 
+    pipeline_dict = image_pipeline.run_pipeline(image_dir=image_dir, cutouts_file=cutouts_file, 
                                     features=features, dim_reduct=dim_reduct,
                                     scaled = scaled, 
-                                    anomaly_algo=anomaly_algo, clustering=clustering)
+                                    anomaly_algo=anomaly_algo, clustering=clustering,
+                                    nproc=6, anomaly_file=anomaly_file)
 else:
     features = 'from_file'
     dim_reduct = ''
@@ -46,6 +53,13 @@ else:
     clustering = 'tsne'
     pipeline_dict = light_curve_pipeline.run_pipeline(light_curve_dir=light_curve_dir,
         features_file=features_file)
+
+features_key = 'features_%s' %(features)
+if len(dim_reduct) != 0:
+    features_key += '_%s' %dim_reduct
+if len(scaled) != 0:
+    features_key += '_%s' %scaled
+
 
 
 window_size_x= window_size_y = 128 #Change this to read from the dict
@@ -77,30 +91,37 @@ def convert_array_to_image(arr):
     plt.close(fig)
     return output
 
-def get_image_cutout(id):
-    img = pipeline_dict['images'][0].image
-    x0 = pipeline_dict['metadata'].loc[id, 'x']
-    y0 = pipeline_dict['metadata'].loc[id, 'y']
+def get_image_cutout(id, load_cutout=False):
 
-    factor = 1.5
-    xmin = (int)(x0-window_size_x*factor)
-    xmax = (int)(x0+window_size_x*factor)
-    ymin = (int)(y0-window_size_y*factor)
-    ymax = (int)(y0+window_size_y*factor)
+    if 'images' not in pipeline_dict.keys() or load_cutout == True:
+        # Run this if the original images aren't available or if the cutout is requested
+        cutout = pipeline_dict['cutouts'].loc[id]
+        cutout = image_preprocessing.image_transform_log(cutout)
 
-    xstart = max(xmin, 0)
-    xend = min(xmax, img.shape[1])
-    ystart = max(ymin, 0)
-    yend = min(ymax, img.shape[0])
-    tot_size_x = int(2*window_size_x*factor)
-    tot_size_y = int(2*window_size_y*factor)
-    cutout = np.zeros([tot_size_y, tot_size_x])
-    cutout[ystart-ymin:tot_size_y-(ymax-yend), xstart-xmin:tot_size_x-(xmax-xend)] = img[ystart:yend, xstart:xend]
-    cutout = np.nan_to_num(cutout)
+    else:    
+        img = pipeline_dict['images'][0].image
+        metadata = pipeline_dict['metadata']
+        x0 = metadata[metadata.id==id]['x'].iloc[0]
+        y0 = metadata[metadata.id==id]['y'].iloc[0]
 
+        factor = 1.5
+        xmin = (int)(x0-window_size_x*factor)
+        xmax = (int)(x0+window_size_x*factor)
+        ymin = (int)(y0-window_size_y*factor)
+        ymax = (int)(y0+window_size_y*factor)
 
-    ### Read this transform from params in dict
-    cutout = image_preprocessing.image_transform_log(cutout)
+        xstart = max(xmin, 0)
+        xend = min(xmax, img.shape[1])
+        ystart = max(ymin, 0)
+        yend = min(ymax, img.shape[0])
+        tot_size_x = int(2*window_size_x*factor)
+        tot_size_y = int(2*window_size_y*factor)
+        cutout = np.zeros([tot_size_y, tot_size_x])
+        cutout[ystart-ymin:tot_size_y-(ymax-yend), xstart-xmin:tot_size_x-(xmax-xend)] = img[ystart:yend, xstart:xend]
+        cutout = np.nan_to_num(cutout)
+
+         ### Read this transform from params in dict
+        cutout = image_preprocessing.image_transform_log(cutout)
 
     return convert_array_to_image(cutout)
 
@@ -110,7 +131,7 @@ def read_lc_from_file(flpath, lower_mag=1, upper_mag=25):
     return light_curve
 
 def get_light_curve(id):
-    print(id)
+    # print(id)
     ### Need to extend this to deal with other bands
     time_col = 'MJD'
     mag_col = 'g_mag'
@@ -138,18 +159,15 @@ def get_light_curve(id):
     return out_dict
 
 def get_features(id):
-    dat = pipeline_dict['features_'+features].loc[id]
-    print(dat)
+    # print(features_key)
+    dat = pipeline_dict[features_key].loc[id]
+    # print(dat)
     out_dict = dict(zip(dat.coords['features'].values.astype('str'),dat.values))     
     return out_dict
 
 def get_tsne_data(input_key, color_by_column=''):
     if input_key=='auto':
-        input_key = 'features_%s' %(features)
-        if len(dim_reduct) != 0:
-            input_key += '_%s' %dim_reduct
-        if len(scaled) != 0:
-            input_key += '_%s' %scaled
+        input_key = features_key
         if len(clustering) != 0:
             input_key += '_%s' %clustering
     ts = pipeline_dict[input_key]

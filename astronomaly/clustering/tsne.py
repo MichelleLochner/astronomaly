@@ -21,6 +21,9 @@ def make_tsne(pipeline_dict, input_key, output_key='', perplexity=30, max_objs=2
             inds = np.random.choice(feats.id, max_objs, replace=False)
         feats = feats.loc[inds]
 
+    else:
+        inds = feats.id
+
 
     
     ts = TSNE(perplexity=perplexity)

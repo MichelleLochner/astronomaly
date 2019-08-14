@@ -142,7 +142,8 @@ export class AnomalyTab extends React.Component {
   }
 
   updateObjectData(newOriginalId){
-    this.getLightCurve(newOriginalId);
+    if (this.props.datatype=='light_curve')
+      this.getLightCurve(newOriginalId);
     this.getFeatures(newOriginalId);
   }
 
@@ -201,6 +202,8 @@ export class AnomalyTab extends React.Component {
  
 
   render() {
+    // console.log('Anomaly')
+    // console.log(this.props)
       return(
           <div>
               <Grid component='div' container spacing={3}>
@@ -260,7 +263,7 @@ export class AnomalyTab extends React.Component {
                                           <Button variant="contained" id="iforest_score" onClick={this.handleChangeAlgorithmClick}> Iforest </Button> 
                                       </Grid> 
                                       <Grid item xs={4}>
-                                          <Button variant="contained" id="anomaly_score" onClick={this.handleChangeAlgorithmClick}> Trained </Button> 
+                                          <Button variant="contained" id="gan_score" onClick={this.handleChangeAlgorithmClick}> Trained </Button> 
                                       </Grid> 
                                   </Grid>
 

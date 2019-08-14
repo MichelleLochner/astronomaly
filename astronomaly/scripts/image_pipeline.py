@@ -1,14 +1,15 @@
-from astronomaly.data_management.image_reader import read_images
+from astronomaly.data_management.image_reader import read_images, read_cutouts
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import power_spectrum, wavelet_features
 from astronomaly.dimensionality_reduction import decomposition
-from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
+from astronomaly.anomaly_detection import isolation_forest, human_loop_learning, read_from_file
 from astronomaly.clustering import tsne
 from astronomaly.postprocessing import scaling
 
 
-def run_pipeline(image_dir, features = 'psd', dim_reduct = 'pca', 
-                scaled = 'scaled', anomaly_algo = 'iforest', clustering='tsne'):
+def run_pipeline(image_dir='', cutouts_file='', features = 'psd', dim_reduct = 'pca', 
+                scaled = 'scaled', anomaly_algo = 'iforest', clustering='tsne',
+                nproc=1, anomaly_file=''):
     """
     An example of the full astronomaly pipeline run on image data
 
@@ -30,12 +31,18 @@ def run_pipeline(image_dir, features = 'psd', dim_reduct = 'pca',
 
     """
 
-    pipeline_dict = read_images(image_dir)
-    pipeline_dict = image_preprocessing.generate_cutouts(pipeline_dict, window_size=128,
+    if len(image_dir) != 0:
+        pipeline_dict = read_images(image_dir)
+        pipeline_dict = image_preprocessing.generate_cutouts(pipeline_dict, window_size=128,
                                                         transform_function=image_preprocessing.image_transform_log)
-
+    elif len(cutouts_file) != 0:
+        pipeline_dict = read_cutouts(cutouts_file)
+    else:
+        print('Either images or cutouts must be provided')
+        #Raise some error
     if features == 'psd2d':
-        pipeline_dict = power_spectrum.extract_features_psd2d(pipeline_dict, nbins='auto')
+        pipeline_dict = power_spectrum.extract_features_psd2d(pipeline_dict, nbins='auto', 
+                        nproc=nproc)
         input_key = 'features_psd2d'
     elif features == 'wavelets':
         pipeline_dict = wavelet_features.extract_features_wavelets(pipeline_dict)
@@ -58,8 +65,12 @@ def run_pipeline(image_dir, features = 'psd', dim_reduct = 'pca',
     pipeline_dict = human_loop_learning.convert_anomaly_score(pipeline_dict, 'iforest_score',
                                                               output_column='anomaly_score')
 
+    if anomaly_file != '':
+        pipeline_dict = read_from_file.read_anomaly_score(pipeline_dict, anomaly_file)
+
     if clustering == 'tsne':
-        pipeline_dict = tsne.make_tsne(pipeline_dict, input_key, sort_by_column='anomaly_score')
+        pipeline_dict = tsne.make_tsne(pipeline_dict, input_key, sort_by_column='anomaly_score',
+        perplexity=50)
 
 
     

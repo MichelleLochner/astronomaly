@@ -2,6 +2,8 @@ from astropy.io import fits
 from astropy.wcs import WCS
 import numpy as np
 import os
+import pandas as pd
+import xarray
 
 known_file_types = ['fits']
 
@@ -54,6 +56,15 @@ def read_images(directory='', list_of_files=[], fits_index=0):
     pipeline_dict = {'images': images}
     return pipeline_dict
 
+def read_cutouts(filename, file_type='npy', output_key='cutouts'):
+    if file_type == 'npy':
+        cutouts = np.load(filename, mmap_mode='r')
+        # cutouts = cutouts[:10000] 
+
+    df = pd.DataFrame(data={'id':np.array(np.arange(len(cutouts)),dtype='str')})
+    pipeline_dict = {'metadata':df}
+    pipeline_dict[output_key] = xarray.DataArray(cutouts, coords = {'id':df.id}, dims=['id','dim_1','dim_2'])
+    return pipeline_dict
 
 class AstroImage:
     def __init__(self, filename, file_type='fits', fits_index=0):

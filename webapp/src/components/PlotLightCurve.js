@@ -10,8 +10,8 @@ export class TimeSeriesPlot extends React.PureComponent {
     }
 
     render(){
-        console.log('Called PlotLightCurve render');
-      console.log(this.props.light_curve_data);
+        // console.log('Called PlotLightCurve render');
+      // console.log(this.props.light_curve_data);
       const options = {
         title: {
           text: ''

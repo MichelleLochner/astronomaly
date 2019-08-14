@@ -177,7 +177,6 @@ export class ClusteringTab extends React.Component {
                     <Grid item xs={6}>
                         <h1> Object ID: {this.state.displayData.id}</h1>
                         <div>
-                          {/* <PlotImage id={this.state.displayData.id} /> */}
                           <PlotContainer datatype={this.props.datatype} original_id={this.state.displayData.id} light_curve_data={this.state.light_curve_data}/>
                         </div>
                         <div>Anomaly Score: {this.state.displayData.color} </div>

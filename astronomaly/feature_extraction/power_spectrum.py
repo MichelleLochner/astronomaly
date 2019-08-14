@@ -1,6 +1,10 @@
 import numpy as np
 from scipy import ndimage
 import xarray
+import time
+from multiprocessing import Pool
+from itertools import product
+from functools import partial
 
 def psd_2d(img, nbins):
     """
@@ -33,7 +37,8 @@ def psd_2d(img, nbins):
     return radial_sum
 
 
-def extract_features_psd2d(pipeline_dict, nbins='auto', input_key='cutouts', output_key='features_psd2d'):
+def extract_features_psd2d(pipeline_dict, nbins='auto', input_key='cutouts', 
+                            output_key='features_psd2d', nproc=1):
     """
     Performs a 2d FFT and constructs the power spectral density function for each image cutout.
 
@@ -57,18 +62,26 @@ def extract_features_psd2d(pipeline_dict, nbins='auto', input_key='cutouts', out
 
     """
     print('Extracting 2D PSD...')
+    t1 = time.time()
     cutouts = pipeline_dict[input_key]
 
     if nbins == 'auto':
         shp = cutouts[0].shape
         nbins = int(min(shp)//2)
 
-    output = []
-    for i in range(len(cutouts)):
-        output.append(psd_2d(cutouts[i], nbins=nbins))
+    if nproc == 1:
+        output = []
+        for i in range(len(cutouts)):
+            output.append(psd_2d(cutouts[i], nbins=nbins))
+    else:
+        with Pool(nproc) as pool:
+            func = partial(psd_2d, nbins=nbins)
+            #output = pool.starmap(psd_2d, product(cutouts, [nbins]*len(cutouts)), chunksize=100)
+            output = pool.map(func,cutouts)
 
     pipeline_dict[output_key] = xarray.DataArray(
         output, coords={'id': pipeline_dict['metadata'].id}, dims=['id', 'features'], name=output_key)
 
     print('Done!')
+    print('2D PSD extracted in ', (time.time()-t1),'s')
     return pipeline_dict

@@ -46,7 +46,7 @@ def pca_decomp(pipeline_dict, input_key, output_key='', n_components=0, threshol
     output = pca_obj.transform(feats)
 
     pipeline_dict[output_key] = xarray.DataArray(
-        output, coords={'id': pipeline_dict['metadata'].id}, dims=['id', 'features'], name=output_key)
+        output, coords={'id':pipeline_dict['metadata'].id}, dims=['id', 'features'], name=output_key)
 
     pipeline_dict[input_key+'_pca_object'] = pca_obj
 
