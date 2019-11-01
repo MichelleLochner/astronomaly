@@ -1,6 +1,8 @@
 import pywt
 import numpy as np
-import xarray
+import pandas as pd
+from astronomaly.base.base_pipeline import PipelineStage
+
 
 def flatten_swt2_coefficients(wavelet_coeffs):
     """
@@ -17,6 +19,8 @@ def flatten_swt2_coefficients(wavelet_coeffs):
     -------
     np.ndarray
         Flattened coefficients
+    labels
+        The labels of the coefficients
 
     """
 
@@ -24,6 +28,7 @@ def flatten_swt2_coefficients(wavelet_coeffs):
     total_len = len(wavelet_coeffs) * 4 * pixel_count
 
     output_array = np.zeros(total_len)
+
     for lev in range(len(wavelet_coeffs)):
         approx_coeffs = wavelet_coeffs[lev][0]
         output_array[4 * lev * pixel_count:(4 * lev + 1) * pixel_count] = approx_coeffs.reshape(pixel_count)
@@ -31,7 +36,24 @@ def flatten_swt2_coefficients(wavelet_coeffs):
             detailed_coeffs = wavelet_coeffs[lev][1][det]
             output_array[(4 * lev + det + 1) * pixel_count:(4 * lev + det + 2) * pixel_count] = detailed_coeffs.reshape(
                 pixel_count)
+
     return output_array
+
+
+def generate_labels(wavelet_coeffs):
+    pixel_count = np.prod(wavelet_coeffs[0][0].shape)
+    total_len = len(wavelet_coeffs) * 4 * pixel_count
+
+    labels = np.zeros(total_len).astype('str')
+    cfs = ['H', 'V', 'D']
+
+    for lev in range(len(wavelet_coeffs)):
+        labels[4 * lev * pixel_count:(4 * lev + 1) * pixel_count] = \
+            np.array(['cA%d_%d' %(lev,i) for i in range(pixel_count)], dtype='str')
+        for det in range(3):
+            labels[(4 * lev + det + 1) * pixel_count:(4 * lev + det + 2) * pixel_count] = \
+                ['c%s%d_%d' % (cfs[det], lev, i) for i in range(pixel_count)]
+    return labels
 
 
 def reshape_swt2_coefficients(flat_coeffs, nlev, image_shape):
@@ -85,47 +107,66 @@ def wavelet_decomposition(img, level=2, wavelet_family='sym2'):
     -------
     np.ndarray
         Flattened array of coefficients
+    labels
+        The labels of the coefficients
     """
     coeffs = pywt.swt2(img, wavelet_family, level=level)
-    flattened_coeffs = flatten_swt2_coefficients(coeffs)
-    return flattened_coeffs
+    return coeffs
 
 
-def extract_features_wavelets(pipeline_dict, level=2, wavelet_family='sym2', input_key='cutouts',
-                              output_key='features_wavelets'):
-    """
-    Performs a 2d stationary wavelet transform on the image cutouts in the pipeline_dict.
+class WaveletFeatures(PipelineStage):
+    def __init__(self, level=2, wavelet_family='sym2', **kwargs):
+        """
+        Performs a stationary wavelet transform
 
-    Parameters
-    ----------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and anomaly scores
-    column_name : string, optional
-        The name of the column in the dataframe containing the cutouts (defaults to the same name image_preprocessing.py uses)
-    level : int, optional
-        Level of depth for the wavelet transform
-    wavelet_family : string or pywt.Wavelet object
-        Which wavelet family to use
-    input_key : str, optional
-        The input key of pipeline_dict to run the function on.
-    output_key : str, optional
-        The output key of pipeline_dict
+        Parameters
+        ----------
+        level : int, optional
+            Level of depth for the wavelet transform
+        wavelet_family : string or pywt.Wavelet object
+            Which wavelet family to use
+        """
+        super().__init__(level=level, wavelet_family=wavelet_family, **kwargs)
 
-    Returns
-    -------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and anomaly scores
+        self.level = level
+        self.wavelet_family = wavelet_family
 
-    """
-    print('Extracting wavelets...')
-    cutouts = pipeline_dict[input_key]
-    output = []
+    def _execute_function(self, image):
+        """
+        Does the work in actually extracting the wavelets
 
-    for i in range(len(cutouts)):
-        output.append(wavelet_decomposition(cutouts[i], level=level, wavelet_family=wavelet_family))
+        Parameters
+        ----------
+        image : np.ndarray
+            Input image
 
-    pipeline_dict[output_key] = xarray.DataArray(
-        output, coords={'id': pipeline_dict['metadata'].id}, dims=['id', 'features'], name=output_key)
+        Returns
+        -------
+        pd.DataFrame
+            Contains the extracted wavelet features
 
-    print('Done!')
-    return pipeline_dict
+        """
+
+        # Here I'm explicitly assuming any multi-d images store the colours in the last dim
+        if len(image.shape) == 2:
+            # Greyscale-like image
+
+            coeffs = wavelet_decomposition(image, level=self.level, wavelet_family=self.wavelet_family)
+            flattened_coeffs = flatten_swt2_coefficients(coeffs)
+            if len(self.labels) == 0:
+                self.labels = generate_labels(coeffs)
+            return flattened_coeffs
+        else:
+            wavs_all_bands = []
+            all_labels = []
+            for band in range(len(image.shape[2])):
+                coeffs= wavelet_decomposition(image, level=self.level, wavelet_family=self.wavelet_family)
+                flattened_coeffs = flatten_swt2_coefficients(coeffs)
+                wavs_all_bands += list(flattened_coeffs)
+                if len(self.labels) == 0:
+                    labels = generate_labels(coeffs)
+                    all_labels += ['%s_band_%d' %(labels[i],band) for i in range(labels)]
+            if len(self.labels) == 0:
+                self.labels = all_labels
+            return wavs_all_bands
+

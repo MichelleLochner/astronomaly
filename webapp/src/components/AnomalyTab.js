@@ -7,8 +7,11 @@ import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
-import PinchZoomPan from "react-responsive-pinch-zoom-pan";
+import {PlotImage} from './PlotImage.js';
 import TextField from '@material-ui/core/TextField';
+import {TimeSeriesPlot} from './PlotLightCurve.js';
+import {ObjectDisplayer} from './ObjectDisplayer.js';
+import {PlotContainer} from './PlotContainer.js'
 
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -65,38 +68,6 @@ class MakePlot extends React.Component {
       }
 }
 
-class PlotImage extends React.Component{
-  constructor(props){
-    super(props);
-    this.getImage = this.getImage.bind(this);
-    this.state = {src:""}
-  }
-
-  getImage() {
-    let prom = fetch("image", {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(this.props.id)
-    })
-    .then(res => {return res.blob()})
-    .then((image) => {document.getElementById("img").src=URL.createObjectURL(image)})
-    .catch(console.log);
-  }
-
-  render() {
-    this.getImage(this.props.id);
-    return (
-      <div style={{width:"400px", height:"400px"}}>
-      <PinchZoomPan position="center" maxScale={10} zoomButtons={false}>
-        <img id="img" src=""/>
-      </PinchZoomPan>
-      </div>
-    )
-  }
-
-}
 
 
 export class AnomalyTab extends React.Component {
@@ -107,11 +78,25 @@ export class AnomalyTab extends React.Component {
     this.handleChangeAlgorithmClick = this.handleChangeAlgorithmClick.bind(this);
     this.changeAlgorithm = this.changeAlgorithm.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
+    this.updateOriginalID = this.updateOriginalID.bind(this);
+    this.getLightCurve = this.getLightCurve.bind(this);
+    this.updateObjectData = this.updateObjectData.bind(this);
+    this.getMetadata = this.getMetadata.bind(this);
+    this.getFeatures = this.getFeatures.bind(this);
+    this.getRawFeatures = this.getRawFeatures.bind(this);
 
     this.state = {id:0,
-                 src:''};
+                 img_src:'',
+                 original_id:'-1',
+                 light_curve_data:{data:[],errors:[]},
+                 raw_features_data:{data:[],categories:[]},
+                 features:{},
+                 metadata:{}};
+    
     // this.getImage(this.state.id);
   }
+
+  
     
   handleForwardBackwardClick(e){
     const whichButton = e.currentTarget.id;
@@ -126,7 +111,7 @@ export class AnomalyTab extends React.Component {
       if (newID<0) {newID=0}
     }
 
-    this.setState({id:newID});
+    this.setState({id:newID}, this.updateOriginalID(newID));
     // this.getImage(newID);
   }
 
@@ -142,8 +127,18 @@ export class AnomalyTab extends React.Component {
   }
 
   handleScoreButtonClick(e){
-    console.log(e.currentTarget.color);
-    e.currentTarget.color = "secondary";
+    // console.log(e.currentTarget.color);
+    // e.currentTarget.color = "secondary";
+
+    fetch("/label", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({'id':this.state.original_id, 'label':e.currentTarget.id})
+    })
+    .catch(console.log)
+
   }
 
   changeAlgorithm(columnName){
@@ -156,14 +151,107 @@ export class AnomalyTab extends React.Component {
     })
     .then(res => res.json())
     .then((data) => {
-      this.setState({id:0})})
+      this.setState({id:0}, this.updateOriginalID(0));
+    })
     .catch(console.log)
   }
 
+  updateObjectData(newOriginalId){
+    if (this.props.datatype=='light_curve')
+      this.getLightCurve(newOriginalId);
+    else if (this.props.datatype=='raw_features')
+      this.getRawFeatures(newOriginalId)
+    this.getFeatures(newOriginalId);
+    this.getMetadata(newOriginalId);
+  }
 
+  getLightCurve(original_id){
+    fetch("getlightcurve", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    // .then((res)=> {console.log(res);
+    //               return res})
+    .then((res) => this.setState({light_curve_data:res}))
+    .catch(console.log);
+  }
+
+  getFeatures(original_id){
+    fetch("getfeatures", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    // .then((res)=> {console.log(res);
+    //               return res})
+    .then((res) => this.setState({features:res}))
+    .catch(console.log);
+  }
+
+  getRawFeatures(original_id){
+    fetch("getrawfeatures", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    // .then((res)=> {console.log(res);
+    //               return res})
+    .then((res) => this.setState({raw_features_data:res}))
+    .catch(console.log);
+  }
+
+  getMetadata(original_id){
+    fetch("getmetadata", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    // .then((res)=> {console.log(res);
+    //               return res})
+    .then((res) => this.setState({metadata:res}))
+    .catch(console.log);
+  }
+
+  updateOriginalID(ind){
+    fetch("/getindex", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(ind)
+    })
+    .then(res => res.json())
+    .then((res) => {
+      this.setState({original_id:res}, this.updateObjectData(res));
+    })
+    // .then(() => console.log('getOriginalID called'))
+    // .then(() => console.log(this.state.id))
+    // .then(() => console.log(this.state.original_id))
+    .catch(console.log)
+  }
+
+  componentDidMount(){
+    if (this.state.original_id == '-1'){
+      this.updateOriginalID(this.state.id);}
+  }
+ 
 
   render() {
-    
+    // console.log('Anomaly')
+    // console.log(this.props)
       return(
           <div>
               <Grid component='div' container spacing={3}>
@@ -174,7 +262,8 @@ export class AnomalyTab extends React.Component {
                       {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3}>
                         <Grid item xs={12} align="center">
-                          <PlotImage id={this.state.id}/>
+                          <PlotContainer datatype={this.props.datatype} original_id={this.state.original_id} light_curve_data={this.state.light_curve_data}
+                                        raw_features_data={this.state.raw_features_data}/>
                         </Grid>
                         <Grid item xs={12} align="center">
                           <Grid container spacing={3}>
@@ -194,22 +283,22 @@ export class AnomalyTab extends React.Component {
                               <Grid item xs={12} align="center">
                                   <Grid container alignItems="center">
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary" onClick={this.handleScoreButtonClick}> 0 </Button> 
+                                          <Button variant="contained" color="primary" onClick={this.handleScoreButtonClick} id="0"> 0 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"> 1 </Button> 
+                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="1"> 1 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"> 2 </Button> 
+                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="2"> 2 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"> 3 </Button> 
+                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="3"> 3 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"> 4 </Button> 
+                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="4"> 4 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"> 5 </Button> 
+                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="5"> 5 </Button> 
                                       </Grid> 
                                   </Grid>
                               </Grid>
@@ -220,10 +309,10 @@ export class AnomalyTab extends React.Component {
                                           <Button variant="contained" id="random" onClick={this.handleChangeAlgorithmClick}> Random </Button> 
                                       </Grid> 
                                       <Grid item xs={4}>
-                                          <Button variant="contained" id="iforest_score" onClick={this.handleChangeAlgorithmClick}> Iforest </Button> 
+                                          <Button variant="contained" id="score" onClick={this.handleChangeAlgorithmClick}> Iforest </Button> 
                                       </Grid> 
                                       <Grid item xs={4}>
-                                          <Button variant="contained" id="anomaly_score" onClick={this.handleChangeAlgorithmClick}> Trained </Button> 
+                                          <Button variant="contained" id="final_score" onClick={this.handleChangeAlgorithmClick}> Trained </Button> 
                                       </Grid> 
                                   </Grid>
 
@@ -233,8 +322,16 @@ export class AnomalyTab extends React.Component {
                       </Grid>
                   </Grid>
 
-                  <Grid item xs={4}>
-                      {/* <h1> Metadata</h1> */}
+                  <Grid item xs={2}>
+                    <Grid container alignItems="center" spacing={5}>
+                      <Grid item xs={12}>
+                          <ObjectDisplayer title='Metadata' object={this.state.metadata} />
+                      </Grid>
+
+                      <Grid item xs={12}>
+                        <ObjectDisplayer title='Features' object={this.state.features} />
+                      </Grid>
+                    </Grid>
                   </Grid>
                   <Grid item xs={12}>
                       <div></div>

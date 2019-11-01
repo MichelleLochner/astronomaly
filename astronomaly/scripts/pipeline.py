@@ -3,9 +3,12 @@ from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import power_spectrum, wavelet_features
 from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
+from astronomaly.clustering import tsne
+from astronomaly.postprocessing import scaling
 
 
-def run_pipeline(image_dir, features = 'psd', dim_reduct = 'pca', anomaly_algo = 'iforest'):
+def run_pipeline(image_dir, features = 'psd', dim_reduct = 'pca', 
+                scaled = 'scaled', anomaly_algo = 'iforest', clustering='tsne'):
     """
     An example of the full astronomaly pipeline run on image data
 
@@ -31,7 +34,7 @@ def run_pipeline(image_dir, features = 'psd', dim_reduct = 'pca', anomaly_algo =
     pipeline_dict = image_preprocessing.generate_cutouts(pipeline_dict, window_size=128,
                                                         transform_function=image_preprocessing.image_transform_log)
 
-    if features == 'psd':
+    if features == 'psd2d':
         pipeline_dict = power_spectrum.extract_features_psd2d(pipeline_dict, nbins='auto')
         input_key = 'features_psd2d'
     elif features == 'wavelets':
@@ -44,14 +47,22 @@ def run_pipeline(image_dir, features = 'psd', dim_reduct = 'pca', anomaly_algo =
     elif dim_reduct == 'trunc_svd':
         pipeline_dict = decomposition.truncated_svd_decomp(pipeline_dict, input_key, 20)
         input_key = input_key + '_trunc_svd'
+    
+    if scaled == 'scaled':
+        pipeline_dict = scaling.scale_features(pipeline_dict, input_key)
+        input_key = input_key + '_scaled'
 
     if anomaly_algo == 'iforest':
         pipeline_dict = isolation_forest.run_isolation_forest(pipeline_dict, input_key,
                                                               output_column_name='iforest_score')
-
-
     pipeline_dict = human_loop_learning.convert_anomaly_score(pipeline_dict, 'iforest_score',
                                                               output_column='anomaly_score')
+
+    if clustering == 'tsne':
+        pipeline_dict = tsne.make_tsne(pipeline_dict, input_key, sort_by_column='anomaly_score')
+
+
+    
 
     return pipeline_dict
 

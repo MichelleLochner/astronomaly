@@ -1,6 +1,14 @@
 import numpy as np
 from scipy import ndimage
 import xarray
+import time
+from multiprocessing import Pool
+from itertools import product
+from functools import partial
+from astronomaly.base.base_pipeline import PipelineStage
+import pandas as pd
+
+
 
 def psd_2d(img, nbins):
     """
@@ -25,50 +33,82 @@ def psd_2d(img, nbins):
     # Now radially bin the power spectral density
     X, Y = np.meshgrid(np.arange(the_fft.shape[1]), np.arange(the_fft.shape[0]))
     r = np.hypot(X - the_fft.shape[1] // 2, Y - the_fft.shape[0] // 2)
-    max_freq = np.min((the_fft.shape[0]//2, the_fft.shape[1]//2))
+    max_freq = np.min((the_fft.shape[0] // 2, the_fft.shape[1] // 2))
     rbin = (nbins * r / max_freq).astype(np.int)
 
-    radial_sum = ndimage.sum(psd, labels=rbin, index=np.arange(1, nbins+1))
+    radial_sum = ndimage.sum(psd, labels=rbin, index=np.arange(1, nbins + 1))
 
     return radial_sum
 
 
-def extract_features_psd2d(pipeline_dict, nbins='auto', input_key='cutouts', output_key='features_psd2d'):
-    """
-    Performs a 2d FFT and constructs the power spectral density function for each image cutout.
+class PSD_Features(PipelineStage):
+    def __init__(self, nbins='auto', **kwargs):
+        """
+        Computes the power spectral density for an input image. Translation and rotation invariate features.
 
-    Parameters
-    ----------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and anomaly scores
-    nbins : int, string, optional
-        Number of frequency bins to use. Frequency will range from 1 pixel to the largest axis of the input image,
-        measured in pixels. If 'auto', nbins will be set to half the size of the smallest axis (maximum possible
-        frequency according to Nyquist)
-    input_key : str, optional
-        The input key of pipeline_dict to run the function on.
-    output_key : str, optional
-        The output key of pipeline_dict
+        Parameters
+        ----------
+        nbins : int, str
+            Number of frequency bins to use. Frequency will range from 1 pixel to the largest axis of the input image,
+            measured in pixels. If set to 'auto' will use the Nyquist theorem to automatically calculate the appropriate
+            number of bins at runtime.
+        """
+        super().__init__(nbins=nbins, **kwargs)
 
-    Returns
-    -------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and anomaly scores
+        self.nbins = nbins
 
-    """
-    print('Extracting 2D PSD...')
-    cutouts = pipeline_dict[input_key]
+    def _set_labels(self):
 
-    if nbins == 'auto':
-        shp = cutouts[0].shape
-        nbins = int(min(shp)//2)
+        if self.nbands == 1:
+            self.labels = ['psd_%d' %i for i in range(self.nbins)]
+        else:
+            self.labels = []
+            for band in range(self.nbands):
+                self.labels += ['psd_%d_band_%d' %(i,band) for i in range(self.nbins)]
 
-    output = []
-    for i in range(len(cutouts)):
-        output.append(psd_2d(cutouts[i], nbins=nbins))
+    def _execute_function(self, image):
+        """
+            Does the work in actually extracting the PSD
 
-    pipeline_dict[output_key] = xarray.DataArray(
-        output, coords={'id': pipeline_dict['metadata'].id}, dims=['id', 'features'], name=output_key)
+            Parameters
+            ----------
+            image : np.ndarray
+                Input image
 
-    print('Done!')
-    return pipeline_dict
+            Returns
+            -------
+            pd.DataFrame
+                Contains the extracted PSD features
+
+            """
+        if self.nbins == 'auto':
+            shp = image.shape[:2] # Here I'm explicitly assuming any multi-d images store the colours in the last dim
+            self.nbins = int(min(shp) // 2)
+
+        if len(image.shape) != 2:
+            self.nbands = image.shape[2]
+        else:
+            self.nbands = 1
+
+        if len(self.labels) == 0:
+            self._set_labels() # Only call this once we know the dimensions of the input data. Needs to be more robust!
+
+        if self.nbands == 1:
+            # Greyscale-like image
+            psd_feats = psd_2d(image, self.nbins)
+
+            return psd_feats
+
+        else:
+            psd_all_bands = []
+            labels = []
+            for band in range(len(image.shape[2])):
+                psd_feats = psd_2d(image[:,:,band], self.nbins)
+                psd_all_bands += list(psd_feats)
+                labels += ['psd_%d_band_%d' %(i,band) for i in range(self.nbins)]
+
+            return psd_all_bands
+
+
+
+

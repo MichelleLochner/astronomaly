@@ -1,50 +1,59 @@
-import numpy as np
+from astronomaly.base.base_pipeline import PipelineStage
 from sklearn.ensemble.iforest import IsolationForest
 import pandas as pd
+import pickle
+from os import path
 
+class IforestAlgorithm(PipelineStage):
+    def __init__(self, contamination='auto', **kwargs):
+        """
+        Runs sklearn's isolation forest anomaly detection algorithm and returns the anomaly score for each instance.
 
-def run_isolation_forest(pipeline_dict, input_key, output_column_name='', contamination='auto'):
-    """
-    Runs sklearn's isolation forest anomaly detection algorithm and stores the final scores in the 'ml_scores' key
-    in the pipeline_dict as a pandas dataframe.
+        Parameters
+        ----------
+        contamination : string or float, optional
+            Hyperparameter to pass to IsolationForest. 'auto' is recommended
 
-    Parameters
-    ----------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and anomaly scores
-    input_key : str
-        The input key of pipeline_dict to run the function on.
-    output_column_name : str, optional
-        The output column name of the 'ml_scores' dataframe in pipeline_dict.
-        If not provided defaults to 'iforest_score_'+input_key
-    contamination : string or float, optional
-        Hyperparameter to pass to IsolationForest. 'auto' is recommended
+        """
+        super().__init__(contamination=contamination, **kwargs)
 
-    Returns
-    -------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and anomaly scores
+        self.contamination = contamination
 
-    """
-    print('Running isolation forest...')
-    if output_column_name == '':
-        output_column_name = 'iforest_score_'+input_key
-    feats = pipeline_dict[input_key]
-    iforest = IsolationForest(contamination=contamination, behaviour='new')
-    iforest.fit(feats)
+        self.iforest_obj = None
 
-    scores = iforest.decision_function(feats)
+    def save_iforest_obj(self):
+        """
+        Stores the iforest object to the output directory to allow quick rerunning on new data.
+        """
+        if self.iforest_obj is not None:
+            f = open(path.join(self.output_dir, 'iforest_object.pickle'), 'wb')
+            pickle.dump(self.iforest_obj, f)
 
-    df = pipeline_dict['metadata']
-    if 'ml_scores' in pipeline_dict:
-        pipeline_dict['ml_scores'][output_column_name] = scores
-    else:
-        pipeline_dict['ml_scores'] = pd.DataFrame({'id':df.id, output_column_name: scores})
+    def _execute_function(self, features):
+        """
+        Does the work in actually running isolation forest.
 
-    pipeline_dict['iforest_object_'+input_key] = iforest
+        Parameters
+        ----------
+        features : pd.DataFrame or similar
+            The input features to run iforest on. Assumes the index is the id of each object and all columns are to
+            be used as features.
 
-    print('Done!')
+        Returns
+        -------
+        pd.DataFrame
+            Contains the same original index of the features input and the anomaly scores. More negative is
+            more anomalous.
 
-    return pipeline_dict
+        """
+        iforest = IsolationForest(contamination=self.contamination, behaviour='new')
+        iforest.fit(features)
+
+        scores = iforest.decision_function(features)
+
+        if self.save_output:
+            self.save_iforest_obj()
+
+        return pd.DataFrame(data=scores, index=features.index, columns=['score'])
 
 

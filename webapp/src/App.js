@@ -18,6 +18,9 @@ import {AlgorithmTab} from './components/AlgorithmTab'
 import {AnomalyTab} from './components/AnomalyTab'
 import {ClusteringTab} from './components/ClusteringTab'
 
+// const DATA_TYPE = 'image';
+// const DATA_TYPE = 'light_curve';
+
 const styles = theme =>({
   root: {
     // backgroundColor: 'white',
@@ -84,7 +87,9 @@ class App extends React.Component {
   constructor(props){
     super(props);
     this.handleChange = this.handleChange.bind(this);
-    this.state = {tabNumber: 1};
+    this.getDataType = this.getDataType.bind(this);
+    this.state = {tabNumber: 1,
+                  dataType: ''};
   }
 
 
@@ -93,8 +98,25 @@ class App extends React.Component {
     this.setState({tabNumber: newValue});
   }
 
+  getDataType(){
+    fetch("getdatatype", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify("datatype")
+    })
+    .then((res) => {return res.json()})
+    // .then((res)=> {console.log(res);
+    //               return res})
+    .then((res) => this.setState({dataType:res}))
+    .catch(console.log);
+  }
 
   render (){
+    // console.log('HELLO');
+    // console.log(this.props);
+    this.getDataType();
     const { classes } = this.props;
     return (
       <div className={classes.root}>
@@ -108,14 +130,14 @@ class App extends React.Component {
               centered
             >
               <Tab label="Algorithm" />
-              <Tab label="Anomaly Scoring" id={this.state.id}/>
-              <Tab label="Clustering" />
+              <Tab label="Anomaly Scoring"/>
+              <Tab label="Clustering"/>
             </Tabs>
           </AppBar>
 
           {this.state.tabNumber === 0 && <AlgorithmTab />}
-          {this.state.tabNumber === 1 && <AnomalyTab />}
-          {this.state.tabNumber === 2 && <ClusteringTab />}
+          {this.state.tabNumber === 1 && <AnomalyTab datatype={this.state.dataType} />}
+          {this.state.tabNumber === 2 && <ClusteringTab datatype={this.state.dataType}/>}
         </ThemeProvider>
       </div>
     );
