@@ -42,7 +42,7 @@ class NewDatasetClass(Dataset):
     super().__init__(an_argument=an_argument, another_argument=another_argument, **kwargs)
 ```
     
-Arguments must be explictly passed to the parent class' init function to ensure correct logging. The functions `get_sample` and `get_display_data` must be implemented. The class variable `metadata` must be defined and should be a DataFrame with the index corresponding to a unique key for each sample.
+Arguments must be explictly passed to the parent class' init function to ensure correct logging. The functions `get_sample` and `get_display_data` must be implemented. The class variable `metadata` must be defined and should be a DataFrame with the index corresponding to a unique key for each sample. The class variable `data_type` must also be defined and should correspond to a known string in the webapp in order for the data to be displayed correctly.
 
 ### Contributing a new PipelineStage class
 
