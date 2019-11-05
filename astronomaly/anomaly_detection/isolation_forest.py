@@ -8,7 +8,8 @@ from os import path
 class IforestAlgorithm(PipelineStage):
     def __init__(self, contamination='auto', **kwargs):
         """
-        Runs sklearn's isolation forest anomaly detection algorithm and returns the anomaly score for each instance.
+        Runs sklearn's isolation forest anomaly detection algorithm and returns
+        the anomaly score for each instance.
 
         Parameters
         ----------
@@ -24,7 +25,8 @@ class IforestAlgorithm(PipelineStage):
 
     def save_iforest_obj(self):
         """
-        Stores the iforest object to the output directory to allow quick rerunning on new data.
+        Stores the iforest object to the output directory to allow quick 
+        rerunning on new data.
         """
         if self.iforest_obj is not None:
             f = open(path.join(self.output_dir, 'iforest_object.pickle'), 'wb')
@@ -37,17 +39,19 @@ class IforestAlgorithm(PipelineStage):
         Parameters
         ----------
         features : pd.DataFrame or similar
-            The input features to run iforest on. Assumes the index is the id of each object and all columns are to
+            The input features to run iforest on. Assumes the index is the id 
+            of each object and all columns are to
             be used as features.
 
         Returns
         -------
         pd.DataFrame
-            Contains the same original index of the features input and the anomaly scores. More negative is
-            more anomalous.
+            Contains the same original index of the features input and the 
+            anomaly scores. More negative is more anomalous.
 
         """
-        iforest = IsolationForest(contamination=self.contamination, behaviour='new')
+        iforest = IsolationForest(contamination=self.contamination, 
+                                  behaviour='new')
         iforest.fit(features)
 
         scores = iforest.decision_function(features)
@@ -55,4 +59,5 @@ class IforestAlgorithm(PipelineStage):
         if self.save_output:
             self.save_iforest_obj()
 
-        return pd.DataFrame(data=scores, index=features.index, columns=['score'])
+        return pd.DataFrame(data=scores, index=features.index, 
+                            columns=['score'])
