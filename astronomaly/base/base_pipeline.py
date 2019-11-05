@@ -120,16 +120,16 @@ class PipelineStage(object):
             msg_string = self.function_call_signature + ' - checksum: ' + (str)(new_checksum)
             # print(msg_string)
             logging_tools.log(msg_string)
-            print('Running', self.class_name,'...')
+            print('Running', self.class_name, '...')
             t1 = time.time()
             output = self._execute_function(data)
             self.save(output, self.output_file)
-            print('Done! Time taken:', (time.time()-t1),'s')
+            print('Done! Time taken:', (time.time() - t1), 's')
             return output
 
     def run_on_dataset(self, dataset=None):
-        #### The idea is to be able to run this on new data but this will be buggy. Need another look at this before
-        # running it new data
+        # ***** The idea is to be able to run this on new data but this will be buggy. Need another look at this before
+        # running it new data ******
         if not self.args_same:
             # If the arguments have changed we rerun everything
             msg_string = self.function_call_signature
@@ -148,15 +148,15 @@ class PipelineStage(object):
         n = 0
         for i in dataset.index:
             if i not in self.previous_output.index or not self.args_same:
-                if n%100 == 0:
-                    print(n,'instances completed')
+                if n % 100 == 0:
+                    print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
                 out = self._execute_function(input_instance)
                 if len(output) == 0:
                     output = np.empty([len(dataset.index), len(out)])
                 output[n] = out
                 new_index.append(i)
-            n+=1
+            n += 1
 
         new_output = pd.DataFrame(data=output, index=new_index, columns=self.labels)
 
@@ -167,7 +167,7 @@ class PipelineStage(object):
 
         if self.save_output:
             self.save(output, self.output_file)
-        print('Done! Time taken: ',(time.time()-t1),'s')
+        print('Done! Time taken: ', (time.time() - t1), 's')
 
         return output
 

@@ -54,11 +54,10 @@ def log(msg, level='INFO'):
         root_logger.info(msg)
 
 
-
 def check_if_inputs_same(class_name, local_variables):
     hdlrs = logging.getLogger().handlers
-    #Try to be somewhat generic allowing for other handlers but this will only return the filename of the
-    #first FileHandler object it finds. This should be ok except for weird logging edge cases.
+    # Try to be somewhat generic allowing for other handlers but this will only return the filename of the
+    # first FileHandler object it finds. This should be ok except for weird logging edge cases.
     flname = ''
     checksum = 0
     for h in hdlrs:
@@ -68,7 +67,7 @@ def check_if_inputs_same(class_name, local_variables):
         except AttributeError:
             pass
 
-    if len(flname) == 0 or not path.exists(flname): #Log file doesn't exist yet
+    if len(flname) == 0 or not path.exists(flname):  # Log file doesn't exist yet
         return False
 
     else:
