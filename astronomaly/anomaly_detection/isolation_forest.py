@@ -4,6 +4,7 @@ import pandas as pd
 import pickle
 from os import path
 
+
 class IforestAlgorithm(PipelineStage):
     def __init__(self, contamination='auto', **kwargs):
         """
@@ -55,5 +56,3 @@ class IforestAlgorithm(PipelineStage):
             self.save_iforest_obj()
 
         return pd.DataFrame(data=scores, index=features.index, columns=['score'])
-
-
