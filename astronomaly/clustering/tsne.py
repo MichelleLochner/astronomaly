@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 from astronomaly.base.base_pipeline import PipelineStage
 
+
 class TSNE_Plot(PipelineStage):
-    def __init__(self, perplexity=30, max_samples=2000, shuffle=False,**kwargs):
+    def __init__(self, perplexity=30, max_samples=2000, shuffle=False, **kwargs):
         """
         Rescales features using a standard sklearn scalar that subtracts the mean and divides by the standard deviation
         for each feature. Highly recommended for most machine learning algorithms and for any data visualisation such as
@@ -40,11 +41,9 @@ class TSNE_Plot(PipelineStage):
                 inds = np.random.choice(features.index, self.max_samples, replace=False)
             features = features.loc[inds]
 
-
         ts = TSNE(perplexity=self.perplexity, learning_rate=10, n_iter=5000)
         ts.fit(features)
 
         fitted_tsne = ts.embedding_
 
         return pd.DataFrame(data=fitted_tsne, index=features.index)
-        
