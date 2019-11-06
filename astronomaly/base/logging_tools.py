@@ -6,7 +6,8 @@ def setup_logger(log_filename="astronomaly.log"):
     root_logger = logging.getLogger()
 
     if len(root_logger.handlers) == 0:
-        log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        log_formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s")
         root_logger.setLevel(logging.INFO)
 
         file_handler = logging.FileHandler(log_filename)
@@ -56,8 +57,9 @@ def log(msg, level='INFO'):
 
 def check_if_inputs_same(class_name, local_variables):
     hdlrs = logging.getLogger().handlers
-    # Try to be somewhat generic allowing for other handlers but this will only return the filename of the
-    # first FileHandler object it finds. This should be ok except for weird logging edge cases.
+    # Try to be somewhat generic allowing for other handlers but this will 
+    # only return the filename of the first FileHandler object it finds. 
+    # This should be ok except for weird logging edge cases.
     flname = ''
     checksum = 0
     for h in hdlrs:
@@ -67,7 +69,8 @@ def check_if_inputs_same(class_name, local_variables):
         except AttributeError:
             pass
 
-    if len(flname) == 0 or not path.exists(flname):  # Log file doesn't exist yet
+    if len(flname) == 0 or not path.exists(flname):
+        # Log file doesn't exist yet
         return False
 
     else:
@@ -83,7 +86,7 @@ def check_if_inputs_same(class_name, local_variables):
                             key, value = substring.split('=')
                             func_args[key.strip()] = value.strip()
                         except ValueError:
-                            # This happens when there are no arguments to the function
+                            # This happens when there are no arguments
                             pass
                 checksum_ln = ln.split('checksum:')
                 if len(checksum_ln) > 1:

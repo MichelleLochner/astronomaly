@@ -41,7 +41,6 @@ class RawFeatures(Dataset):
         cols = list(self.features.columns)
         feats = self.features.loc[idx].values
 
-        out_dict = {'categories':cols}
+        out_dict = {'categories': cols}
         out_dict['data'] = [[i, feats[i]] for i in range(len(feats))]
         return out_dict
-

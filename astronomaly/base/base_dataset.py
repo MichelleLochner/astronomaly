@@ -41,13 +41,17 @@ class Dataset(object):
         else:
             self.output_dir = './'
 
-        # This allows the automatic logging every time this class is instantiated (i.e. every time this pipeline stage
-        # is run). That means any class that inherits from this base class will have automated logging.
+        # This allows the automatic logging every time this class is 
+        # instantiated (i.e. every time this pipeline stage
+        # is run). That means any class that inherits from this base class 
+        # will have automated logging.
 
-        logging_tools.setup_logger(os.path.join(self.output_dir, 'astronomaly.log'))
+        logging_tools.setup_logger(os.path.join(self.output_dir, 
+                                                'astronomaly.log'))
 
         class_name = type(locals()['self']).__name__
-        function_call_signature = logging_tools.format_function_call(class_name, *args, **kwargs)
+        function_call_signature = logging_tools.format_function_call(
+            class_name, *args, **kwargs)
         logging_tools.log(function_call_signature)
 
     def get_sample(self, idx):

@@ -1,14 +1,13 @@
 import pywt
 import numpy as np
-import pandas as pd
 from astronomaly.base.base_pipeline import PipelineStage
 
 
 def flatten_swt2_coefficients(wavelet_coeffs):
     """
     A standardised way of flattening the swt2d coefficients
-    They are stored as n_levels -> (cA, (cH, cV, cD)) where each of the sets of coeffcients has a list of
-    [npixels, npixels]
+    They are stored as n_levels -> (cA, (cH, cV, cD)) where each of the sets 
+    of coeffcients has a list of [npixels, npixels]
 
     Parameters
     ----------
@@ -31,10 +30,12 @@ def flatten_swt2_coefficients(wavelet_coeffs):
 
     for lev in range(len(wavelet_coeffs)):
         approx_coeffs = wavelet_coeffs[lev][0]
-        output_array[4 * lev * pixel_count:(4 * lev + 1) * pixel_count] = approx_coeffs.reshape(pixel_count)
+        output_array[4 * lev * pixel_count:(4 * lev + 1) * pixel_count] = \
+            approx_coeffs.reshape(pixel_count)
         for det in range(3):
             detailed_coeffs = wavelet_coeffs[lev][1][det]
-            output_array[(4 * lev + det + 1) * pixel_count:(4 * lev + det + 2) * pixel_count] = detailed_coeffs.reshape(
+            start = (4 * lev + det + 1) * pixel_count
+            output_array[start:start + pixel_count] = detailed_coeffs.reshape(
                 pixel_count)
 
     return output_array
@@ -49,9 +50,11 @@ def generate_labels(wavelet_coeffs):
 
     for lev in range(len(wavelet_coeffs)):
         labels[4 * lev * pixel_count:(4 * lev + 1) * pixel_count] = \
-            np.array(['cA%d_%d' %(lev,i) for i in range(pixel_count)], dtype='str')
+            np.array(['cA%d_%d' % (lev, i) for i in range(pixel_count)], 
+                     dtype='str')
         for det in range(3):
-            labels[(4 * lev + det + 1) * pixel_count:(4 * lev + det + 2) * pixel_count] = \
+            start = (4 * lev + det + 1) * pixel_count
+            labels[start: start + pixel_count] = \
                 ['c%s%d_%d' % (cfs[det], lev, i) for i in range(pixel_count)]
     return labels
 
@@ -80,11 +83,15 @@ def reshape_swt2_coefficients(flat_coeffs, nlev, image_shape):
     output = []
     for lev in range(nlev):
         output_lev = []
-        approx_coeffs = flat_coeffs[4 * lev * pixel_count:(4 * lev + 1) * pixel_count].reshape(image_shape)
+        start = 4 * lev * pixel_count
+        unshaped_coeffs = flat_coeffs[start: start + pixel_count]
+        approx_coeffs = unshaped_coeffs.reshape(image_shape)
         output_lev.append(approx_coeffs)
         det_coeffs = []
         for det in range(3):
-            det_coeffs.append(flat_coeffs[(4 * lev + det + 1) * pixel_count:(4 * lev + det + 2) * pixel_count].reshape(image_shape))
+            start = (4 * lev + det + 1) * pixel_count
+            unshaped_coeffs = flat_coeffs[start: start + pixel_count]
+            det_coeffs.append(unshaped_coeffs.reshape(image_shape))
         output_lev.append(det_coeffs)
         output.append(output_lev)
     return output
@@ -147,11 +154,13 @@ class WaveletFeatures(PipelineStage):
 
         """
 
-        # Here I'm explicitly assuming any multi-d images store the colours in the last dim
+        # Here I'm explicitly assuming any multi-d images store the colours 
+        # in the last dim
         if len(image.shape) == 2:
             # Greyscale-like image
 
-            coeffs = wavelet_decomposition(image, level=self.level, wavelet_family=self.wavelet_family)
+            coeffs = wavelet_decomposition(image, level=self.level, 
+                                           wavelet_family=self.wavelet_family)
             flattened_coeffs = flatten_swt2_coefficients(coeffs)
             if len(self.labels) == 0:
                 self.labels = generate_labels(coeffs)
@@ -160,13 +169,14 @@ class WaveletFeatures(PipelineStage):
             wavs_all_bands = []
             all_labels = []
             for band in range(len(image.shape[2])):
-                coeffs= wavelet_decomposition(image, level=self.level, wavelet_family=self.wavelet_family)
+                coeffs = wavelet_decomposition(image, level=self.level, 
+                                            wavelet_family=self.wavelet_family)  # noqa E128
                 flattened_coeffs = flatten_swt2_coefficients(coeffs)
                 wavs_all_bands += list(flattened_coeffs)
                 if len(self.labels) == 0:
                     labels = generate_labels(coeffs)
-                    all_labels += ['%s_band_%d' %(labels[i],band) for i in range(labels)]
+                    all_labels += ['%s_band_%d' % (labels[i], band)
+                                   for i in range(labels)]
             if len(self.labels) == 0:
                 self.labels = all_labels
             return wavs_all_bands
-

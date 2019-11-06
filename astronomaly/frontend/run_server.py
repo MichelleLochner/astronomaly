@@ -5,19 +5,21 @@ from astronomaly.frontend.interface import Controller
 import logging
 import argparse
 
-#Main function to serve Astronomaly
+# Main function to serve Astronomaly
 
 parser = argparse.ArgumentParser(description='Run the Astronomaly server')
-parser.add_argument('script', help='Location of the script Astronomaly should run. See the scripts folder for examples.')
-args=parser.parse_args()
+help_str = 'Location of the script Astronomaly should run. \
+    See the scripts folder for examples.'
+parser.add_argument('script', help=help_str)
+args = parser.parse_args()
 script = args.script
 
-webapp_dir = join('..','..','webapp')
+webapp_dir = join('..', '..', 'webapp')
 
 
 app = Flask(__name__,
-            static_folder = join(webapp_dir,'public'),
-            template_folder=join(webapp_dir,'public'))
+            static_folder=join(webapp_dir, 'public'),
+            template_folder=join(webapp_dir, 'public'))
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -38,6 +40,7 @@ def get_index():
         return json.dumps(ind)
     else:
         return ""
+
 
 @app.route('/getdatatype', methods=["POST"])
 def get_data_type():
@@ -78,6 +81,7 @@ def get_features():
     else:
         return ""
 
+
 @app.route('/getrawfeatures', methods=["POST"])
 def get_raw_features():
     if request.method == "POST":
@@ -101,7 +105,7 @@ def get_image():
         return ""
 
 
-@app.route('/cluster', methods=["GET","POST"])
+@app.route('/cluster', methods=["GET", "POST"])
 def get_clusters():
     if request.method == "POST":
         technique = request.get_json()
@@ -111,7 +115,7 @@ def get_clusters():
             return js
 
 
-@app.route('/sort', methods=["GET","POST"])
+@app.route('/sort', methods=["GET", "POST"])
 def sort_data():
     if request.method == "POST":
         column = (str)(request.get_json())
@@ -125,7 +129,7 @@ def sort_data():
         return json.dumps("success")
 
 
-@app.route('/label', methods=["GET","POST"])
+@app.route('/label', methods=["GET", "POST"])
 def get_label():
     if request.method == "POST":
         out_dict = request.get_json()
@@ -139,6 +143,6 @@ if __name__ == "__main__":
     controller.run_pipeline()
     host = 'http://127.0.0.1:5000/'
     print('##### Astronomaly server now running #####')
-    print('Point your browser to',host)
+    print('Point your browser to', host)
     print()
     app.run()
