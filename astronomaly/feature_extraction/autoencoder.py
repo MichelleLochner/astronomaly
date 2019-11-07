@@ -199,7 +199,7 @@ class AutoencoderFeatures(PipelineStage):
                 training_dataset.window_size_y))
             print('Done!')
             print('Training autoencoder...')
-            self.autoenc.fit(training_dataset.cutouts, epochs=1)
+            self.autoenc.fit(training_dataset.cutouts, epochs=10)
             print('Done!')
 
             if self.save_output:
