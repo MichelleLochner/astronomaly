@@ -135,10 +135,10 @@ class PipelineStage(object):
         if self.args_same and new_checksum == self.checksum:
             # This means we've already run this function for all instances in 
             # the input and with the same arguments
-            msg = "Pipeline stage %s previously called with same arguments \
-                   and same data. Loading from file.\
-                   Use 'force_rerun=True' in init args to override this \
-                   behavior." % self.class_name
+            msg = "Pipeline stage %s previously called " \
+                  "with same arguments and same data. Loading from file. " \
+                  "Use 'force_rerun=True' in init args to override this " \
+                  "behavior." % self.class_name
             logging_tools.log(msg, level='WARNING')
             return self.previous_output
         else:
@@ -166,10 +166,10 @@ class PipelineStage(object):
             logging_tools.log(msg_string)
         else:
             # Otherwise we only run instances not already in the output
-            msg = "Pipeline stage %s previously called with same arguments. \
-                   Loading from file. Will only run for new samples. \
-                   Use 'force_rerun=True' in init args to override this \
-                   behavior." % self.class_name
+            msg = "Pipeline stage %s previously called " \
+                "with same arguments. Loading from file. Will only run " \
+                "for new samples. Use 'force_rerun=True' in init args " \
+                "to override this behavior." % self.class_name
             logging_tools.log(msg, level='WARNING')
 
         print('Extracting features using', self.class_name, '...')
