@@ -30,7 +30,7 @@ class ScoreConverter(PipelineStage):
             If true will force the resulting scores to be integer.
         column_name : str
             The name of the column to convert to the new scoring method. 
-            Default is 'scores'. If 'all' is used, will convert all columns 
+            Default is 'score'. If 'all' is used, will convert all columns 
             the DataFrame.
         """
         super().__init__(lower_is_weirder=lower_is_weirder, new_min=new_min, 
@@ -110,7 +110,8 @@ class NeighbourScore(PipelineStage):
             Default is 'scores'. If 'all' is used, will convert all columns in 
             the DataFrame.
         """
-        super().__init__(min_score=0.1, max_score=5, alpha=1, **kwargs)
+        super().__init__(min_score=min_score, max_score=max_score, alpha=alpha, 
+                         **kwargs)
         self.min_score = min_score
         self.max_score = max_score
         self.alpha = alpha
@@ -125,8 +126,9 @@ class NeighbourScore(PipelineStage):
         Parameters
         ----------
         """
-        f_u = 0.1 + 0.85 * (user_score / 5)
+        f_u = self.min_score + 0.85 * (user_score / self.max_score)
         dist_penalty = np.exp(nearest_neighbour_distance / self.alpha)
+        # print(dist_penalty)
         return anomaly_score * np.tanh(dist_penalty - 1 + np.arctanh(f_u))
 
     def compute_nearest_neighbour(self, features_with_labels):
@@ -140,7 +142,7 @@ class NeighbourScore(PipelineStage):
         mytree = cKDTree(labelled)
         distances = np.zeros(len(features))
         for i in range(len(features)):
-            dist, = mytree.query(features[i])
+            dist = mytree.query(features[i])[0]
             distances[i] = dist
         # print(labelled)
         return distances
