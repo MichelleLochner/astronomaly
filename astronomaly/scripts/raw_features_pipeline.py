@@ -1,11 +1,11 @@
 import os
 from astronomaly.data_management import raw_features
-from astronomaly.preprocessing import scaling
+from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import lof, human_loop_learning
 from astronomaly.clustering import tsne
 
 input_file = \
-    '/home/michelle/Project/OutlierDetection/outlier_detection/data/y_test.npy'
+    '/home/michelle/Project/Anomaly/badac_data/y_test.npy'
 output_dir = '/home/michelle/BigData/Anomaly/astronomaly_output/badac/'
 
 
@@ -33,7 +33,7 @@ def run_pipeline():
         alpha=1, force_rerun=True, output_dir=output_dir)
 
     pipeline_tsne = tsne.TSNE_Plot(output_dir=output_dir, perplexity=50)
-    t_plot = pipeline_tsne.run(features)
+    t_plot = pipeline_tsne.run(features.loc[anomalies.index])
 
     return {'dataset': raw_dataset, 
             'features': features, 

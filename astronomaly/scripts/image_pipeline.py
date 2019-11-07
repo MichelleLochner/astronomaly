@@ -88,7 +88,7 @@ def run_pipeline():
         pipeline_tsne = tsne.TSNE_Plot(force_rerun=False,
                                        output_dir=output_dir, 
                                        perplexity=50)
-        t_plot = pipeline_tsne.run(features)
+        t_plot = pipeline_tsne.run(features.loc[anomalies.index])
         # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
 
         return {'dataset': image_dataset, 
