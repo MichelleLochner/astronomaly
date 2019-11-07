@@ -120,8 +120,12 @@ class PipelineStage(object):
         checksum : str
             The checksum
         """
-        hash_per_row = hash_pandas_object(data)
-        total_hash = hash_pandas_object(pd.DataFrame([hash_per_row.values]))
+        try:
+            hash_per_row = hash_pandas_object(data)
+            total_hash = hash_pandas_object(pd.DataFrame(
+                [hash_per_row.values]))
+        except TypeError:
+            total_hash = hash_pandas_object(pd.DataFrame(data))
         return int(total_hash.values[0])
 
     def run(self, data):
@@ -153,9 +157,12 @@ class PipelineStage(object):
         # ***** The idea is to be able to run this on new data but this will 
         # be buggy. Need another look at this before
         # running it new data ******
-        if not self.args_same:
+        # **** Also this is definitely not full-proof
+        new_checksum = self.hash_data(dataset.get_sample(dataset.index[0]))
+        if not self.args_same or new_checksum != self.checksum:
             # If the arguments have changed we rerun everything
-            msg_string = self.function_call_signature
+            msg_string = self.function_call_signature + ' - checksum: ' + \
+                (str)(new_checksum)
             logging_tools.log(msg_string)
         else:
             # Otherwise we only run instances not already in the output

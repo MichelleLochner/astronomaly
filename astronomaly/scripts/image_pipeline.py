@@ -1,6 +1,6 @@
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
-from astronomaly.feature_extraction import power_spectrum
+from astronomaly.feature_extraction import power_spectrum, autoencoder
 from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
@@ -8,8 +8,12 @@ from astronomaly.clustering import tsne
 import os
 
 
-image_dir = '/home/michelle/BigData/Anomaly/GOODS_S/'
+# image_dir = '/home/michelle/BigData/Anomaly/GOODS_S/'
+image_dir = '/home/michelle/BigData/Anomaly/Meerkat_deep2/'
 output_dir = '/home/michelle/BigData/Anomaly/astronomaly_output/images/'
+
+feature_method = 'psd'
+dim_reduction = 'pca'
 
 
 def run_pipeline():
@@ -43,16 +47,28 @@ def run_pipeline():
         image_dataset = image_reader.ImageDataset(
             image_dir,
             transform_function=image_preprocessing.image_transform_log,
-            window_size=128)
+            window_size=128, output_dir=output_dir)
 
-        pipeline_psd = power_spectrum.PSD_Features(force_rerun=False, 
-                                                   output_dir=output_dir)
-        features_original = pipeline_psd.run_on_dataset(image_dataset)
+        training_dataset = image_reader.ImageDataset(
+            image_dir,
+            transform_function=image_preprocessing.image_transform_log,
+            window_size=128, window_shift=64, output_dir=output_dir)
 
-        pipeline_pca = decomposition.PCA_Decomposer(force_rerun=False, 
-                                                    output_dir=output_dir,
-                                                    n_components=2)
-        features = pipeline_pca.run(features_original)
+        if feature_method == 'psd':
+            pipeline_psd = power_spectrum.PSD_Features(
+                force_rerun=False, output_dir=output_dir)
+            features_original = pipeline_psd.run_on_dataset(image_dataset)
+        elif feature_method == 'autoencoder':
+            pipeline_autoenc = autoencoder.AutoencoderFeatures(
+                output_dir=output_dir, training_dataset=training_dataset,
+                retrain=True)
+            features = pipeline_autoenc.run_on_dataset(image_dataset)
+
+        if dim_reduction == 'pca':
+            pipeline_pca = decomposition.PCA_Decomposer(force_rerun=False, 
+                                                        output_dir=output_dir,
+                                                        n_components=2)
+            features = pipeline_pca.run(features_original)
 
         pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
                                                 output_dir=output_dir)

@@ -1,7 +1,6 @@
 import numpy as np
-import xarray
-from astronomaly.preprocessing import image_preprocessing
 import os
+from astronomaly.base.base_pipeline import PipelineStage
 
 try:
     from keras.models import load_model
@@ -171,71 +170,48 @@ class Autoencoder:
         self.autoencoder.save(filename)
 
 
-def extract_features_autoencoder(pipeline_dict, model_file='', 
-                                 input_key='cutouts', 
-                                 output_key='features_autoencoder'):
-    """
-    Runs a standard autoencoder on image cutouts. This function needs to be 
-    more flexible in terms of model parameters!
+class AutoencoderFeatures(PipelineStage):
+    def __init__(self, training_dataset=None, retrain=False, **kwargs):
+        """
+        Runs a standard autoencoder on image cutouts. This function needs to be 
+        more flexible in terms of model parameters!
 
-    Parameters
-    ----------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and
-        anomaly scores
-    model_file : str, optional
-        Location of saved keras model file to allow quick rerunning of
-        autoencoder.
-         If a file path is provided but does
-        not exist, the model will be trained and then saved to this file path.
-    input_key : str, optional
-        The input key of pipeline_dict to run the function on.
-    output_key : str, optional
-        The output key of pipeline_dict
+        Parameters
+        ----------   
+        """
+        super().__init__(training_dataset=training_dataset, **kwargs)
 
-    Returns
-    -------
-    pipeline_dict : dict
-        Dictionary containing all relevant data including cutouts, features and
-        anomaly scores
-    """
-    window_size_x, window_size_y = pipeline_dict[input_key][0].shape
-    # We want a smaller sliding window when generating training data to
-    # produce enough data and also ensure translation invariance
-    window_shift = window_size_x // 2
+        if training_dataset is None:
+            raise ValueError('A training dataset object must be provided.')
 
-    # We need to work out a way to do this that ensures the training data is 
-    # created in the same way as the test data
-    # Also may need to worry about a training/test split if the autoencoder is 
-    # going to be used on other images
-    print('Running autoencoder...')
+        model_file = os.path.join(self.output_dir, 'autoencoder.h5')
 
-    autoenc = Autoencoder(model_file=model_file)
-    if autoenc.autoencoder is None:
-        print('Generating training data...')
-        pipeline_dict = \
-            image_preprocessing.generate_cutouts(pipeline_dict,
-                window_size=window_size_x, window_shift=window_shift, 
-                output_key='training_data',
-                transform_function=image_preprocessing.image_transform_log) # noqa E128
-        print('Compiling autoencoder model...')
-        autoenc.compile_autoencoder_model((window_size_x, window_size_y))
-        print('Done!')
-        print('Training autoencoder...')
-        autoenc.fit(pipeline_dict['training_data'])
-        print('Done!')
-    else:
-        print('Trained autoencoder read from file.')
+        if retrain or ('force_rerun' in kwargs and kwargs['force_rerun']):
+            self.autoenc = Autoencoder()
+        else:
+            self.autoenc = Autoencoder(model_file=model_file)
 
-    print('Encoding images...')
-    feats = autoenc.encode(pipeline_dict[input_key])
-    feats = np.reshape(feats, [len(feats), np.prod(feats.shape[1:])])
-    feats = xarray.DataArray(
-        feats, coords={'id': pipeline_dict['metadata'].id}, 
-        dims=['id', 'features'], name=output_key)
-    print('Done!')
-    pipeline_dict[output_key] = feats
+        if self.autoenc.autoencoder is None:
 
-    if len(model_file) != 0 and not os.path.exists(model_file):
-        autoenc.save(model_file)
-    return pipeline_dict
+            print('Compiling autoencoder model...')
+            self.autoenc.compile_autoencoder_model((
+                training_dataset.window_size_x, 
+                training_dataset.window_size_y))
+            print('Done!')
+            print('Training autoencoder...')
+            self.autoenc.fit(training_dataset.cutouts, epochs=1)
+            print('Done!')
+
+            if self.save_output:
+                print('Autoencoder model saved to', model_file)
+                self.autoenc.save(model_file)
+
+        else:
+            print('Trained autoencoder read from file', model_file)
+
+    def _execute_function(self, image):
+        feats = self.autoenc.encode(image)
+        feats = np.reshape(feats, [np.prod(feats.shape[1:])])
+        if len(self.labels) == 0:
+            self.labels = ['enc_%d' % i for i in range(len(feats))] 
+        return feats
