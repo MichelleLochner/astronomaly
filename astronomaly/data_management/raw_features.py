@@ -8,7 +8,7 @@ class RawFeatures(Dataset):
         super().__init__(**kwargs)
 
         self.features = []
-
+        print('Loading features...')
         for f in self.files:
             ext = f.split('.')[-1]
 
@@ -29,6 +29,8 @@ class RawFeatures(Dataset):
 
         # Force string index because it's safer
         self.features.index = self.features.index.astype('str')
+
+        print('Done!')
 
         self.data_type = 'raw_features'
 
