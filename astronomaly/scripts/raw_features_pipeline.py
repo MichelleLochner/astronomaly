@@ -39,7 +39,7 @@ def run_pipeline():
 
     raw_dataset = raw_features.RawFeatures(list_of_files=input_files, 
                                            output_dir=output_dir)
-    features = raw_dataset.features[:15000]
+    features = raw_dataset.features
 
     # pipeline_scaler = scaling.FeatureScaler(output_dir=output_dir)
     # features = pipeline_scaler.run(raw_dataset.features)
@@ -53,7 +53,7 @@ def run_pipeline():
     anomalies = anomalies.sort_values('score', ascending=False)
 
     anomalies = artificial_human_labelling(
-        anomalies=anomalies, metadata=raw_dataset.metadata[:15000], N=200, 
+        anomalies=anomalies, metadata=raw_dataset.metadata, N=200, 
         human_labels={0: 0, 1: 0, 2: 3, 3: 0, 4: 5})
 
     pipeline_active_learning = human_loop_learning.NeighbourScore(
