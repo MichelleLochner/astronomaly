@@ -51,10 +51,10 @@ class LOF_Algorithm(PipelineStage):
 
         """
         self.algorithm_obj = LocalOutlierFactor(
-            contamination=self.contamination, novelty=True)
-        self.algorithm_obj.fit(features)
+            contamination=self.contamination, novelty=False)
+        self.algorithm_obj.fit_predict(features)
 
-        scores = self.algorithm_obj.decision_function(features)
+        scores = self.algorithm_obj.negative_outlier_factor_
 
         if self.save_output:
             self.save_algorithm_obj()

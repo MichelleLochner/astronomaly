@@ -67,7 +67,7 @@ class Controller:
         features_with_labels = \
             pipeline_active_learning.combine_data_frames(self.features, 
                                                          self.anomaly_scores)
-        # print(features_with_labels)
+        print(features_with_labels)
         scores = pipeline_active_learning.run(features_with_labels)
         self.anomaly_scores['final_score'] = scores
 

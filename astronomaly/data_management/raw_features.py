@@ -8,33 +8,59 @@ class RawFeatures(Dataset):
         super().__init__(**kwargs)
 
         self.features = []
+        self.labels = []
+
         print('Loading features...')
         for f in self.files:
             ext = f.split('.')[-1]
+            feats = []
+            labels = []
 
             if ext == 'npy':
-                feats = np.load(f)
-                feats = pd.DataFrame(data=feats)
+                if 'labels' in f:
+                    labels = np.load(f)
+                    labels = pd.DataFrame(data=labels, columns=['label'])
+                else:
+                    feats = np.load(f)
+                    feats = pd.DataFrame(data=feats)
 
             elif ext == 'csv':
-                feats = pd.read_csv(f)
+                if 'labels' in f:
+                    labels = pd.read_csv(f)
+                else:
+                    feats = pd.read_csv(f)
 
             elif ext == 'parquet':
-                feats = pd.read_parquet(f)
+                if 'labels' in f:
+                    labels = pd.read_parquet(f)
+                else:
+                    feats = pd.read_parquet(f)
 
-            if len(self.features) == 0:
-                self.features = feats
-            else:
-                self.features = pd.concat((self.features, feats))
+            if len(feats) != 0:
+                if len(self.features) == 0:
+                    self.features = feats
+                else:
+                    self.features = pd.concat((self.features, feats))
+
+            if len(labels) != 0:
+                if len(self.labels) == 0:
+                    self.labels = labels
+                else:
+                    self.labels = pd.concat((self.labels, labels))
 
         # Force string index because it's safer
         self.features.index = self.features.index.astype('str')
+        self.labels.index = self.labels.index.astype('str')
 
         print('Done!')
 
         self.data_type = 'raw_features'
 
-        self.metadata = pd.DataFrame(data=[], index=list(self.features.index))
+        if len(labels) != 0:
+            self.metadata = self.labels
+        else:
+            self.metadata = pd.DataFrame(data=[], 
+                                         index=list(self.features.index))
 
     def get_sample(self, idx):
         return self.features.loc[idx].values
