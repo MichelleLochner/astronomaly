@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from astronomaly.data_management import raw_features
-from astronomaly.postprocessing import scaling
+# from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import lof, human_loop_learning
 from astronomaly.clustering import tsne
 
@@ -20,7 +20,7 @@ def artificial_human_labelling(anomalies=None, metadata=None, N=200,
     if metadata is None:
         raise ValueError('True labels not given')
 
-    anomalies['human_label'] = [-1]*len(anomalies)
+    anomalies['human_label'] = [-1] * len(anomalies)
 
     labels = metadata.loc[anomalies.index]
     for k in list(human_labels.keys()):
