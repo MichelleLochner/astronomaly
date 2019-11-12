@@ -19,7 +19,8 @@ class RawFeatures(Dataset):
             if ext == 'npy':
                 if 'labels' in f:
                     labels = np.load(f)
-                    labels = pd.DataFrame(data=labels, columns=['label'])
+                    labels = pd.DataFrame(data=labels, 
+                                          columns=['label'], dtype='int')
                 else:
                     feats = np.load(f)
                     feats = pd.DataFrame(data=feats)
