@@ -1,8 +1,8 @@
 import logging
-from os import path
+import os
 
 
-def setup_logger(log_filename="astronomaly.log"):
+def setup_logger(log_directory='', log_filename="astronomaly.log"):
     root_logger = logging.getLogger()
 
     if len(root_logger.handlers) == 0:
@@ -10,7 +10,11 @@ def setup_logger(log_filename="astronomaly.log"):
             "%(asctime)s - %(levelname)s - %(message)s")
         root_logger.setLevel(logging.INFO)
 
-        file_handler = logging.FileHandler(log_filename)
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+
+        file_handler = logging.FileHandler(
+            os.path.join(log_directory, log_filename))
         file_handler.setFormatter(log_formatter)
         file_handler.setLevel(logging.INFO)
 
@@ -69,7 +73,7 @@ def check_if_inputs_same(class_name, local_variables):
         except AttributeError:
             pass
 
-    if len(flname) == 0 or not path.exists(flname):
+    if len(flname) == 0 or not os.path.exists(flname):
         # Log file doesn't exist yet
         return False
 

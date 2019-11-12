@@ -46,8 +46,8 @@ class Dataset(object):
         # is run). That means any class that inherits from this base class 
         # will have automated logging.
 
-        logging_tools.setup_logger(os.path.join(self.output_dir, 
-                                                'astronomaly.log'))
+        logging_tools.setup_logger(log_directory=self.output_dir, 
+                                   log_filename='astronomaly.log')
 
         class_name = type(locals()['self']).__name__
         function_call_signature = logging_tools.format_function_call(
