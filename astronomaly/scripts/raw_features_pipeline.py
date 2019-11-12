@@ -44,7 +44,8 @@ def run_pipeline():
     # pipeline_scaler = scaling.FeatureScaler(output_dir=output_dir)
     # features = pipeline_scaler.run(raw_dataset.features)
 
-    pipeline_lof = lof.LOF_Algorithm(output_dir=output_dir, force_rerun=False)
+    pipeline_lof = lof.LOF_Algorithm(output_dir=output_dir, n_neighbors=100, 
+                                     force_rerun=False)
     anomalies = pipeline_lof.run(features)
 
     pipeline_score_converter = human_loop_learning.ScoreConverter(

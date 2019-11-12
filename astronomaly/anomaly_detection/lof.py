@@ -6,7 +6,7 @@ from os import path
 
 
 class LOF_Algorithm(PipelineStage):
-    def __init__(self, contamination='auto', **kwargs):
+    def __init__(self, contamination='auto', n_neighbors=20, **kwargs):
         """
         Runs sklearn's isolation forest anomaly detection algorithm and returns
         the anomaly score for each instance.
@@ -17,9 +17,11 @@ class LOF_Algorithm(PipelineStage):
             Hyperparameter to pass to IsolationForest. 'auto' is recommended
 
         """
-        super().__init__(contamination=contamination, **kwargs)
+        super().__init__(
+            contamination=contamination, n_neighbors=n_neighbors, **kwargs)
 
         self.contamination = contamination
+        self.n_neighbors = n_neighbors
 
         self.algorithm_obj = None
 
@@ -51,7 +53,10 @@ class LOF_Algorithm(PipelineStage):
 
         """
         self.algorithm_obj = LocalOutlierFactor(
-            contamination=self.contamination, novelty=False)
+            contamination=self.contamination, 
+            n_neighbors=self.n_neighbors, 
+            novelty=False)
+
         self.algorithm_obj.fit_predict(features)
 
         scores = self.algorithm_obj.negative_outlier_factor_
