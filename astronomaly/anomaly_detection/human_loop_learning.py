@@ -88,27 +88,25 @@ class ScoreConverter(PipelineStage):
 class NeighbourScore(PipelineStage):
     def __init__(self, min_score=0.1, max_score=5, alpha=1, **kwargs):
         """
-        Convenience function to convert anomaly scores onto a standardised 
-        scale, for use with the human-in-the-loop labelling frontend.
+        Computes a new anomaly score based on what the user has labelled,
+        allowing anomalous but boring objects to be rejected. This function
+        takes training data (in the form of human given labels) and then
+        performs regression to be able to predict user scores as a function of
+        feature space. In regions of feature space where the algorithm is
+        uncertain (i.e. there was little training data), it simply returns
+        close to the original anomaly score. In regions where there was more
+        training data, the anomaly score is modulated by the predicted user
+        score resulting in the user seeing less "boring" objects.
 
         Parameters
         ----------
-        lower_is_weirder : bool
-            If true, it means the anomaly scores in input_column correspond to 
-            a lower is more anomalous system, such as output by isolation 
-            forest.
-        new_min : int or float
-            The new minimum score (now corresponding to the most boring 
-            objects)
-        new_max : int or float
-            The new maximum score (now corresponding to the most interesting 
-            objects)
-        convert_integer : bool
-            If true will force the resulting scores to be integer.
-        column_name : str
-            The name of the column to convert to the new scoring method. 
-            Default is 'scores'. If 'all' is used, will convert all columns in 
-            the DataFrame.
+        min_score : float
+            The lowest user score possible (must be greater than zero)
+        max_score : float
+            The highest user score possible
+        alpha : float
+            A scaling factor of how much to "trust" the predicted user scores.
+            Should be close to one but is a tuning parameter.
         """
         super().__init__(min_score=min_score, max_score=max_score, alpha=alpha, 
                          **kwargs)
@@ -127,7 +125,9 @@ class NeighbourScore(PipelineStage):
         ----------
         """
         f_u = self.min_score + 0.85 * (user_score / self.max_score)
-        dist_penalty = np.exp(nearest_neighbour_distance / self.alpha)
+        dist_penalty = np.exp(
+            nearest_neighbour_distance / np.mean(nearest_neighbour_distance) * 
+            self.alpha)
         # print(dist_penalty)
         return anomaly_score * np.tanh(dist_penalty - 1 + np.arctanh(f_u))
 
