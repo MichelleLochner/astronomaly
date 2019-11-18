@@ -6,6 +6,21 @@ import sys
 
 class Controller:
     def __init__(self, pipeline_file):
+        """
+        This is the main controller for the interface between the Python
+        backend and the JavaScript frontend. The Controller is passed a python
+        file, which must contain a "run_pipeline" function and return a
+        dictionary. The Controller consists of various functions which get
+        called by the front end asking for things like data to plot, metadata,
+        anomaly scores etc.
+
+        Parameters
+        ----------
+        pipeline_file : str
+            The script to run Astronomaly (see the "scripts" folder for 
+            examples)
+        """
+
         self.dataset = None
         self.features = None
         self.anomaly_scores = None
@@ -16,6 +31,10 @@ class Controller:
         self.set_pipeline_script(pipeline_file)
 
     def run_pipeline(self):
+        """
+        Runs (or reruns) the pipeline. Reimports the pipeline script so changes
+        are reflected.
+        """
         pipeline_script = importlib.import_module(self.module_name)
         print('Running pipeline from', self.module_name + '.py')
         pipeline_dict = pipeline_script.run_pipeline()
@@ -34,6 +53,15 @@ class Controller:
         return self.dataset.data_type
 
     def set_pipeline_script(self, pipeline_file):
+        """
+        Allows the changing of the input pipeline file.
+
+        Parameters
+        ----------
+        pipeline_file : str
+            New pipeline file
+        """
+
         module_name = pipeline_file.split(os.path.sep)[-1]
         pth = pipeline_file.replace(module_name, '')
         module_name = module_name.split('.')[0]
@@ -42,12 +70,18 @@ class Controller:
         sys.path.append(pth)  # Allows importing the module from anywhere
 
     def get_display_data(self, idx):
+        """
+        Simply calls the underlying Dataset's function to return display data.
+        """
         try:
             return self.dataset.get_display_data(idx)
         except KeyError:
             return {}
 
     def get_features(self, idx):
+        """
+        Returns the features of instance given by index idx.
+        """
         try:
             out_dict = dict(zip(self.features.columns.astype('str'), 
                                 self.features.loc[idx].values))
@@ -56,13 +90,26 @@ class Controller:
             return {}
 
     def set_human_label(self, idx, label):
+        """
+        Sets the human-assigned score to an instance. Creates the column
+        "human_label" if necessary in the anomaly_scores dataframe.
+
+        Parameters
+        ----------
+        idx : str
+            Index of instance
+        label : int
+            Human-assigned label
+        """
         ml_df = self.anomaly_scores
         if 'human_label' not in ml_df.columns:
             ml_df['human_label'] = [-1] * len(ml_df)
         ml_df.loc[idx, 'human_label'] = label
 
     def run_active_learning(self):
-        # ****************
+        """
+        Runs the selected active learning algorithm.
+        """
         pipeline_active_learning = self.active_learning
         features_with_labels = \
             pipeline_active_learning.combine_data_frames(self.features, 
@@ -72,6 +119,20 @@ class Controller:
         self.anomaly_scores['final_score'] = scores
 
     def get_cluster_data(self, color_by_column=''):
+        """
+        Returns the data for the clustering plot in the correct json format.
+
+        Parameters
+        ----------
+        color_by_column : str, optional
+            If given, the points on the plot will be coloured by this column so
+            for instance, more anomalous objects are brighter.
+
+        Returns
+        -------
+        dict
+            Formatting cluster plot data
+        """
         clst = self.clustering
         if clst is not None:
             if len(color_by_column) == 0:
@@ -94,10 +155,43 @@ class Controller:
             return None
 
     def get_original_id_from_index(self, ind):
+        """
+        The frontend iterates through an ordered list that can change depending
+        on the algorithm selected. This function returns the actual index of an
+        instance (which might be 'obj2487' or simply '1') when given an array
+        index. 
+
+        Parameters
+        ----------
+        ind : int
+            The position in an array
+
+        Returns
+        -------
+        str
+            The actual object id
+        """
         this_ind = list(self.anomaly_scores.index)[ind]
         return this_ind
 
     def get_metadata(self, idx, exclude_keywords=[], include_keywords=[]):
+        """
+        Returns the metadata for an instance in a format ready for display.
+
+        Parameters
+        ----------
+        idx : str
+            Index of the object
+        exclude_keywords : list, optional
+            Any keywords to exclude being displayed
+        include_keywords : list, optional
+            Any keywords that should be displayed
+
+        Returns
+        -------
+        dict
+            Display-ready metadata
+        """
         idx = str(idx)
         meta_df = self.dataset.metadata
         ml_df = self.anomaly_scores
@@ -120,10 +214,16 @@ class Controller:
             return {}
 
     def randomise_ml_scores(self):
+        """
+        Returns the anomaly scores in a random order
+        """
         inds = np.random.permutation(self.anomaly_scores.index)
         self.anomaly_scores = self.anomaly_scores.loc[inds]
 
     def sort_ml_scores(self, column_to_sort_by='score'):
+        """
+        Returns the anomaly scores sorted by a particular column.
+        """
         anomaly_scores = self.anomaly_scores
         if column_to_sort_by in anomaly_scores.columns:
             if column_to_sort_by == "iforest_score":

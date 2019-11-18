@@ -29,11 +29,18 @@ controller = Controller(script)
 
 @app.route('/')
 def index():
+    """
+    Serves the main page
+    """
     return render_template('index.html')
 
 
 @app.route('/getindex', methods=["POST"])
 def get_index():
+    """
+    Returns the actual index (e.g. "obj287") of an instance given its position
+    in the array.
+    """
     if request.method == "POST":
         ind = request.get_json()
         ind = controller.get_original_id_from_index(int(ind))
@@ -44,6 +51,10 @@ def get_index():
 
 @app.route('/getdatatype', methods=["POST"])
 def get_data_type():
+    """
+    Serves the data type we're working with (e.g. "image", "light_curve",
+    "raw_features")
+    """
     if request.method == "POST":
         return json.dumps(controller.get_data_type())
     else:
@@ -52,6 +63,9 @@ def get_data_type():
 
 @app.route('/getmetadata', methods=["POST"])
 def get_metadata():
+    """
+    Serves the metadata for a particular instance
+    """
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_metadata(idx)
@@ -62,6 +76,9 @@ def get_metadata():
 
 @app.route('/getlightcurve', methods=["POST"])
 def get_light_curve():
+    """
+    Serves the display data for a light curve
+    """
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_display_data(idx)
@@ -73,6 +90,9 @@ def get_light_curve():
 
 @app.route('/getfeatures', methods=["POST"])
 def get_features():
+    """
+    Serves the features ready to be displayed in a table.
+    """
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_features(idx)
@@ -84,6 +104,9 @@ def get_features():
 
 @app.route('/getrawfeatures', methods=["POST"])
 def get_raw_features():
+    """
+    Serves raw features ready for basic plotting
+    """
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_display_data(idx)
@@ -95,6 +118,9 @@ def get_raw_features():
 
 @app.route('/getimage', methods=["GET", "POST"])
 def get_image():
+    """
+    Serves the current instance as an image to be displayed
+    """
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_display_data(idx)
@@ -107,6 +133,9 @@ def get_image():
 
 @app.route('/cluster', methods=["GET", "POST"])
 def get_clusters():
+    """
+    Serves the data to be displayed on the clustering tab
+    """
     if request.method == "POST":
         technique = request.get_json()
         if technique == 'tsne':
@@ -117,6 +146,9 @@ def get_clusters():
 
 @app.route('/sort', methods=["GET", "POST"])
 def sort_data():
+    """
+    Sorts the data by a requested column
+    """
     if request.method == "POST":
         column = (str)(request.get_json())
         if column == "final_score":
@@ -131,6 +163,9 @@ def sort_data():
 
 @app.route('/label', methods=["GET", "POST"])
 def get_label():
+    """
+    Records the label given to an instance by a human
+    """
     if request.method == "POST":
         out_dict = request.get_json()
         idx = out_dict['id']
