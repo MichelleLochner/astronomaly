@@ -9,7 +9,7 @@ import os
 
 
 # image_dir = '/home/michelle/BigData/Anomaly/GOODS_S/'
-image_dir = '/home/michelle/BigData/Anomaly/Meerkat_deep2/'
+image_dir = '/home/michelle/BigData/Anomaly/Meerkat_data/Clusters/'
 output_dir = '/home/michelle/BigData/Anomaly/astronomaly_output/images/'
 
 feature_method = 'psd'
