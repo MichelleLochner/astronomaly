@@ -89,6 +89,16 @@ class PipelineStage(object):
         self.labels = []
 
     def save(self, output, filename):
+        """
+        Saves the output of this pipeline stage.
+
+        Parameters
+        ----------
+        output : pd.DataFrame
+            Whatever the output is of this stage.
+        filename : str
+            File name of the output file.
+        """
         if self.save_output:
             if self.file_format == 'parquet':
                 if '.parquet' not in filename:
@@ -99,6 +109,19 @@ class PipelineStage(object):
                 output.to_parquet(filename)
 
     def load(self, filename):
+        """
+        Loads previous output of this pipeline stage.
+
+        Parameters
+        ----------
+        filename : str
+            File name of the output file.
+
+        Returns
+        -------
+        output : pd.DataFrame
+            Whatever the output is of this stage.
+        """
         if self.file_format == 'parquet':
             if '.parquet' not in filename:
                 filename += '.parquet'
@@ -129,8 +152,23 @@ class PipelineStage(object):
         return int(total_hash.values[0])
 
     def run(self, data):
-        # This has logic to decide whether to run the function and how to chop 
-        # up the data
+        """
+        This is the external-facing function that should always be called
+        (rather than _execute_function). This function will automatically check
+        if this stage has already been run with the same arguments and on the
+        same data. This can allow a much faster user experience avoiding
+        rerunning functions unnecessarily.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            Input data on which to run this pipeline stage on.
+
+        Returns
+        -------
+        pd.DataFrame
+            Output
+        """
         new_checksum = self.hash_data(data)
         if self.args_same and new_checksum == self.checksum:
             # This means we've already run this function for all instances in 
@@ -154,10 +192,28 @@ class PipelineStage(object):
             return output
 
     def run_on_dataset(self, dataset=None):
-        # ***** The idea is to be able to run this on new data but this will 
-        # be buggy. Need another look at this before
-        # running it new data ******
-        # **** Also this is definitely not full-proof
+        """
+        This function should be called for pipeline stages that perform feature
+        extraction so require taking a Dataset object as input. 
+        This is an external-facing function that should always be called
+        (rather than _execute_function). This function will automatically check
+        if this stage has already been run with the same arguments and on the
+        same data. This can allow a much faster user experience avoiding
+        rerunning functions unnecessarily.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            The Dataset object on which to run this feature extraction 
+            function, by default None
+
+        Returns
+        -------
+        pd.Dataframe
+            Output
+        """
+        # *** WARNING: this has not been tested against adding new data and
+        # *** ensuring the function is called for new data only
         new_checksum = self.hash_data(dataset.get_sample(dataset.index[0]))
         if not self.args_same or new_checksum != self.checksum:
             # If the arguments have changed we rerun everything
@@ -205,5 +261,19 @@ class PipelineStage(object):
         return output
 
     def _execute_function(self, data):
-        # This does the actual work
+        """
+        This is the main function of the PipelineStage and is what should be
+        implemented when inheriting from this class. 
+
+        Parameters
+        ----------
+        data : Dataset object, pd.DataFrame
+            Data type depends on whether this is feature extraction stage (so
+            runs on a Dataset) or any other stage (e.g. anomaly detection)
+
+        Raises
+        ------
+        NotImplementedError
+            This function must be implemented when inheriting this class.
+        """
         raise NotImplementedError

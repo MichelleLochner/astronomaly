@@ -4,6 +4,27 @@ from astronomaly.base import logging_tools
 
 class Dataset(object):
     def __init__(self, *args, **kwargs):
+        """
+        Base Dataset object that all other dataset objects should inherit from.
+        Whenever a child of this class is implemented, super().__init__()
+        should be called and explicitly passed all kwargs of the child class,
+        to ensure correct logging and saving of files.
+
+        Parameters
+        ----------
+        filename : str
+            If a single file (of any time) is to be read from, the path can be
+            given using this kwarg. 
+        directory : str
+            A directory can be given instead of an explicit list of files. The
+            child class will load all appropriate files in this directory.
+        list_of_files : list
+            Instead of the above, a list of files to be loaded can be
+            explicitly given.
+        output_dir : str
+            The directory to save the log file and all outputs to. Defaults to
+            './' 
+        """
         self.data_type = None
 
         if 'filename' in kwargs:
@@ -55,7 +76,34 @@ class Dataset(object):
         logging_tools.log(function_call_signature)
 
     def get_sample(self, idx):
+        """
+        Returns a single instance of the dataset given an index.
+
+        Parameters
+        ----------
+        idx : str
+            Index (should be a string to avoid ambiguity)
+
+        Raises
+        ------
+        NotImplementedError
+            This function must be implemented when the base class is inherited.
+        """
         raise NotImplementedError
 
     def get_display_data(self, idx):
+        """
+        Returns a single instance of the dataset in a form that is ready to be
+        displayed by the web front end.
+
+        Parameters
+        ----------
+        idx : str
+            Index (should be a string to avoid ambiguity)
+
+        Raises
+        ------
+        NotImplementedError
+            This function must be implemented when the base class is inherited.
+        """
         raise NotImplementedError
