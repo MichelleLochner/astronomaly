@@ -8,13 +8,16 @@ from os import path
 class LOF_Algorithm(PipelineStage):
     def __init__(self, contamination='auto', n_neighbors=20, **kwargs):
         """
-        Runs sklearn's isolation forest anomaly detection algorithm and returns
-        the anomaly score for each instance.
+        Runs sklearn's local outlier factor anomaly detection algorithm and 
+        returns the anomaly score for each instance.
 
         Parameters
         ----------
         contamination : string or float, optional
-            Hyperparameter to pass to IsolationForest. 'auto' is recommended
+            Hyperparameter to pass to LOF. 'auto' is recommended
+        n_neighbors : int
+            Hyperparameter to pass to LOF. Fairly sensitive to the amount of 
+            data in the dataset.
 
         """
         super().__init__(
@@ -27,7 +30,7 @@ class LOF_Algorithm(PipelineStage):
 
     def save_algorithm_obj(self):
         """
-        Stores the iforest object to the output directory to allow quick 
+        Stores the LOF object to the output directory to allow quick 
         rerunning on new data.
         """
         if self.algorithm_obj is not None:
@@ -37,13 +40,13 @@ class LOF_Algorithm(PipelineStage):
 
     def _execute_function(self, features):
         """
-        Does the work in actually running isolation forest.
+        Does the work in actually running the algorithm.
 
         Parameters
         ----------
         features : pd.DataFrame or similar
-            The input features to run iforest on. Assumes the index is the id 
-            of each object and all columns are to be used as features.
+            The input features to run the algorithm on. Assumes the index is 
+            the id of each object and all columns are to be used as features.
 
         Returns
         -------
