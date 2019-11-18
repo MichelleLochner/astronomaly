@@ -81,19 +81,26 @@ class AstroImage:
 
 
 class ImageDataset(Dataset):
-    def __init__(self, directory='', list_of_files=[], fits_index=0, 
-                 window_size=128, window_shift=None, transform_function=None, 
-                 **kwargs):
+    def __init__(self, fits_index=0, window_size=128, window_shift=None, 
+                 transform_function=None, **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
-        paths (absolute)
+        paths (absolute). Inherits from Dataset class.
 
         Parameters
         ----------
-        directory : string, optional
-            Path to files to read from
-        list_of_files : list, optional
-            List of files to read in (absolute path)
+        filename : str
+            If a single file (of any time) is to be read from, the path can be
+            given using this kwarg. 
+        directory : str
+            A directory can be given instead of an explicit list of files. The
+            child class will load all appropriate files in this directory.
+        list_of_files : list
+            Instead of the above, a list of files to be loaded can be
+            explicitly given.
+        output_dir : str
+            The directory to save the log file and all outputs to. Defaults to
+            './' 
         fits_index : integer, optional
             If these are fits files, specifies which HDU object in the list to
             work with
@@ -115,8 +122,7 @@ class ImageDataset(Dataset):
             each function is applied in the order of the list.
         """
 
-        super().__init__(directory=directory, list_of_files=list_of_files, 
-                         fits_index=fits_index, window_size=window_size, 
+        super().__init__(fits_index=fits_index, window_size=window_size, 
                          window_shift=window_shift, 
                          transform_function=transform_function, **kwargs)
         self.known_file_types = ['fits']
@@ -140,7 +146,7 @@ class ImageDataset(Dataset):
             self.window_size_x = window_size
             self.window_size_y = window_size
 
-        # We may in future want to allow sliding windows
+        # Allows sliding windows
         if window_shift is not None:
             try:
                 self.window_shift_x = window_shift[0]
@@ -162,6 +168,19 @@ class ImageDataset(Dataset):
         self.index = self.metadata.index.values
 
     def transform(self, cutout):
+        """
+        Applies the transform function(s) given at initialisation to the image.
+
+        Parameters
+        ----------
+        cutout : np.ndarray
+            Cutout of image
+
+        Returns
+        -------
+        np.ndarray
+            Transformed cutout
+        """
         if self.transform_function is not None:
             try:
                 len(self.transform_function)
@@ -253,6 +272,20 @@ class ImageDataset(Dataset):
         return self.cutouts.loc[idx].values
 
     def convert_array_to_image(self, arr):
+        """
+        Function to convert an array to a png image ready to be served on a web
+        page.
+
+        Parameters
+        ----------
+        arr : np.ndarray
+            Input image
+
+        Returns
+        -------
+        png image object
+            Object ready to be passed directly to the frontend
+        """
         with mpl.rc_context({'backend': 'Agg'}):
             fig = plt.figure(figsize=(1, 1), dpi=self.window_size_x * 4)
             ax = plt.Axes(fig, [0., 0., 1., 1.])
@@ -265,6 +298,20 @@ class ImageDataset(Dataset):
         return output
 
     def get_display_data(self, idx):
+        """
+        Returns a single instance of the dataset in a form that is ready to be
+        displayed by the web front end.
+
+        Parameters
+        ----------
+        idx : str
+            Index (should be a string to avoid ambiguity)
+
+        Returns
+        -------
+        png image object
+            Object ready to be passed directly to the frontend
+        """
         try:
             img_name = self.metadata.loc[idx, 'original_image']
         except KeyError:
@@ -308,16 +355,3 @@ class ImageDataset(Dataset):
         # cutout[y2,x1:x2] = mx
 
         return self.convert_array_to_image(cutout)
-
-
-def read_cutouts_from_file(filename, file_type='npy', output_key='cutouts'):
-    if file_type == 'npy':
-        cutouts = np.load(filename, mmap_mode='r')
-        # cutouts = cutouts[:10000] 
-
-    df = pd.DataFrame(data={'id': np.array(np.arange(len(cutouts)), 
-                      dtype='str')})
-    pipeline_dict = {'metadata': df}
-    pipeline_dict[output_key] = xarray.DataArray(cutouts, coords={'id': df.id},
-                                                 dims=['id', 'dim_1', 'dim_2'])
-    return pipeline_dict
