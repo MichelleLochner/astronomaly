@@ -12,6 +12,20 @@ class TSNE_Plot(PipelineStage):
         mean and divides by the standard deviation for each feature. Highly 
         recommended for most machine learning algorithms and for any data 
         visualisation such as t-SNE.
+
+        Parameters
+        ----------
+        perplexity : float, optional
+            The perplexity is related to the number of nearest neighbors that  
+            is used in other manifold learning algorithms (see t-SNE
+            documentation), by default 30
+        max_samples : int, optional
+            Limits the computation to this many samples (by default 2000). Will
+            be the first 2000 samples if shuffle=False. This is very useful as
+            t-SNE scales particularly badly with sample size.
+        shuffle : bool, optional
+            Randomises the sample before selecting max_samples, by default 
+            False
         """
         super().__init__(perplexity=perplexity, max_samples=max_samples, 
                          shuffle=shuffle, **kwargs)
@@ -21,19 +35,19 @@ class TSNE_Plot(PipelineStage):
 
     def _execute_function(self, features):
         """
-        Does the work in actually running the scaler.
+        Does the work in actually running the pipeline stage.
 
         Parameters
         ----------
         features : pd.DataFrame or similar
-            The input features to run iforest on. Assumes the index is the id 
+            The input features to run on. Assumes the index is the id 
             of each object and all columns are to be used as features.
 
         Returns
         -------
         pd.DataFrame
-            Contains the same original index and columns of the features input 
-            with the features scaled to zero mean and unit variance.
+            Returns a dataframe with the same index as the input features and
+            two columns, one for each dimension of the t-SNE plot.
 
         """
 
