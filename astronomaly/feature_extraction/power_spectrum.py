@@ -21,6 +21,7 @@ def psd_2d(img, nbins):
     np.ndarray
         Power spectral density at each frequency
     """
+
     the_fft = np.fft.fftshift(np.fft.fft2(img))
     psd = np.abs(the_fft) ** 2
 
@@ -50,11 +51,16 @@ class PSD_Features(PipelineStage):
             to 'auto' will use the Nyquist theorem to automatically calculate 
             the appropriate number of bins at runtime.
         """
+
         super().__init__(nbins=nbins, **kwargs)
 
         self.nbins = nbins
 
     def _set_labels(self):
+        """
+        Because the number of features may not be known till runtime, we can
+        only create the labels of these features at runtime.
+        """
 
         if self.nbands == 1:
             self.labels = ['psd_%d' % i for i in range(self.nbins)]
@@ -66,19 +72,19 @@ class PSD_Features(PipelineStage):
 
     def _execute_function(self, image):
         """
-            Does the work in actually extracting the PSD
+        Does the work in actually extracting the PSD
 
-            Parameters
-            ----------
-            image : np.ndarray
-                Input image
+        Parameters
+        ----------
+        image : np.ndarray
+            Input image
 
-            Returns
-            -------
-            pd.DataFrame
-                Contains the extracted PSD features
+        Returns
+        -------
+        pd.DataFrame
+            Contains the extracted PSD features
+        """
 
-            """
         if self.nbins == 'auto':
             # Here I'm explicitly assuming any multi-d images store the 
             # colours in the last dim

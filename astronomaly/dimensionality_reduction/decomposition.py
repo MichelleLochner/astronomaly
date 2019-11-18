@@ -57,7 +57,9 @@ class PCA_Decomposer(PipelineStage):
             self.save(df, path.join(self.output_dir, 'pca_components'))
 
     def _execute_function(self, features):
-
+        """
+        Actually does the PCA reduction and returns a dataframe.
+        """
         self.pca_obj = PCA(self.n_components)
         self.pca_obj.fit(features)
 
@@ -114,7 +116,9 @@ class Truncated_SVD_Decomposer(PipelineStage):
             self.save(df, path.join(self.output_dir, 'pca_components'))
 
     def _execute_function(self, features):
-
+        """
+        Actually does the SVD reduction and returns a dataframe.
+        """
         self.trunc_svd_obj = TruncatedSVD(self.n_components)
         self.trunc_svd_obj.fit(features)
 

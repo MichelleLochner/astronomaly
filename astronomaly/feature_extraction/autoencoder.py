@@ -14,6 +14,7 @@ class Autoencoder:
     def __init__(self, model_file=''):
         """
         Class containing autoencoder training methods.
+
         Parameters
         ----------
         model_file : string, optional
@@ -47,7 +48,6 @@ class Autoencoder:
         -------
         np.ndarray
             Converted array compliant with CNN
-
         """
         images = np.array(images)
 
@@ -69,10 +69,6 @@ class Autoencoder:
         input_image_shape : tuple
             The expected shape of the input images. Can either be length 2 or 3
             (to include number of channels).
-
-        Returns
-        -------
-
         """
 
         if len(input_image_shape) == 2:
@@ -121,10 +117,6 @@ class Autoencoder:
             is slower to train.
         epochs : int, optional
             Number of full passes through the entire training set.
-
-        Returns
-        -------
-
         """
 
         X = self.shape_check(training_data)
@@ -161,10 +153,6 @@ class Autoencoder:
         ----------
         filename : string
             Location for saved model
-
-        Returns
-        -------
-
         """
 
         self.autoencoder.save(filename)
@@ -173,11 +161,28 @@ class Autoencoder:
 class AutoencoderFeatures(PipelineStage):
     def __init__(self, training_dataset=None, retrain=False, **kwargs):
         """
-        Runs a standard autoencoder on image cutouts. This function needs to be 
-        more flexible in terms of model parameters!
+        Runs a very simple autoencoder to produce lower dimensional features.
+        This function is currently not very flexible in terms of changing
+        parameters, network architecture etc.
 
         Parameters
-        ----------   
+        ----------
+        training_dataset : Dataset, optional
+            A Dataset-type object containing data to train the autoencoder on.
+            Note that since Astronomaly runs in an unsupervised setting, this
+            can be the same data that the final anomaly detection algorithm is
+            run on. However you may wish to augment the training data, for
+            example by applying translation to the cutouts.
+        retrain : bool, optional
+            Whether or not to train the algorithm again or load from a model
+            file. This is useful because the automated checks in whether or not
+            to rerun a function only operate when "run_on_dataset" is called
+            whereas the training is performed in __init__.
+
+        Raises
+        ------
+        ValueError
+            If training data is not provided.
         """
         super().__init__(training_dataset=training_dataset, **kwargs)
 
@@ -210,6 +215,20 @@ class AutoencoderFeatures(PipelineStage):
             print('Trained autoencoder read from file', model_file)
 
     def _execute_function(self, image):
+        """
+        Runs the trained autoencoder to get the encoded features of the input
+        image. 
+
+        Parameters
+        ----------
+        image : np.ndarray
+            Cutout to run autoencoder on
+
+        Returns
+        -------
+        np.ndarray
+            Encoded features
+        """
         feats = self.autoenc.encode(image)
         feats = np.reshape(feats, [np.prod(feats.shape[1:])])
         if len(self.labels) == 0:

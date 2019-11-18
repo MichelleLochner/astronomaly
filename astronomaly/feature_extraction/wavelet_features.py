@@ -42,6 +42,10 @@ def flatten_swt2_coefficients(wavelet_coeffs):
 
 
 def generate_labels(wavelet_coeffs):
+    """
+    Because the number of features may not be known till runtime, we can
+    only create the labels of these features at runtime.
+    """
     pixel_count = np.prod(wavelet_coeffs[0][0].shape)
     total_len = len(wavelet_coeffs) * 4 * pixel_count
 
@@ -133,6 +137,7 @@ class WaveletFeatures(PipelineStage):
         wavelet_family : string or pywt.Wavelet object
             Which wavelet family to use
         """
+        
         super().__init__(level=level, wavelet_family=wavelet_family, **kwargs)
 
         self.level = level
