@@ -123,16 +123,43 @@ class NeighbourScore(PipelineStage):
 
         Parameters
         ----------
+        nearest_neighbour_distance : array
+            The distance of each instance to its nearest labelled neighbour.
+        user_score : array
+            The predicted user score for each instance
+        anomaly_score : array
+            The actual anomaly score from a machine learning algorithm
+
+        Returns
+        -------
+        array
+            The final anomaly score for each instance, penalised by the
+            predicted user score as required.
         """
+
         f_u = self.min_score + 0.85 * (user_score / self.max_score)
         dist_penalty = np.exp(
             nearest_neighbour_distance / np.mean(nearest_neighbour_distance) * 
             self.alpha)
-        # print(dist_penalty)
         return anomaly_score * np.tanh(dist_penalty - 1 + np.arctanh(f_u))
 
     def compute_nearest_neighbour(self, features_with_labels):
-        # Can definitely speed this up
+        """
+        Calculates the distance of each instance to its nearest labelled
+        neighbour. 
+
+        Parameters
+        ----------
+        features_with_labels : pd.DataFrame
+            A dataframe where the first columns are the features  and the last
+            two columns are 'human_label' and 'score' (the anomaly score from
+            the ML algorithm).
+
+        Returns
+        -------
+        array
+            Distance of each instance to its nearest labelled neighbour.
+        """
         features = features_with_labels.drop(columns=['human_label', 'score'])
         # print(features)
         label_mask = features_with_labels['human_label'] != -1
@@ -148,6 +175,23 @@ class NeighbourScore(PipelineStage):
         return distances
 
     def train_regression(self, features_with_labels):
+        """
+        Uses machine learning to predict the user score for all the data. The
+        labels are provided in the column 'human_label' which must be -1 if no
+        label exists.
+
+        Parameters
+        ----------
+        features_with_labels : pd.DataFrame
+            A dataframe where the first columns are the features  and the last
+            two columns are 'human_label' and 'score' (the anomaly score from
+            the ML algorithm).
+
+        Returns
+        -------
+        array
+            The predicted user score for each instance.
+        """
         label_mask = features_with_labels['human_label'] != -1
         inds = features_with_labels.index[label_mask]
         features = features_with_labels.drop(columns=['human_label', 'score'])
@@ -159,23 +203,26 @@ class NeighbourScore(PipelineStage):
         return fitted_scores
 
     def combine_data_frames(self, features, ml_df):
+        """
+        Convenience function to correctly combine dataframes.
+        """
         return pd.concat((features, ml_df), axis=1, join='inner')
 
     def _execute_function(self, features_with_labels):
         """
-        Does the work in actually running the scaler.
+        Does the work in actually running the NeighbourScore.
 
         Parameters
         ----------
-        df : pd.DataFrame or similar
-            The input anomaly scores to rescale.
+        features_with_labels : pd.DataFrame
+            A dataframe where the first columns are the features  and the last
+            two columns are 'human_label' and 'score' (the anomaly score from
+            the ML algorithm).
 
         Returns
         -------
         pd.DataFrame
-            Contains the same original index and columns of the features input 
-            with the anomaly score scaled according to the input arguments in 
-            __init__.
+            Contains the final scores using the same index as the input.
 
         """
 
