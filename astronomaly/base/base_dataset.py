@@ -38,7 +38,7 @@ class Dataset(object):
         if 'list_of_files' in kwargs:
             list_of_files = kwargs['list_of_files']
         else:
-            list_of_files = [],
+            list_of_files = []
         if len(filename) != 0:
             self.files = [filename]
         elif len(list_of_files) != 0 and len(directory) == 0:
