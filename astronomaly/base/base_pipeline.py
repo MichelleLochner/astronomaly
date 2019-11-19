@@ -88,7 +88,7 @@ class PipelineStage(object):
 
         self.labels = []
 
-    def save(self, output, filename):
+    def save(self, output, filename, file_format=''):
         """
         Saves the output of this pipeline stage.
 
@@ -98,17 +98,27 @@ class PipelineStage(object):
             Whatever the output is of this stage.
         filename : str
             File name of the output file.
+        file_format : str, optional
+            File format can be provided to override the class's file format
         """
+        if len(file_format) == 0:
+            file_format = self.file_format
+
         if self.save_output:
-            if self.file_format == 'parquet':
+            # Parquet needs strings as column names 
+            # (which is good practice anyway)
+            output.columns = output.columns.astype('str')
+            if file_format == 'parquet':
                 if '.parquet' not in filename:
                     filename += '.parquet'
-                # Parquet needs strings as column names 
-                # (which is good practice anyway)
-                output.columns = output.columns.astype('str')
                 output.to_parquet(filename)
 
-    def load(self, filename):
+            elif file_format == 'csv':
+                if '.csv' not in filename:
+                    filename += '.csv'
+                output.to_csv(filename)
+
+    def load(self, filename, file_format=''):
         """
         Loads previous output of this pipeline stage.
 
@@ -116,16 +126,25 @@ class PipelineStage(object):
         ----------
         filename : str
             File name of the output file.
+        file_format : str, optional
+            File format can be provided to override the class's file format
 
         Returns
         -------
         output : pd.DataFrame
             Whatever the output is of this stage.
         """
-        if self.file_format == 'parquet':
+        if len(file_format) == 0:
+            file_format = self.file_format
+
+        if file_format == 'parquet':
             if '.parquet' not in filename:
                 filename += '.parquet'
             output = pd.read_parquet(filename)
+        elif file_format == 'csv':
+            if '.csv' not in filename:
+                filename += '.csv'
+            output = pd.read_csv(filename)
         return output
 
     def hash_data(self, data):

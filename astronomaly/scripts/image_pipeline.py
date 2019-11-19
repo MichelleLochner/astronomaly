@@ -45,20 +45,20 @@ def run_pipeline():
 
     if len(image_dir) != 0:
         image_dataset = image_reader.ImageDataset(
-            image_dir,
+            directory=image_dir,
             transform_function=image_preprocessing.image_transform_log,
             window_size=128, output_dir=output_dir)
-
-        training_dataset = image_reader.ImageDataset(
-            image_dir,
-            transform_function=image_preprocessing.image_transform_log,
-            window_size=128, window_shift=64, output_dir=output_dir)
 
         if feature_method == 'psd':
             pipeline_psd = power_spectrum.PSD_Features(
                 force_rerun=False, output_dir=output_dir)
             features_original = pipeline_psd.run_on_dataset(image_dataset)
         elif feature_method == 'autoencoder':
+            training_dataset = image_reader.ImageDataset(
+                directory=image_dir, 
+                transform_function=image_preprocessing.image_transform_log,
+                window_size=128, window_shift=64, output_dir=output_dir)
+
             pipeline_autoenc = autoencoder.AutoencoderFeatures(
                 output_dir=output_dir, training_dataset=training_dataset,
                 retrain=True)
@@ -83,7 +83,8 @@ def run_pipeline():
         anomalies = pipeline_score_converter.run(anomalies)
         anomalies = anomalies.sort_values('score', ascending=False)
 
-        pipeline_active_learning = human_loop_learning.NeighbourScore(alpha=1)
+        pipeline_active_learning = human_loop_learning.NeighbourScore(
+            alpha=1, output_dir=output_dir)
 
         pipeline_tsne = tsne.TSNE_Plot(force_rerun=False,
                                        output_dir=output_dir, 
