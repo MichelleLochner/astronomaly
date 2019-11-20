@@ -84,6 +84,7 @@ export class AnomalyTab extends React.Component {
     this.getMetadata = this.getMetadata.bind(this);
     this.getFeatures = this.getFeatures.bind(this);
     this.getRawFeatures = this.getRawFeatures.bind(this);
+    this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
 
     this.state = {id:0,
                  img_src:'',
@@ -116,8 +117,8 @@ export class AnomalyTab extends React.Component {
   }
 
   handleChangeIndexChange(e){
-    const newIndex = e.currentTarget.value;
-    this.setState(newIndex);
+    const newID = parseInt(e.currentTarget.value);
+    this.setState({id:newID}, this.updateOriginalID(newID));
   }
 
   handleChangeAlgorithmClick(e) {
