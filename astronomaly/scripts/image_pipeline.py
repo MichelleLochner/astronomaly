@@ -6,6 +6,7 @@ from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.clustering import tsne
 import os
+import pandas as pd
 
 
 # image_dir = '/home/michelle/BigData/Anomaly/GOODS_S/'
@@ -47,7 +48,7 @@ def run_pipeline():
         image_dataset = image_reader.ImageDataset(
             directory=image_dir,
             transform_function=image_preprocessing.image_transform_log,
-            window_size=128, output_dir=output_dir)
+            window_size=128, output_dir=output_dir, plot_square=True)
 
         if feature_method == 'psd':
             pipeline_psd = power_spectrum.PSD_Features(
@@ -82,6 +83,19 @@ def run_pipeline():
             force_rerun=False, output_dir=output_dir)
         anomalies = pipeline_score_converter.run(anomalies)
         anomalies = anomalies.sort_values('score', ascending=False)
+
+        try:
+            df = pd.read_csv(
+                os.path.join(output_dir, 'ml_scores.csv'), 
+                index_col=0,
+                dtype={'human_label': 'int'})
+            df.index = df.index.astype('str')
+
+            if len(anomalies) == len(df):
+                anomalies = pd.concat(
+                    (anomalies, df['human_label']), axis=1, join='inner')
+        except FileNotFoundError:
+            pass
 
         pipeline_active_learning = human_loop_learning.NeighbourScore(
             alpha=1, output_dir=output_dir)

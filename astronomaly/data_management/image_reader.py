@@ -82,7 +82,7 @@ class AstroImage:
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=0, window_size=128, window_shift=None, 
-                 transform_function=None, **kwargs):
+                 transform_function=None, plot_square=False, **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
         paths (absolute). Inherits from Dataset class.
@@ -120,6 +120,9 @@ class ImageDataset(Dataset):
             applied to each cutout. The function should take an input 2d array 
             (the cutout) and return an output 2d array. If a list is provided, 
             each function is applied in the order of the list.
+        plot_square : bool, optional
+            If True this will add a white border indicating the boundaries of
+            the original cutout when the image is displayed in the webapp.
         """
 
         super().__init__(fits_index=fits_index, window_size=window_size, 
@@ -160,6 +163,7 @@ class ImageDataset(Dataset):
 
         self.images = images
         self.transform_function = transform_function
+        self.plot_square = plot_square
 
         self.metadata = pd.DataFrame(data=[])
         self.cutouts = pd.DataFrame(data=[])
@@ -341,17 +345,18 @@ class ImageDataset(Dataset):
 
         cutout = self.transform(cutout)
 
-        # offset_x = (tot_size_x - self.window_size_x) // 2
-        # offset_y = (tot_size_y - self.window_size_y) // 2
-        # x1 = offset_x
-        # x2 = tot_size_x - offset_x
-        # y1 = offset_y
-        # y2 = tot_size_y - offset_y
+        if self.plot_square:
+            offset_x = (tot_size_x - self.window_size_x) // 2
+            offset_y = (tot_size_y - self.window_size_y) // 2
+            x1 = offset_x
+            x2 = tot_size_x - offset_x
+            y1 = offset_y
+            y2 = tot_size_y - offset_y
 
-        # mx = cutout.max()
-        # cutout[y1:y2,x1] = mx
-        # cutout[y1:y2,x2] = mx
-        # cutout[y1,x1:x2] = mx
-        # cutout[y2,x1:x2] = mx
+            mx = cutout.max()
+            cutout[y1:y2, x1] = mx
+            cutout[y1:y2, x2] = mx
+            cutout[y1, x1:x2] = mx
+            cutout[y2, x1:x2] = mx
 
         return self.convert_array_to_image(cutout)

@@ -105,6 +105,7 @@ class Controller:
         if 'human_label' not in ml_df.columns:
             ml_df['human_label'] = [-1] * len(ml_df)
         ml_df.loc[idx, 'human_label'] = label
+        ml_df = ml_df.astype({'human_label': 'int'})
 
         self.active_learning.save(
             ml_df, os.path.join(self.active_learning.output_dir, 
