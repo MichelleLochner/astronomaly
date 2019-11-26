@@ -82,7 +82,8 @@ class AstroImage:
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=0, window_size=128, window_shift=None, 
-                 transform_function=None, plot_square=False, **kwargs):
+                 transform_function=None, plot_square=False, 
+                 plot_cmap='hot', **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
         paths (absolute). Inherits from Dataset class.
@@ -123,11 +124,15 @@ class ImageDataset(Dataset):
         plot_square : bool, optional
             If True this will add a white border indicating the boundaries of
             the original cutout when the image is displayed in the webapp.
+        plot_cmap : str, optional
+            The colormap with which to plot the image
         """
 
         super().__init__(fits_index=fits_index, window_size=window_size, 
                          window_shift=window_shift, 
-                         transform_function=transform_function, **kwargs)
+                         transform_function=transform_function, 
+                         plot_square=plot_square, plot_cmap=plot_cmap, 
+                         **kwargs)
         self.known_file_types = ['fits']
         self.data_type = 'image'
 
@@ -164,6 +169,7 @@ class ImageDataset(Dataset):
         self.images = images
         self.transform_function = transform_function
         self.plot_square = plot_square
+        self.plot_cmap = plot_cmap
 
         self.metadata = pd.DataFrame(data=[])
         self.cutouts = pd.DataFrame(data=[])
@@ -295,7 +301,7 @@ class ImageDataset(Dataset):
             ax = plt.Axes(fig, [0., 0., 1., 1.])
             ax.set_axis_off()
             fig.add_axes(ax)
-            plt.imshow(arr, cmap='hot')
+            plt.imshow(arr, cmap=self.plot_cmap)
             output = io.BytesIO()
             FigureCanvas(fig).print_png(output)
             plt.close(fig)

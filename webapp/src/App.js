@@ -88,7 +88,7 @@ class App extends React.Component {
     super(props);
     this.handleChange = this.handleChange.bind(this);
     this.getDataType = this.getDataType.bind(this);
-    this.state = {tabNumber: 1,
+    this.state = {tabNumber: 0,
                   dataType: ''};
   }
 
@@ -129,15 +129,15 @@ class App extends React.Component {
               textColor="primary"
               centered
             >
-              <Tab label="Algorithm" />
+              {/* <Tab label="Algorithm" /> */}
               <Tab label="Anomaly Scoring"/>
               <Tab label="Clustering"/>
             </Tabs>
           </AppBar>
 
-          {this.state.tabNumber === 0 && <AlgorithmTab />}
-          {this.state.tabNumber === 1 && <AnomalyTab datatype={this.state.dataType} />}
-          {this.state.tabNumber === 2 && <ClusteringTab datatype={this.state.dataType}/>}
+          {/* {this.state.tabNumber === 0 && <AlgorithmTab />} */}
+          {this.state.tabNumber === 0 && <AnomalyTab datatype={this.state.dataType} />}
+          {this.state.tabNumber === 1 && <ClusteringTab datatype={this.state.dataType}/>}
         </ThemeProvider>
       </div>
     );

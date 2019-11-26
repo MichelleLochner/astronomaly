@@ -8,10 +8,37 @@ from astronomaly.clustering import tsne
 import os
 import pandas as pd
 
+# data_dir = '/home/michelle/BigData/Anomaly/'
+data_dir = './'
 
-# image_dir = '/home/michelle/BigData/Anomaly/GOODS_S/'
-image_dir = '/home/michelle/BigData/Anomaly/Meerkat_data/Clusters/'
-output_dir = '/home/michelle/BigData/Anomaly/astronomaly_output/images/'
+which_data = 'goods'
+
+if which_data == 'meerkat':
+    image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters')
+    output_dir = os.path.join(
+        data_dir, 'astronomaly_output', 'images', 'meerkat', '')
+
+else:
+    image_dir = os.path.join(data_dir, 'GOODS_S/')
+    output_dir = os.path.join(
+        data_dir, 'astronomaly_output', 'images', 'goods', '')
+
+    if not os.path.exists(image_dir):
+        os.makedirs(image_dir)
+
+    if len(os.listdir(image_dir)) == 0:
+        # No data to run on!
+        print('No data found to run on, downloading some GOODS-S data...')
+        os.system(
+            "wget " + # noqa
+            "https://archive.stsci.edu/pub/hlsp/goods/v2/h_sb_sect23_v2.0_drz_img.fits " + # noqa
+            '-P ' + image_dir 
+            )
+        print('GOODS-S data downloaded.')
+
+
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 feature_method = 'psd'
 dim_reduction = 'pca'
@@ -41,78 +68,75 @@ def run_pipeline():
 
     """
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    image_dataset = image_reader.ImageDataset(
+        directory=image_dir,
+        window_size=128, output_dir=output_dir, plot_square=False,
+        transform_function=image_preprocessing.image_transform_log,
+        plot_cmap='bone'
+        ) # noqa
 
-    if len(image_dir) != 0:
-        image_dataset = image_reader.ImageDataset(
-            directory=image_dir,
+    if feature_method == 'psd':
+        pipeline_psd = power_spectrum.PSD_Features(
+            force_rerun=False, output_dir=output_dir)
+        features_original = pipeline_psd.run_on_dataset(image_dataset)
+    elif feature_method == 'autoencoder':
+        training_dataset = image_reader.ImageDataset(
+            directory=image_dir, 
             transform_function=image_preprocessing.image_transform_log,
-            window_size=128, output_dir=output_dir, plot_square=True)
+            window_size=128, window_shift=64, output_dir=output_dir)
 
-        if feature_method == 'psd':
-            pipeline_psd = power_spectrum.PSD_Features(
-                force_rerun=False, output_dir=output_dir)
-            features_original = pipeline_psd.run_on_dataset(image_dataset)
-        elif feature_method == 'autoencoder':
-            training_dataset = image_reader.ImageDataset(
-                directory=image_dir, 
-                transform_function=image_preprocessing.image_transform_log,
-                window_size=128, window_shift=64, output_dir=output_dir)
+        pipeline_autoenc = autoencoder.AutoencoderFeatures(
+            output_dir=output_dir, training_dataset=training_dataset,
+            retrain=True)
+        features = pipeline_autoenc.run_on_dataset(image_dataset)
 
-            pipeline_autoenc = autoencoder.AutoencoderFeatures(
-                output_dir=output_dir, training_dataset=training_dataset,
-                retrain=True)
-            features = pipeline_autoenc.run_on_dataset(image_dataset)
+    if dim_reduction == 'pca':
+        pipeline_pca = decomposition.PCA_Decomposer(force_rerun=False, 
+                                                    output_dir=output_dir,
+                                                    n_components=2)
+        features = pipeline_pca.run(features_original)
 
-        if dim_reduction == 'pca':
-            pipeline_pca = decomposition.PCA_Decomposer(force_rerun=False, 
-                                                        output_dir=output_dir,
-                                                        n_components=2)
-            features = pipeline_pca.run(features_original)
+    pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
+                                            output_dir=output_dir)
+    features = pipeline_scaler.run(features)
 
-        pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
-                                                output_dir=output_dir)
-        features = pipeline_scaler.run(features)
+    pipeline_iforest = isolation_forest.IforestAlgorithm(
+        force_rerun=False, output_dir=output_dir)
+    anomalies = pipeline_iforest.run(features)
 
-        pipeline_iforest = isolation_forest.IforestAlgorithm(
-            force_rerun=False, output_dir=output_dir)
-        anomalies = pipeline_iforest.run(features)
+    pipeline_score_converter = human_loop_learning.ScoreConverter(
+        force_rerun=False, output_dir=output_dir)
+    anomalies = pipeline_score_converter.run(anomalies)
+    anomalies = anomalies.sort_values('score', ascending=False)
 
-        pipeline_score_converter = human_loop_learning.ScoreConverter(
-            force_rerun=False, output_dir=output_dir)
-        anomalies = pipeline_score_converter.run(anomalies)
-        anomalies = anomalies.sort_values('score', ascending=False)
+    try:
+        df = pd.read_csv(
+            os.path.join(output_dir, 'ml_scores.csv'), 
+            index_col=0,
+            dtype={'human_label': 'int'})
+        df.index = df.index.astype('str')
 
-        try:
-            df = pd.read_csv(
-                os.path.join(output_dir, 'ml_scores.csv'), 
-                index_col=0,
-                dtype={'human_label': 'int'})
-            df.index = df.index.astype('str')
+        if len(anomalies) == len(df):
+            anomalies = pd.concat(
+                (anomalies, df['human_label']), axis=1, join='inner')
+    except FileNotFoundError:
+        pass
 
-            if len(anomalies) == len(df):
-                anomalies = pd.concat(
-                    (anomalies, df['human_label']), axis=1, join='inner')
-        except FileNotFoundError:
-            pass
+    pipeline_active_learning = human_loop_learning.NeighbourScore(
+        alpha=1, output_dir=output_dir)
 
-        pipeline_active_learning = human_loop_learning.NeighbourScore(
-            alpha=1, output_dir=output_dir)
+    pipeline_tsne = tsne.TSNE_Plot(
+        force_rerun=False,
+        output_dir=output_dir,
+        perplexity=50)
+    t_plot = pipeline_tsne.run(features.loc[anomalies.index])
+    # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
 
-        pipeline_tsne = tsne.TSNE_Plot(force_rerun=False,
-                                       output_dir=output_dir, 
-                                       perplexity=50)
-        t_plot = pipeline_tsne.run(features.loc[anomalies.index])
-        # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
-
-        return {'dataset': image_dataset, 
-                'features': features, 
-                'anomaly_scores': anomalies,
-                'cluster': t_plot, 
-                'active_learning': pipeline_active_learning}
-    else:
-        return None
+    return {'dataset': image_dataset, 
+            'features': features, 
+            'anomaly_scores': anomalies,
+            'cluster': t_plot, 
+            'active_learning': pipeline_active_learning}
 
 
 # run_pipeline(image_dir='/home/michelle/BigData/Anomaly/Meerkat_deep2/')
