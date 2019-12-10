@@ -12,9 +12,9 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 # data_dir = './'
 
 # which_data = 'meerkat'
-which_data = 'meerkat_deep2'
+# which_data = 'meerkat_deep2'
 # which_data = 'goods'
-# which_data = 'tgss'
+which_data = 'tgss'
 
 window_size = 128
 
