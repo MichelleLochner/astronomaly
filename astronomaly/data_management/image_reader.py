@@ -343,6 +343,7 @@ class ImageDataset(Dataset):
         yend = min(ymax, img.shape[0])
         tot_size_x = int(2 * self.window_size_x * factor)
         tot_size_y = int(2 * self.window_size_y * factor)
+
         cutout = np.zeros([tot_size_y, tot_size_x])
         cutout[ystart - ymin:tot_size_y - (ymax - yend), 
                xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend, 

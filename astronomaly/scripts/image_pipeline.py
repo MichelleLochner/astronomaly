@@ -8,15 +8,33 @@ from astronomaly.clustering import tsne
 import os
 import pandas as pd
 
-# data_dir = '/home/michelle/BigData/Anomaly/'
-data_dir = './'
+data_dir = '/home/michelle/BigData/Anomaly/'
+# data_dir = './'
 
-which_data = 'goods'
+# which_data = 'meerkat'
+which_data = 'meerkat_deep2'
+# which_data = 'goods'
+# which_data = 'tgss'
+
+window_size = 128
 
 if which_data == 'meerkat':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters')
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'meerkat', '')
+    plot_cmap = 'hot'
+elif which_data == 'meerkat_deep2':
+    image_dir = os.path.join(data_dir, 'Meerkat_data', 'meerkat_deep2')
+    output_dir = os.path.join(
+        data_dir, 'astronomaly_output', 'images', 'meerkat_deep2', '')
+    plot_cmap = 'hot'
+
+elif which_data == 'tgss':
+    image_dir = os.path.join(data_dir, 'TGSS')
+    output_dir = os.path.join(
+        data_dir, 'astronomaly_output', 'images', 'tgss', '')
+    plot_cmap = 'hot'
+    window_size = 32
 
 else:
     image_dir = os.path.join(data_dir, 'GOODS_S/')
@@ -35,6 +53,8 @@ else:
             '-P ' + image_dir 
             )
         print('GOODS-S data downloaded.')
+
+    plot_cmap = 'bone'
 
 
 if not os.path.exists(output_dir):
@@ -70,9 +90,9 @@ def run_pipeline():
 
     image_dataset = image_reader.ImageDataset(
         directory=image_dir,
-        window_size=128, output_dir=output_dir, plot_square=False,
+        window_size=window_size, output_dir=output_dir, plot_square=False,
         transform_function=image_preprocessing.image_transform_log,
-        plot_cmap='bone'
+        plot_cmap=plot_cmap
         ) # noqa
 
     if feature_method == 'psd':
@@ -83,7 +103,8 @@ def run_pipeline():
         training_dataset = image_reader.ImageDataset(
             directory=image_dir, 
             transform_function=image_preprocessing.image_transform_log,
-            window_size=128, window_shift=64, output_dir=output_dir)
+            window_size=window_size, window_shift=window_size // 2, 
+            output_dir=output_dir)
 
         pipeline_autoenc = autoencoder.AutoencoderFeatures(
             output_dir=output_dir, training_dataset=training_dataset,
