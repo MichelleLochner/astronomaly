@@ -261,11 +261,12 @@ export class AnomalyTab extends React.Component {
                   </Grid>
                   <Grid item xs={8}>
                       {/* <MakePlot plot={this.props.plot}/> */}
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} align="center">
+                      <Grid container spacing={3} >
+                      <Grid item xs={12} align="center">
                           <PlotContainer datatype={this.props.datatype} original_id={this.state.original_id} light_curve_data={this.state.light_curve_data}
                                         raw_features_data={this.state.raw_features_data}/>
                         </Grid>
+
                         <Grid item xs={12} align="center">
                           <Grid container spacing={3}>
                               <Grid item xs={4}>
