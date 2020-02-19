@@ -29,6 +29,33 @@ def image_transform_log(img):
     return np.log(img)
 
 
+def image_transform_root(img):
+    """
+    Normalise and then perform square root transform on image
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (assumed float values)
+
+    Returns
+    -------
+    np.ndarray
+        Transformed image
+
+    """
+    offset = 0.01
+    mini = img.min()
+    maxi = img.max()
+
+    if maxi == 0 and mini == 0:
+        img = img + offset
+    else:
+        img = (img - mini) / (maxi - mini) + offset
+
+    return np.sqrt(img)
+
+    
 def image_transform_scale(img):
     """
     Small function to normalise an image between 0 and 1. Useful for deep 
