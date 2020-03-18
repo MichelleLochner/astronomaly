@@ -13,7 +13,7 @@ Welcome to astronomaly's documentation!
 
    install
    quickstart
-   apidocs/modules
+   api
 
 
 
