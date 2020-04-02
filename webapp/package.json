@@ -50,6 +50,7 @@
     "highcharts-react-official": "^2.2.2",
     "ify-loader": "^1.1.0",
     "image-webpack-loader": "^5.0.0",
+    "jsdoc": "^3.6.3",
     "nivo": "^0.31.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
