@@ -74,6 +74,11 @@ const theme = createMuiTheme({
   },
 });
 
+/**
+ * Contains the tabs
+ * 
+ * @param {Params} data - blah 
+ */
 function TabContainer({ children, dir }) {
   return (
     <Typography component="div" dir={dir} style={{ padding: 8 * 3 }}>
@@ -82,7 +87,9 @@ function TabContainer({ children, dir }) {
   );
 }
 
-
+/**
+ * The App class
+ */
 class App extends React.Component {
   constructor(props){
     super(props);
@@ -144,6 +151,9 @@ class App extends React.Component {
   }
 }
 
+/**
+ * Main App class
+ */
 export default withStyles(styles)(App);
 
 

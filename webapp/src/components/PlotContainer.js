@@ -3,6 +3,11 @@ import {TimeSeriesPlot} from './PlotLightCurve.js';
 import React from 'react';
 import { RawFeaturesPlot } from './PlotRawFeatures.js';
 
+/**
+ * This holds whatever plot will be used to display the data. The type of plot
+ * changes depending on what kind of data we are visualising. It could be an
+ * image, a time series or just a set of features.
+ */
 export class PlotContainer extends React.PureComponent {
     constructor(props){
         super(props);

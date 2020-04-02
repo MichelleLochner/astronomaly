@@ -4,6 +4,9 @@ import HighchartsMore from 'highcharts/highcharts-more';
 HighchartsMore(Highcharts);
 import HighchartsReact from 'highcharts-react-official'
 
+/**
+ * Visualises raw features as points.
+ */
 export class RawFeaturesPlot extends React.PureComponent {
     constructor(props){
         super(props);

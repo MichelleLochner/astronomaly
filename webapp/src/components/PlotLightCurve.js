@@ -4,6 +4,9 @@ import HighchartsMore from 'highcharts/highcharts-more';
 HighchartsMore(Highcharts);
 import HighchartsReact from 'highcharts-react-official'
 
+/**
+ * Displays a time series plot
+ */
 export class TimeSeriesPlot extends React.PureComponent {
     constructor(props){
         super(props);

@@ -6,7 +6,9 @@ import { blue, indigo, green } from '@material-ui/core/colors'
 import Typography from '@material-ui/core/Typography'
 import Paper from '@material-ui/core/Paper'
 
-
+/**
+ * Allows the selection and running of different scripts
+ */
 export class AlgorithmTab extends React.Component {
     
 

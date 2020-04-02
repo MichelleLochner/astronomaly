@@ -12,39 +12,35 @@ import {PlotContainer} from './PlotContainer.js'
 //   } from 'recharts';
 import {XYPlot, XAxis, YAxis, MarkSeries, VerticalGridLines, HorizontalGridLines, Hint} from 'react-vis';
 
-// const myData = [
-//     { x: '-22.7323452', y: '52.02134'},
-//     { x: '38.1234', y: '26.1234'}
-//     // { x: 170, y: 300, z: 400 },
-//     // { x: 140, y: 250, z: 280 },
-//     // { x: 150, y: 400, z: 500 },
-//     // { x: 110, y: 280, z: 200 },
-//   ];
+// Testing the scatter plot
 
-const myData = [{'x': '-16.820', 'y': '-43.163'}, 
-{'x': '46.367538', 'y': '-0.309925'}, 
-// {'x': '-37.459553', 'y': '-27.726826'}, 
-// {'x': '28.261280', 'y': '13.430197'}, 
-// {'x': '-16.480743', 'y': '35.427864'}, 
-// {'x': '-7.735086', 'y': '53.409462'}, 
-// {'x': '19.494431', 'y': '20.171560'}, 
-// {'x': '-23.625153', 'y': '37.620316'}, 
-// {'x': '29.343306', 'y': '-11.579516'}, 
-// {'x': '-30.035269', 'y': '-14.403445'}
-];
+// const myData = [{'x': '-16.820', 'y': '-43.163'}, 
+// {'x': '46.367538', 'y': '-0.309925'}, 
+// // {'x': '-37.459553', 'y': '-27.726826'}, 
+// // {'x': '28.261280', 'y': '13.430197'}, 
+// // {'x': '-16.480743', 'y': '35.427864'}, 
+// // {'x': '-7.735086', 'y': '53.409462'}, 
+// // {'x': '19.494431', 'y': '20.171560'}, 
+// // {'x': '-23.625153', 'y': '37.620316'}, 
+// // {'x': '29.343306', 'y': '-11.579516'}, 
+// // {'x': '-30.035269', 'y': '-14.403445'}
+// ];
 
-function getRandomData() {
-  return new Array(2000).fill(0).map(row => ({
-    x: Math.random() * 20,
-    y: Math.random() * 20,
-    size: Math.random() * 10,
-    color: Math.random() * 10,
-    opacity: Math.random() * 0.5 + 0.5
-  }));
-}
+// function getRandomData() {
+//   return new Array(2000).fill(0).map(row => ({
+//     x: Math.random() * 20,
+//     y: Math.random() * 20,
+//     size: Math.random() * 10,
+//     color: Math.random() * 10,
+//     opacity: Math.random() * 0.5 + 0.5
+//   }));
+// }
 
-const randomData = getRandomData();
+// const randomData = getRandomData();
 
+/**
+ * Scatter plot for visualising clustering
+ */
 class MakeScatter extends React.Component {
     constructor(props){
       super(props);
@@ -78,26 +74,9 @@ class MakeScatter extends React.Component {
     }
 }
 
-// class MakeScatter extends React.Component {
-//     render() {
-//         return(
-//             <ScatterChart
-//             width={700}
-//             height={400}
-//             margin={{
-//               top: 20, right: 20, bottom: 20, left: 20,
-//             }}
-//           >
-//             <CartesianGrid />
-//             <XAxis type="number" dataKey="x" name="stature" unit="cm" />
-//             <YAxis type="number" dataKey="y" name="weight" unit="kg" />
-//             <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-//             <Scatter name="A school" data={this.props.data} fill="#8884d8" />
-//           </ScatterChart>
-//         )
-//     }
-// }
-
+/**
+ * Tab to display clustering visualisation
+ */
 export class ClusteringTab extends React.Component {
     constructor(props){
       super(props);

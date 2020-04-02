@@ -1,6 +1,9 @@
 import React from 'react';
 import PinchZoomPan from "react-responsive-pinch-zoom-pan";
 
+/**
+ * Displays the image of a particular object.
+ */
 export class PlotImage extends React.Component{
     constructor(props){
       super(props);

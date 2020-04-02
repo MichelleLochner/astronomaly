@@ -2,6 +2,9 @@ import React from 'react';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
 
+/**
+ * Class to display arbitrary data in key pairs in a neat card
+ */
 export class ObjectDisplayer extends React.PureComponent{
     render(){
         let display_text = '';
