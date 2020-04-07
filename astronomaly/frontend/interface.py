@@ -76,7 +76,7 @@ class Controller:
         try:
             return self.dataset.get_display_data(idx)
         except KeyError:
-            return {}
+            return None
 
     def get_features(self, idx):
         """

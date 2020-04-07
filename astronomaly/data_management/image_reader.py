@@ -7,6 +7,7 @@ import xarray
 import matplotlib as mpl
 import io
 from astronomaly.base.base_dataset import Dataset
+from astronomaly.base import logging_tools
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
@@ -30,16 +31,23 @@ class AstroImage:
         self.file_type = file_type
         self.fits_index = fits_index
 
-        if file_type == 'fits':
-            try:
-                self.hdul = fits.open(filename)
+        try:
+            self.hdul = fits.open(filename)
 
-            except FileNotFoundError:
-                print("Error: File", filename, "not found")
-                raise FileNotFoundError
+        except FileNotFoundError:
+            print("Error: File", filename, "not found")
+            raise FileNotFoundError
 
         self.name = self._strip_filename()
-        self.image = self.hdul[fits_index].data
+        if self.fits_index is None:
+            for i in range(len(self.hdul)):
+                self.fits_index = i
+                dat = self.hdul[self.fits_index].data
+                if dat is not None:
+                    self.image = dat
+                    break
+        else:
+            self.image = self.hdul[self.fits_index].data
         if len(self.image.shape) > 2:
             self.image = np.squeeze(self.image)
         self.metadata = dict(self.hdul[self.fits_index].header)
@@ -81,8 +89,8 @@ class AstroImage:
 
 
 class ImageDataset(Dataset):
-    def __init__(self, fits_index=0, window_size=128, window_shift=None, 
-                 transform_function=None, plot_square=False, 
+    def __init__(self, fits_index=None, window_size=128, window_shift=None, 
+                 transform_function=None, plot_square=False, catalogue=None,
                  plot_cmap='hot', **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
@@ -121,6 +129,11 @@ class ImageDataset(Dataset):
             applied to each cutout. The function should take an input 2d array 
             (the cutout) and return an output 2d array. If a list is provided, 
             each function is applied in the order of the list.
+        catalogue : pandas.DataFrame or similar
+            A catalogue of the positions of sources around which cutouts will
+            be extracted. Note that a cutout of size "window_size" will be
+            extracted around these positions and must be the same for all
+            sources. 
         plot_square : bool, optional
             If True this will add a white border indicating the boundaries of
             the original cutout when the image is displayed in the webapp.
@@ -133,12 +146,14 @@ class ImageDataset(Dataset):
                          transform_function=transform_function, 
                          plot_square=plot_square, plot_cmap=plot_cmap, 
                          **kwargs)
-        self.known_file_types = ['fits']
+        self.known_file_types = ['fits', 'fits.fz']
         self.data_type = 'image'
 
         images = {}
         for f in self.files:
             extension = f.split('.')[-1]
+            if extension == 'fz':
+                extension = '.'.join(f.split('.')[-2:])
             if extension in self.known_file_types:
                 astro_img = AstroImage(f, file_type=extension, 
                                        fits_index=fits_index)
@@ -170,11 +185,16 @@ class ImageDataset(Dataset):
         self.transform_function = transform_function
         self.plot_square = plot_square
         self.plot_cmap = plot_cmap
+        self.catalogue = catalogue
 
         self.metadata = pd.DataFrame(data=[])
         self.cutouts = pd.DataFrame(data=[])
 
-        self.generate_cutouts()
+        if self.catalogue is None:
+            self.generate_cutouts()
+
+        else:
+            self.get_cutouts_from_catalogue()
         self.index = self.metadata.index.values
 
     def transform(self, cutout):
@@ -265,6 +285,79 @@ class ImageDataset(Dataset):
 
         print('Done!')
 
+    def get_cutouts_from_catalogue(self):
+        """
+        Generates cutouts using a provided catalogue
+        """
+        print('Generating cutouts from catalogue...')
+        if 'original_image' not in self.catalogue.columns:
+            if len(self.images) > 1:
+                logging_tools.log('If multiple fits images are used the \
+                                  original_image column must be provided in \
+                                  the catalogue to identify which image the \
+                                  source belongs to.', 
+                                  level='ERROR')
+
+                raise ValueError("Incorrect input supplied")
+
+            else:
+                self.catalogue['original_image'] = \
+                    [list(self.images.keys())[0]] * len(self.catalogue)
+
+        if 'objid' not in self.catalogue.columns:
+            self.catalogue['objid'] = np.arange(len(self.catalogue))
+
+        if 'peak_flux' not in self.catalogue.columns:
+            self.catalogue['peak_flux'] = [np.NaN] * len(self.catalogue)
+
+        cutouts = []
+
+        for i in range(len(self.catalogue)):
+            x0 = int(self.catalogue['x'][i])
+            y0 = int(self.catalogue['y'][i])
+            xmin = x0 - self.window_size_x
+            xmax = x0 + self.window_size_x
+            ymin = y0 - self.window_size_y
+            ymax = y0 + self.window_size_y
+
+            img = self.images[self.catalogue['original_image'][i]].image
+
+            if ymin < 0 or xmin < 0 or ymax > img.shape[0] \
+                    or xmax > img.shape[1]:
+                self.catalogue.drop(i, inplace=True)
+
+            else:
+                cutout = img[ymin:ymax, xmin:xmax]
+
+                if np.isnan(self.catalogue['peak_flux'][i]):
+                    self.catalogue['peak_flux'][i] = cutout.max()
+
+                cutout = self.transform(cutout)
+                cutouts.append(cutout)
+
+        cols = ['original_image', 'x', 'y']
+
+        if 'ra' in self.catalogue.columns:
+            cols.append('ra')
+        if 'dec' in self.catalogue.columns:
+            cols.append('dec')
+        if 'peak_flux' in self.catalogue.columns:
+            cols.append('peak_flux')
+
+        met = {}
+        for c in cols:
+            met[c] = self.catalogue[c].values
+
+        the_index = np.array(self.catalogue['objid'].values, dtype='str')
+        self.metadata = pd.DataFrame(met, index=the_index)
+        print(met, self.metadata)
+
+        self.cutouts = xarray.DataArray(cutouts, 
+                                        coords={'index': the_index}, 
+                                        dims=['index', 'dim_1', 'dim_2'])
+
+        print('Done!')
+
     def get_sample(self, idx):
         """
         Returns the data for a single sample in the dataset as indexed by idx.
@@ -322,9 +415,14 @@ class ImageDataset(Dataset):
         png image object
             Object ready to be passed directly to the frontend
         """
+        print('GET DISPLAY DATA')
+        print(idx, type(idx))
+        print(idx in self.metadata.index)
+        print(self.metadata.loc[idx, 'x'])
         try:
             img_name = self.metadata.loc[idx, 'original_image']
         except KeyError:
+            print('KEY ERROR')
             return None
 
         img = self.images[img_name].image

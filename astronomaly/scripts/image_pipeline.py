@@ -13,8 +13,9 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 
 # which_data = 'meerkat'
 # which_data = 'meerkat_deep2'
-which_data = 'goods'
+# which_data = 'goods'
 # which_data = 'tgss'
+which_data = 'decals'
 
 window_size = 128
 image_transform_function = image_preprocessing.image_transform_log
@@ -36,6 +37,15 @@ elif which_data == 'tgss':
         data_dir, 'astronomaly_output', 'images', 'tgss', '')
     plot_cmap = 'hot'
     window_size = 32
+
+elif which_data == 'decals':
+    image_dir = os.path.join(data_dir, 'decals')
+    output_dir = os.path.join(
+        data_dir, 'astronomaly_output', 'images', 'decals', '')
+    plot_cmap = 'hot'
+    window_size = 32
+    catalogue = pd.read_csv(
+        os.path.join(data_dir, 'decals', 'catalogues', 'tractor-0001m002.csv'))
 
 else:
     image_dir = os.path.join(data_dir, 'GOODS_S/')
@@ -95,13 +105,15 @@ def run_pipeline():
         directory=image_dir,
         window_size=window_size, output_dir=output_dir, plot_square=False,
         transform_function=image_transform_function,
-        plot_cmap=plot_cmap
+        plot_cmap=plot_cmap,
+        catalogue=catalogue
         ) # noqa
 
     if feature_method == 'psd':
         pipeline_psd = power_spectrum.PSD_Features(
-            force_rerun=True, output_dir=output_dir)
+            force_rerun=False, output_dir=output_dir)
         features_original = pipeline_psd.run_on_dataset(image_dataset)
+
     elif feature_method == 'autoencoder':
         training_dataset = image_reader.ImageDataset(
             directory=image_dir, 
@@ -153,9 +165,9 @@ def run_pipeline():
         force_rerun=False,
         output_dir=output_dir,
         perplexity=50)
-    # t_plot = pipeline_tsne.run(features.loc[anomalies.index])
+    t_plot = pipeline_tsne.run(features.loc[anomalies.index])
     # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
-    t_plot=None
+
     return {'dataset': image_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
