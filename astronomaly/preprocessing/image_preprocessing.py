@@ -55,7 +55,7 @@ def image_transform_root(img):
 
     return np.sqrt(img)
 
- 
+
 def image_transform_scale(img):
     """
     Small function to normalise an image between 0 and 1. Useful for deep 

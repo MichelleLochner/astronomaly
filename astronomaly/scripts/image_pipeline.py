@@ -13,12 +13,13 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 
 # which_data = 'meerkat'
 # which_data = 'meerkat_deep2'
-# which_data = 'goods'
+which_data = 'goods'
 # which_data = 'tgss'
-which_data = 'decals'
+# which_data = 'decals'
 
 window_size = 128
 image_transform_function = image_preprocessing.image_transform_log
+catalogue = None
 
 if which_data == 'meerkat':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters')
@@ -43,7 +44,7 @@ elif which_data == 'decals':
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'decals', '')
     plot_cmap = 'hot'
-    window_size = 32
+    window_size = 16
     catalogue = pd.read_csv(
         os.path.join(data_dir, 'decals', 'catalogues', 'tractor-0001m002.csv'))
 
@@ -52,7 +53,7 @@ else:
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'goods', '')
 
-    image_transform_function = image_preprocessing.image_transform_sqrt
+    image_transform_function = image_preprocessing.image_transform_log
 
     if not os.path.exists(image_dir):
         os.makedirs(image_dir)
@@ -113,6 +114,7 @@ def run_pipeline():
         pipeline_psd = power_spectrum.PSD_Features(
             force_rerun=False, output_dir=output_dir)
         features_original = pipeline_psd.run_on_dataset(image_dataset)
+        features = features_original.copy()
 
     elif feature_method == 'autoencoder':
         training_dataset = image_reader.ImageDataset(

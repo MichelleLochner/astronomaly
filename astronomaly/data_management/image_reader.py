@@ -6,6 +6,7 @@ import pandas as pd
 import xarray
 import matplotlib as mpl
 import io
+from skimage.transform import resize
 from astronomaly.base.base_dataset import Dataset
 from astronomaly.base import logging_tools
 mpl.use('Agg')
@@ -90,6 +91,7 @@ class AstroImage:
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None, 
+                 display_image_size=128,
                  transform_function=None, plot_square=False, catalogue=None,
                  plot_cmap='hot', **kwargs):
         """
@@ -124,6 +126,10 @@ class ImageDataset(Dataset):
             set for an autoencoder. If an integer is provided, the shift will 
             be the same in both directions. Otherwise a list of
             [window_shift_x, window_shift_y] is expected.
+        display_image_size : The size of the image to be displayed on the
+            web page. If the image is smaller than this, it will be
+            interpolated up to the higher number of pixels. If larger, it will
+            be downsampled.
         transform_function : function or list, optional
             The transformation function or list of functions that will be 
             applied to each cutout. The function should take an input 2d array 
@@ -186,6 +192,7 @@ class ImageDataset(Dataset):
         self.plot_square = plot_square
         self.plot_cmap = plot_cmap
         self.catalogue = catalogue
+        self.display_image_size = display_image_size
 
         self.metadata = pd.DataFrame(data=[])
         self.cutouts = pd.DataFrame(data=[])
@@ -292,10 +299,10 @@ class ImageDataset(Dataset):
         print('Generating cutouts from catalogue...')
         if 'original_image' not in self.catalogue.columns:
             if len(self.images) > 1:
-                logging_tools.log('If multiple fits images are used the \
-                                  original_image column must be provided in \
-                                  the catalogue to identify which image the \
-                                  source belongs to.', 
+                logging_tools.log("""If multiple fits images are used the
+                                  original_image column must be provided in
+                                  the catalogue to identify which image the 
+                                  source belongs to.""", 
                                   level='ERROR')
 
                 raise ValueError("Incorrect input supplied")
@@ -350,7 +357,6 @@ class ImageDataset(Dataset):
 
         the_index = np.array(self.catalogue['objid'].values, dtype='str')
         self.metadata = pd.DataFrame(met, index=the_index)
-        print(met, self.metadata)
 
         self.cutouts = xarray.DataArray(cutouts, 
                                         coords={'index': the_index}, 
@@ -390,7 +396,7 @@ class ImageDataset(Dataset):
             Object ready to be passed directly to the frontend
         """
         with mpl.rc_context({'backend': 'Agg'}):
-            fig = plt.figure(figsize=(1, 1), dpi=self.window_size_x * 4)
+            fig = plt.figure(figsize=(1, 1), dpi=self.window_size_x* 4)
             ax = plt.Axes(fig, [0., 0., 1., 1.])
             ax.set_axis_off()
             fig.add_axes(ax)
@@ -415,14 +421,10 @@ class ImageDataset(Dataset):
         png image object
             Object ready to be passed directly to the frontend
         """
-        print('GET DISPLAY DATA')
-        print(idx, type(idx))
-        print(idx in self.metadata.index)
-        print(self.metadata.loc[idx, 'x'])
+
         try:
             img_name = self.metadata.loc[idx, 'original_image']
         except KeyError:
-            print('KEY ERROR')
             return None
 
         img = self.images[img_name].image
@@ -463,5 +465,16 @@ class ImageDataset(Dataset):
             cutout[y1:y2, x2] = mx
             cutout[y1, x1:x2] = mx
             cutout[y2, x1:x2] = mx
+
+        min_edge = min(cutout.shape)
+        max_edge = max(cutout.shape)
+        if min_edge < self.display_image_size:
+            new_min = self.display_image_size
+            new_max = int(max_edge / min_edge * new_min)
+            if cutout.shape[0] <= cutout.shape[1]:
+                new_shape = (new_min, new_max)
+            else:
+                new_shape = (new_max, new_min)
+            cutout = resize(cutout, new_shape, anti_aliasing=False)
 
         return self.convert_array_to_image(cutout)
