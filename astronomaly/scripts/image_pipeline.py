@@ -74,8 +74,8 @@ else:
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-feature_method = 'psd'
-dim_reduction = 'pca'
+feature_method = 'autoencoder'
+dim_reduction = ''
 
 
 def run_pipeline():
