@@ -24,6 +24,7 @@ def psd_2d(img, nbins):
 
     the_fft = np.fft.fftshift(np.fft.fft2(img - img.mean()))
     psd = np.abs(the_fft) ** 2
+    psd = psd / psd.sum()
 
     # Now radially bin the power spectral density
     X, Y = np.meshgrid(np.arange(the_fft.shape[1]), 
