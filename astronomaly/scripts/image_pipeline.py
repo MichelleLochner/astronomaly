@@ -120,11 +120,9 @@ def run_pipeline():
         training_dataset = image_reader.ImageDataset(
             directory=image_dir, 
             transform_function=image_transform_function,
-            window_size=window_size, window_shift=window_size // 2, 
-            output_dir=output_dir)
-
-        print(training_dataset.get_sample(training_dataset.index[0]).shape)
-        print(image_dataset.get_sample(image_dataset.index[0]).shape)
+            window_size=window_size,  
+            output_dir=output_dir,
+            catalogue=catalogue)
 
         pipeline_autoenc = autoencoder.AutoencoderFeatures(
             output_dir=output_dir, training_dataset=training_dataset,
