@@ -123,6 +123,9 @@ def run_pipeline():
             window_size=window_size, window_shift=window_size // 2, 
             output_dir=output_dir)
 
+        print(training_dataset.get_sample(training_dataset.index[0]).shape)
+        print(image_dataset.get_sample(image_dataset.index[0]).shape)
+
         pipeline_autoenc = autoencoder.AutoencoderFeatures(
             output_dir=output_dir, training_dataset=training_dataset,
             retrain=True)
