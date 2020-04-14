@@ -117,15 +117,14 @@ def run_pipeline():
         features = features_original.copy()
 
     elif feature_method == 'autoencoder':
-        training_dataset = image_reader.ImageDataset(
-            directory=image_dir, 
-            transform_function=image_transform_function,
-            window_size=window_size,  
-            output_dir=output_dir,
-            catalogue=catalogue)
+        # training_dataset = image_reader.ImageDataset(
+        #     directory=image_dir, 
+        #     transform_function=image_transform_function,
+        #     window_size=window_size,  
+        #     output_dir=output_dir)
 
         pipeline_autoenc = autoencoder.AutoencoderFeatures(
-            output_dir=output_dir, training_dataset=training_dataset,
+            output_dir=output_dir, training_dataset=image_dataset,
             retrain=True)
         features = pipeline_autoenc.run_on_dataset(image_dataset)
 
