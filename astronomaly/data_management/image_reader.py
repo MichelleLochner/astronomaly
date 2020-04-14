@@ -322,10 +322,10 @@ class ImageDataset(Dataset):
         for i in range(len(self.catalogue)):
             x0 = int(self.catalogue['x'][i])
             y0 = int(self.catalogue['y'][i])
-            xmin = x0 - self.window_size_x
-            xmax = x0 + self.window_size_x
-            ymin = y0 - self.window_size_y
-            ymax = y0 + self.window_size_y
+            xmin = x0 - self.window_size_x // 2
+            xmax = x0 + self.window_size_x // 2
+            ymin = y0 - self.window_size_y // 2
+            ymax = y0 + self.window_size_y // 2
 
             img = self.images[self.catalogue['original_image'][i]].image
 
