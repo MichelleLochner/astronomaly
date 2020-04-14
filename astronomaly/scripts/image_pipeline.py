@@ -74,7 +74,7 @@ else:
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-feature_method = 'autoencoder'
+feature_method = 'psd'
 dim_reduction = ''
 
 
@@ -125,7 +125,7 @@ def run_pipeline():
 
         pipeline_autoenc = autoencoder.AutoencoderFeatures(
             output_dir=output_dir, training_dataset=image_dataset,
-            retrain=True)
+            retrain=False)
         features = pipeline_autoenc.run_on_dataset(image_dataset)
 
     if dim_reduction == 'pca':
