@@ -22,7 +22,7 @@ def psd_2d(img, nbins):
         Power spectral density at each frequency
     """
 
-    the_fft = np.fft.fftshift(np.fft.fft2(img))
+    the_fft = np.fft.fftshift(np.fft.fft2(img - img.mean()))
     psd = np.abs(the_fft) ** 2
 
     # Now radially bin the power spectral density
