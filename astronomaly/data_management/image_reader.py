@@ -468,9 +468,9 @@ class ImageDataset(Dataset):
 
         min_edge = min(cutout.shape)
         max_edge = max(cutout.shape)
-        if min_edge < self.display_image_size:
-            new_min = self.display_image_size
-            new_max = int(max_edge / min_edge * new_min)
+        if max_edge != self.display_image_size:
+            new_max = self.display_image_size
+            new_min = int(min_edge * new_max / max_edge)
             if cutout.shape[0] <= cutout.shape[1]:
                 new_shape = (new_min, new_max)
             else:
