@@ -13,9 +13,9 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 
 # which_data = 'meerkat'
 # which_data = 'meerkat_deep2'
-which_data = 'goods'
+# which_data = 'goods'
 # which_data = 'tgss'
-# which_data = 'decals'
+which_data = 'decals'
 
 window_size = 128
 image_transform_function = image_preprocessing.image_transform_log
@@ -44,9 +44,9 @@ elif which_data == 'decals':
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'decals', '')
     plot_cmap = 'hot'
-    window_size = 16
+    window_size = 64
     catalogue = pd.read_csv(
-        os.path.join(data_dir, 'decals', 'catalogues', 'tractor-0001m002.csv'))
+        os.path.join(data_dir, 'decals', 'catalogues', 'tractor-0267m095.csv'))
 
 else:
     image_dir = os.path.join(data_dir, 'GOODS_S/')
