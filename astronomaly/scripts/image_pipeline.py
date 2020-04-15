@@ -76,7 +76,7 @@ if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 feature_method = 'autoencoder'
-dim_reduction = ''
+dim_reduction = 'pca'
 
 
 def run_pipeline():
@@ -115,7 +115,7 @@ def run_pipeline():
         pipeline_psd = power_spectrum.PSD_Features(
             force_rerun=False, output_dir=output_dir)
         features_original = pipeline_psd.run_on_dataset(image_dataset)
-        features = features_original.copy()
+        
 
     elif feature_method == 'autoencoder':
         # training_dataset = image_reader.ImageDataset(
@@ -127,12 +127,14 @@ def run_pipeline():
         pipeline_autoenc = autoencoder.AutoencoderFeatures(
             output_dir=output_dir, training_dataset=image_dataset,
             retrain=False)
-        features = pipeline_autoenc.run_on_dataset(image_dataset)
+        features_original = pipeline_autoenc.run_on_dataset(image_dataset)
+    
+    features = features_original.copy()
 
     if dim_reduction == 'pca':
         pipeline_pca = decomposition.PCA_Decomposer(force_rerun=False, 
                                                     output_dir=output_dir,
-                                                    n_components=2)
+                                                    threshold=0.95)
         features = pipeline_pca.run(features_original)
 
     pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
