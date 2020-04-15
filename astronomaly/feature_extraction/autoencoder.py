@@ -77,21 +77,38 @@ class Autoencoder:
         # Assumes "channels last" format
         input_img = Input(shape=input_image_shape)  
 
-        x = Conv2D(16, (3, 3), activation='relu', padding='same')(input_img)
+        # x = Conv2D(16, (3, 3), activation='relu', padding='same')(input_img)
+        # x = MaxPooling2D((2, 2), padding='same')(x)
+        # x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        # x = MaxPooling2D((4, 4), padding='same')(x)
+        # x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        # encoder = MaxPooling2D((4, 4), padding='same', name='encoder')(x)
+
+        # # at this point the representation is (4, 4, 8) i.e. 128-dimensional
+
+        # x = Conv2D(8, (3, 3), activation='relu', padding='same')(encoder)
+        # x = UpSampling2D((4, 4))(x)
+        # x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        # x = UpSampling2D((4, 4))(x)
+        # x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+        # x = UpSampling2D((2, 2))(x)
+
+        x = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img)
         x = MaxPooling2D((2, 2), padding='same')(x)
-        x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
-        x = MaxPooling2D((4, 4), padding='same')(x)
-        x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
-        encoder = MaxPooling2D((4, 4), padding='same', name='encoder')(x)
+        x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+        x = MaxPooling2D((2, 2), padding='same')(x)
+        x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+        encoder = MaxPooling2D((2, 2), padding='same', name='encoder')(x)
 
         # at this point the representation is (4, 4, 8) i.e. 128-dimensional
 
-        x = Conv2D(8, (3, 3), activation='relu', padding='same')(encoder)
-        x = UpSampling2D((4, 4))(x)
-        x = Conv2D(8, (3, 3), activation='relu', padding='same')(x)
-        x = UpSampling2D((4, 4))(x)
-        x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+        x = Conv2D(16, (3, 3), activation='relu', padding='same')(encoder)
         x = UpSampling2D((2, 2))(x)
+        x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+        x = UpSampling2D((2, 2))(x)
+        x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+        x = UpSampling2D((2, 2))(x)
+
         decoder = Conv2D(input_image_shape[-1], (3, 3), activation='sigmoid', 
                          padding='same')(x)
 
