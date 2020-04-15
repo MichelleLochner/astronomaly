@@ -18,7 +18,8 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 which_data = 'decals'
 
 window_size = 128
-image_transform_function = image_preprocessing.image_transform_log
+image_transform_function = [image_preprocessing.image_transform_log, 
+                            image_preprocessing.image_transform_scale]
 catalogue = None
 
 if which_data == 'meerkat':
@@ -74,7 +75,7 @@ else:
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-feature_method = 'psd'
+feature_method = 'autoencoder'
 dim_reduction = ''
 
 
