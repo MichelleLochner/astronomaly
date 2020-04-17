@@ -233,7 +233,11 @@ class PipelineStage(object):
         """
         # *** WARNING: this has not been tested against adding new data and
         # *** ensuring the function is called for new data only
-        new_checksum = self.hash_data(dataset.get_sample(dataset.index[0]))
+        dat = dataset.get_sample(dataset.index[0])
+        # Have to do a slight hack if the data is too high dimensional
+        if len(dat.shape) > 2:
+            dat = dat.ravel()
+        new_checksum = self.hash_data(dat)
         if not self.args_same or new_checksum != self.checksum:
             # If the arguments have changed we rerun everything
             msg_string = self.function_call_signature + ' - checksum: ' + \
