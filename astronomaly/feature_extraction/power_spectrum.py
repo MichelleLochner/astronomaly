@@ -111,7 +111,7 @@ class PSD_Features(PipelineStage):
         else:
             psd_all_bands = []
             labels = []
-            for band in range(len(image.shape[2])):
+            for band in range(image.shape[2]):
                 psd_feats = psd_2d(image[:, :, band], self.nbins)
                 psd_all_bands += list(psd_feats)
                 labels += \

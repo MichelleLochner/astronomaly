@@ -15,45 +15,83 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 
 class AstroImage:
-    def __init__(self, filename, file_type='fits', fits_index=0):
+    def __init__(self, filenames, file_type='fits', fits_index=0, name=''):
         """
         Lightweight wrapper for an astronomy image from a fits file
 
         Parameters
         ----------
-        filename : string
-            Filename of fits file to be read
+        filenames : list of files
+            Filename of fits file to be read. Can be length one if there's only
+            one file or multiple if there are multiband images
         fits_index : integer
             Which HDU object in the list to work with
 
         """
-        print('Reading image data from %s...' % filename)
-        self.filename = filename
+        print('Reading image data from %s...' % filenames[0])
+        self.filenames = filenames
         self.file_type = file_type
+        self.metadata = {}
+        self.coords = None
         self.fits_index = fits_index
 
+        images = []
         try:
-            self.hdul = fits.open(filename)
+            for f in filenames:
+                hdul = fits.open(f)
+                image = self._get_image_data(hdul)
+                images.append(image)
+                metadata = dict(hdul[self.fits_index].header)
+                self.metadata[f] = metadata
+                coords = self._convert_to_world_coords(hdul, image)
+                if self.coords is None:
+                    self.coords = coords
+                else:
+                    if not (self.coords == coords).all():
+                        print('Coordinates of different bands are not the same')
+                        raise ValueError 
 
         except FileNotFoundError:
-            print("Error: File", filename, "not found")
+            print("Error: File", f, "not found")
             raise FileNotFoundError
 
-        self.name = self._strip_filename()
+        # Should now be a 3d array with multiple channels
+        self.image = np.dstack(images) 
+
+        if len(name) == 0:
+            self.name = self._strip_filename()
+        else:
+            self.name = name
+
+        print('Done!')
+
+    def _get_image_data(self, hdul):
+        """Returns the image data from a fits HDUlist object
+        
+        Parameters
+        ----------
+        hdul : fits.HDUlist
+            HDUlist object returned by fits.open
+        
+        Returns
+        -------
+        np.array
+            Image data
+        """
         if self.fits_index is None:
-            for i in range(len(self.hdul)):
+            for i in range(len(hdul)):
                 self.fits_index = i
-                dat = self.hdul[self.fits_index].data
+                dat = hdul[self.fits_index].data
                 if dat is not None:
-                    self.image = dat
+                    image = dat
                     break
         else:
-            self.image = self.hdul[self.fits_index].data
-        if len(self.image.shape) > 2:
-            self.image = np.squeeze(self.image)
-        self.metadata = dict(self.hdul[self.fits_index].header)
-        self.coords = self._convert_to_world_coords()
-        print('Done!')
+            image = hdul[self.fits_index].data
+
+        if len(image.shape) > 2:
+            image = np.squeeze(image)
+
+        return image
 
     def _strip_filename(self):
 
@@ -67,14 +105,21 @@ class AstroImage:
             Formatted file name
 
         """
-        s1 = self.filename.split(os.path.sep)[-1]
+        s1 = self.filenames[0].split(os.path.sep)[-1]
         extension = s1.split('.')[-1]
         return s1.split('.' + extension)[0]
 
-    def _convert_to_world_coords(self):
+    def _convert_to_world_coords(self, hdul, image):
         """
         Converts pixels to (ra,dec) in degrees. This is much faster to do once 
         per image than on-demand for individual cutouts.
+
+        Parameters
+        ----------
+        hdul : fits.HDUlist
+            HDUlist object returned by fits.open
+        image : np.array
+            The image data to determine the coordinates shape
 
         Returns
         -------
@@ -82,16 +127,16 @@ class AstroImage:
             Nx2 array with RA,DEC pairs for every pixel in image
         """
 
-        w = WCS(self.hdul[self.fits_index].header, naxis=2)
+        w = WCS(hdul[self.fits_index].header, naxis=2)
         coords = w.wcs_pix2world(np.vstack(
-                                 (np.arange(self.image.shape[0])[::-1], 
-                                  np.arange(self.image.shape[1])[::-1])).T, 0)
+                                 (np.arange(image.shape[0])[::-1], 
+                                  np.arange(image.shape[1])[::-1])).T, 0)
         return coords
 
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None, 
-                 display_image_size=128,
+                 display_image_size=128, band_prefixes=[], bands_rgb={},
                  transform_function=None, plot_square=False, catalogue=None,
                  plot_cmap='hot', **kwargs):
         """
@@ -130,6 +175,17 @@ class ImageDataset(Dataset):
             web page. If the image is smaller than this, it will be
             interpolated up to the higher number of pixels. If larger, it will
             be downsampled.
+        band_prefixes : list
+            Allows you to specify a prefix for an image which corresponds to a
+            band identifier. This has to be a prefix and the rest of the image
+            name must be identical in order for Astronomaly to detect these
+            images should be stacked together. 
+        bands_rgb : Dictionary
+            Maps the input bands (in separate folders) to rgb values to allow
+            false colour image plotting. Note that here you can only select
+            three bands to plot although you can use as many bands as you like
+            in band_prefixes. The dictionary should have 'r', 'g' and 'b' as
+            keys with the band prefixes as values.
         transform_function : function or list, optional
             The transformation function or list of functions that will be 
             applied to each cutout. The function should take an input 2d array 
@@ -156,14 +212,52 @@ class ImageDataset(Dataset):
         self.data_type = 'image'
 
         images = {}
-        for f in self.files:
-            extension = f.split('.')[-1]
-            if extension == 'fz':
-                extension = '.'.join(f.split('.')[-2:])
-            if extension in self.known_file_types:
-                astro_img = AstroImage(f, file_type=extension, 
-                                       fits_index=fits_index)
-                images[astro_img.name] = astro_img
+
+        if len(band_prefixes) != 0:
+            # Get the matching images in different bands
+            bands_files = {}
+
+            for p in band_prefixes:
+                for f in self.files:
+                    if p in f:
+                        start_ind = f.find(p)
+                        end_ind = start_ind + len(p)
+                        flname = f[end_ind:]
+                        if flname not in bands_files.keys():
+                            bands_files[flname] = [f]
+                        else:
+                            bands_files[flname] += [f]
+
+            for k in bands_files.keys():
+                extension = k.split('.')[-1]
+                # print(k, extension)
+                if extension == 'fz':
+                    extension = '.'.join(k.split('.')[-2:])
+                if extension in self.known_file_types:
+                    astro_img = AstroImage(bands_files[k], file_type=extension, 
+                                           fits_index=fits_index, name=k)
+                    images[k] = astro_img
+                    # print(astro_img.image.shape)
+
+            # Also convert the rgb dictionary into an index dictionary
+            # corresponding
+            if len(bands_rgb) == 0:
+                self.bands_rgb = {'r': 0, 'g': 1, 'b': 2}
+            else:
+                self.bands_rgb = {}
+                for k in bands_rgb.keys():
+                    band = bands_rgb[k]
+                    ind = band_prefixes.index(band)
+                    self.bands_rgb[k] = ind
+        else:
+            for f in self.files:
+                extension = f.split('.')[-1]
+                if extension == 'fz':
+                    extension = '.'.join(f.split('.')[-2:])
+                if extension in self.known_file_types:
+                    astro_img = AstroImage([f], file_type=extension, 
+                                           fits_index=fits_index)
+                    images[astro_img.name] = astro_img
 
         if len(list(images.keys())) == 0:
             print("No images found")
@@ -185,7 +279,7 @@ class ImageDataset(Dataset):
                 self.window_shift_y = window_shift
         else:
             self.window_shift_x = self.window_size_x
-            self.window_shift_y = self.window_size_y
+            self.window_shift_y = self.window_size_y 
 
         self.images = images
         self.transform_function = transform_function
@@ -193,6 +287,7 @@ class ImageDataset(Dataset):
         self.plot_cmap = plot_cmap
         self.catalogue = catalogue
         self.display_image_size = display_image_size
+        self.band_prefixes = band_prefixes
 
         self.metadata = pd.DataFrame(data=[])
         self.cutouts = pd.DataFrame(data=[])
@@ -223,6 +318,11 @@ class ImageDataset(Dataset):
                 len(self.transform_function)
                 new_cutout = cutout
                 for f in self.transform_function:
+                    # if len(cutout.shape) == 3:
+                    #     new_cutout = np.zeros(cutout.shape)
+                    #     for i in range(cutout.shape[-1]):
+                    #         new_cutout[:, :, i] = f(cutout[:, :, i])
+
                     new_cutout = f(new_cutout)
                 cutout = new_cutout
             except TypeError:
@@ -286,9 +386,14 @@ class ImageDataset(Dataset):
                                      index=np.array(np.arange(len(cutouts)), 
                                      dtype='str'))
 
+        if len(cutouts[0].shape)>2:
+            dims = ['index', 'dim_1', 'dim_2', 'dim_3']
+        else:
+            dims = ['index', 'dim_1', 'dim_2'] 
+
         self.cutouts = xarray.DataArray(cutouts, 
                                         coords={'index': self.metadata.index}, 
-                                        dims=['index', 'dim_1', 'dim_2'])
+                                        dims=dims)
 
         print('Done!')
 
@@ -358,9 +463,13 @@ class ImageDataset(Dataset):
         the_index = np.array(self.catalogue['objid'].values, dtype='str')
         self.metadata = pd.DataFrame(met, index=the_index)
 
+        if len(cutouts[0].shape)>2:
+            dims = ['index', 'dim_1', 'dim_2', 'dim_3']
+        else:
+            dims = ['index', 'dim_1', 'dim_2'] 
         self.cutouts = xarray.DataArray(cutouts, 
                                         coords={'index': the_index}, 
-                                        dims=['index', 'dim_1', 'dim_2'])
+                                        dims=dims)
 
         print('Done!')
 
@@ -444,13 +553,24 @@ class ImageDataset(Dataset):
         tot_size_x = int(2 * self.window_size_x * factor)
         tot_size_y = int(2 * self.window_size_y * factor)
 
-        cutout = np.zeros([tot_size_y, tot_size_x])
+        if len(img.shape) > 2:
+            shp = [tot_size_y, tot_size_x, img.shape[-1]]
+        else:
+            shp = [tot_size_y, tot_size_x]
+        cutout = np.zeros(shp)
         cutout[ystart - ymin:tot_size_y - (ymax - yend), 
                xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend, 
                                                                xstart:xend]
         cutout = np.nan_to_num(cutout)
 
         cutout = self.transform(cutout)
+
+        if len(cutout.shape) > 2 and cutout.shape[-1] >= 3:
+            new_cutout = np.zeros([cutout.shape[0], cutout.shape[1], 3])
+            new_cutout[:, :, 0] = cutout[:, :, self.bands_rgb['r']]
+            new_cutout[:, :, 1] = cutout[:, :, self.bands_rgb['g']]
+            new_cutout[:, :, 2] = cutout[:, :, self.bands_rgb['b']]
+            cutout = new_cutout
 
         if self.plot_square:
             offset_x = (tot_size_x - self.window_size_x) // 2
@@ -466,15 +586,17 @@ class ImageDataset(Dataset):
             cutout[y1, x1:x2] = mx
             cutout[y2, x1:x2] = mx
 
-        min_edge = min(cutout.shape)
-        max_edge = max(cutout.shape)
+        min_edge = min(cutout.shape[:2])
+        max_edge = max(cutout.shape[:2])
         if max_edge != self.display_image_size:
             new_max = self.display_image_size
             new_min = int(min_edge * new_max / max_edge)
             if cutout.shape[0] <= cutout.shape[1]:
-                new_shape = (new_min, new_max)
+                new_shape = [new_min, new_max]
             else:
-                new_shape = (new_max, new_min)
+                new_shape = [new_max, new_min]
+            if len(cutout.shape) > 2:
+                new_shape.append(cutout.shape[-1])
             cutout = resize(cutout, new_shape, anti_aliasing=False)
 
         return self.convert_array_to_image(cutout)

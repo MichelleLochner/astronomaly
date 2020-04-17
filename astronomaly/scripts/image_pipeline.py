@@ -18,9 +18,11 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 which_data = 'decals'
 
 window_size = 128
-image_transform_function = [image_preprocessing.image_transform_log, 
+image_transform_function = [image_preprocessing.image_transform_inverse_sinh, 
                             image_preprocessing.image_transform_scale]
 catalogue = None
+band_prefixes = []
+bands_rgb = {}
 
 if which_data == 'meerkat':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters')
@@ -41,13 +43,18 @@ elif which_data == 'tgss':
     window_size = 32
 
 elif which_data == 'decals':
-    image_dir = os.path.join(data_dir, 'decals')
+    # brick = '0267m095'
+    brick = '0001m002'
+    image_dir = os.path.join(data_dir, 'decals', brick, '')
     output_dir = os.path.join(
-        data_dir, 'astronomaly_output', 'images', 'decals', '')
+        data_dir, 'astronomaly_output', 'images', 'decals', brick, '')
     plot_cmap = 'hot'
     window_size = 64
     catalogue = pd.read_csv(
-        os.path.join(data_dir, 'decals', 'catalogues', 'tractor-0267m095.csv'))
+        os.path.join(
+            data_dir, 'decals', 'catalogues', 'tractor-%s.csv' % brick))
+    band_prefixes = ['z-', 'r-', 'g-']
+    band_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
 
 else:
     image_dir = os.path.join(data_dir, 'GOODS_S/')
@@ -75,7 +82,7 @@ else:
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-feature_method = 'autoencoder'
+feature_method = 'psd'
 dim_reduction = 'pca'
 
 
@@ -108,14 +115,15 @@ def run_pipeline():
         window_size=window_size, output_dir=output_dir, plot_square=False,
         transform_function=image_transform_function,
         plot_cmap=plot_cmap,
-        catalogue=catalogue
+        catalogue=catalogue,
+        band_prefixes=band_prefixes,
+        bands_rgb=bands_rgb
         ) # noqa
 
     if feature_method == 'psd':
         pipeline_psd = power_spectrum.PSD_Features(
             force_rerun=False, output_dir=output_dir)
         features_original = pipeline_psd.run_on_dataset(image_dataset)
-        
 
     elif feature_method == 'autoencoder':
         # training_dataset = image_reader.ImageDataset(
