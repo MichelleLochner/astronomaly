@@ -22,6 +22,7 @@ export class AnomalyTab extends React.Component {
   constructor(props){
     super(props);
     this.handleForwardBackwardClick = this.handleForwardBackwardClick.bind(this);
+    this.handleForwardBackwardKey = this.handleForwardBackwardKey.bind(this);
     // this.getImage = this.getImage.bind(this);
     this.handleChangeAlgorithmClick = this.handleChangeAlgorithmClick.bind(this);
     this.changeAlgorithm = this.changeAlgorithm.bind(this);
@@ -65,6 +66,28 @@ export class AnomalyTab extends React.Component {
 
     this.setState({id:newID}, this.updateOriginalID(newID));
     // this.getImage(newID);
+  }
+
+  handleForwardBackwardKey(e){
+    const whichKey = e.key;
+
+    let newID;
+    if (whichKey=="ArrowRight"){
+      newID = this.state.id+1;
+      /// Need some logic here checking we don't get to the end
+    }
+    else if (whichKey=="ArrowLeft") {
+      newID = this.state.id-1;
+      if (newID<0) {newID=0};
+    }
+    else {
+      newID = this.state.id;
+    }
+
+    this.setState({id:newID}, this.updateOriginalID(newID));
+
+    e.preventDefault();
+    return false;
   }
 
   /**
@@ -218,7 +241,7 @@ export class AnomalyTab extends React.Component {
     // console.log(this.props)
       return(
           <div>
-              <Grid component='div' container spacing={3}>
+              <Grid component='div' container spacing={3} onKeyDown={this.handleForwardBackwardKey} tabIndex="0">
                   <Grid item xs={12}>
                       <div></div>
                   </Grid>
