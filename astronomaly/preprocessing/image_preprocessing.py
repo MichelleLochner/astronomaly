@@ -17,16 +17,38 @@ def image_transform_log(img):
         Transformed image
 
     """
-    offset = 0.01
-    mini = img.min()
+
+    mini = img[img != 0].min()
     maxi = img.max()
+    offset = (maxi - mini) / 100
 
     if maxi == 0 and mini == 0:
-        img = img + offset
+        img = img + 0.01
     else:
         img = (img - mini) / (maxi - mini) + offset
 
     return np.log(img)
+
+
+def image_transform_inverse_sinh(img):
+    """
+    Performs inverse hyperbolic sine transform on image
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (assumed float values)
+
+    Returns
+    -------
+    np.ndarray
+        Transformed image
+
+    """
+
+    theta = 100 / img.max()
+
+    return np.arcsinh(theta * img) / theta
 
 
 def image_transform_root(img):
@@ -44,9 +66,11 @@ def image_transform_root(img):
         Transformed image
 
     """
-    offset = 0.01
-    mini = img.min()
+
+    img[img < 0] = 0
+    mini = img[img != 0].min()
     maxi = img.max()
+    offset = (maxi - mini) / 10
 
     if maxi == 0 and mini == 0:
         img = img + offset
