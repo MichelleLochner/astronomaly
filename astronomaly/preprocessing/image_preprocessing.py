@@ -45,7 +45,8 @@ def image_transform_inverse_sinh(img):
         Transformed image
 
     """
-
+    if img.max() == 0:
+        return img
     theta = 100 / img.max()
 
     return np.arcsinh(theta * img) / theta
@@ -96,6 +97,8 @@ def image_transform_scale(img):
         Scaled image
 
     """
+    if img.min() == img.max():
+        return img
     return (img - img.min()) / (img.max() - img.min())
 
 

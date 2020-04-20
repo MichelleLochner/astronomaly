@@ -441,11 +441,15 @@ class ImageDataset(Dataset):
             else:
                 cutout = img[ymin:ymax, xmin:xmax]
 
-                if np.isnan(self.catalogue['peak_flux'][i]):
-                    self.catalogue['peak_flux'][i] = cutout.max()
+                if (cutout.max() == cutout.min()):
+                    self.catalogue.drop(i, inplace=True)
+                
+                else:
+                    if np.isnan(self.catalogue['peak_flux'][i]):
+                        self.catalogue['peak_flux'][i] = cutout.max()
 
-                cutout = self.transform(cutout)
-                cutouts.append(cutout)
+                    cutout = self.transform(cutout)
+                    cutouts.append(cutout)
 
         cols = ['original_image', 'x', 'y']
 
@@ -463,7 +467,7 @@ class ImageDataset(Dataset):
         the_index = np.array(self.catalogue['objid'].values, dtype='str')
         self.metadata = pd.DataFrame(met, index=the_index)
 
-        if len(cutouts[0].shape)>2:
+        if len(cutouts[0].shape) > 2:
             dims = ['index', 'dim_1', 'dim_2', 'dim_3']
         else:
             dims = ['index', 'dim_1', 'dim_2'] 

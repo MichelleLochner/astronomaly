@@ -43,9 +43,9 @@ elif which_data == 'tgss':
     window_size = 32
 
 elif which_data == 'decals':
-    # brick = '0267m095'
-    brick = '0001m002'
-    image_dir = os.path.join(data_dir, 'decals', brick, '')
+    brick = '0267m095'
+    # brick = '0001m002'
+    image_dir = os.path.join(data_dir, 'decals', 'masked', '')
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'decals', brick, '')
     plot_cmap = 'hot'
