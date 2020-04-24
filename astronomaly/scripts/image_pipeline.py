@@ -13,9 +13,9 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 
 # which_data = 'meerkat'
 # which_data = 'meerkat_deep2'
-# which_data = 'goods'
+which_data = 'goods'
 # which_data = 'tgss'
-which_data = 'decals'
+# which_data = 'decals'
 
 window_size = 128
 image_transform_function = [image_preprocessing.image_transform_inverse_sinh, 
@@ -43,25 +43,27 @@ elif which_data == 'tgss':
     window_size = 32
 
 elif which_data == 'decals':
-    brick = '0267m095'
-    # brick = '0001m002'
-    image_dir = os.path.join(data_dir, 'decals', 'masked', '')
+    coadd_id = '026'
+    image_dir = os.path.join(data_dir, 'decals', coadd_id, 'masked_images', '')
     output_dir = os.path.join(
-        data_dir, 'astronomaly_output', 'images', 'decals', brick, '')
-    plot_cmap = 'hot'
-    window_size = 64
+        data_dir, 'astronomaly_output', 'images', 'decals', coadd_id, '')
+    window_size = 32
     catalogue = pd.read_csv(
         os.path.join(
-            data_dir, 'decals', 'catalogues', 'tractor-%s.csv' % brick))
+            data_dir, 'decals', coadd_id, 'catalogues', 
+            'legacysurvey_%s_catalogue.csv' % coadd_id))
     band_prefixes = ['z-', 'r-', 'g-']
     band_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
 
 else:
-    image_dir = os.path.join(data_dir, 'GOODS_S/')
+    image_dir = os.path.join(data_dir, 'GOODS_S/', 'combined/')
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'goods', '')
-
-    image_transform_function = image_preprocessing.image_transform_log
+    window_size = 128
+    catalogue = pd.read_csv(
+        os.path.join(image_dir, 'h_goods_sz_r2.0z_cat.csv'))
+    band_prefixes = ['iz-', 'v-', 'b-']
+    band_rgb = {'r': 'iz-', 'g': 'v-', 'b': 'b-'}
 
     if not os.path.exists(image_dir):
         os.makedirs(image_dir)

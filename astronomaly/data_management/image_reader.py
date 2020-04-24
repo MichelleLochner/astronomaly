@@ -386,7 +386,7 @@ class ImageDataset(Dataset):
                                      index=np.array(np.arange(len(cutouts)), 
                                      dtype='str'))
 
-        if len(cutouts[0].shape)>2:
+        if len(cutouts[0].shape) > 2:
             dims = ['index', 'dim_1', 'dim_2', 'dim_3']
         else:
             dims = ['index', 'dim_1', 'dim_2'] 
@@ -425,31 +425,34 @@ class ImageDataset(Dataset):
         cutouts = []
 
         for i in range(len(self.catalogue)):
-            x0 = int(self.catalogue['x'][i])
-            y0 = int(self.catalogue['y'][i])
-            xmin = x0 - self.window_size_x // 2
-            xmax = x0 + self.window_size_x // 2
-            ymin = y0 - self.window_size_y // 2
-            ymax = y0 + self.window_size_y // 2
+            img_name = self.catalogue['original_image'][i]
+            if img_name in self.images.keys():
+                img = self.images[img_name].image
+                x0 = int(self.catalogue['x'][i])
+                y0 = int(self.catalogue['y'][i])
+                xmin = x0 - self.window_size_x // 2
+                xmax = x0 + self.window_size_x // 2
+                ymin = y0 - self.window_size_y // 2
+                ymax = y0 + self.window_size_y // 2
 
-            img = self.images[self.catalogue['original_image'][i]].image
-
-            if ymin < 0 or xmin < 0 or ymax > img.shape[0] \
-                    or xmax > img.shape[1]:
-                self.catalogue.drop(i, inplace=True)
-
-            else:
-                cutout = img[ymin:ymax, xmin:xmax]
-
-                if (cutout.max() == cutout.min()):
+                if ymin < 0 or xmin < 0 or ymax > img.shape[0] \
+                        or xmax > img.shape[1]:
                     self.catalogue.drop(i, inplace=True)
-                
-                else:
-                    if np.isnan(self.catalogue['peak_flux'][i]):
-                        self.catalogue['peak_flux'][i] = cutout.max()
 
-                    cutout = self.transform(cutout)
-                    cutouts.append(cutout)
+                else:
+                    cutout = img[ymin:ymax, xmin:xmax]
+
+                    if (cutout.max() == cutout.min()):
+                        self.catalogue.drop(i, inplace=True)
+
+                    else:
+                        if np.isnan(self.catalogue['peak_flux'][i]):
+                            self.catalogue['peak_flux'][i] = cutout.max()
+
+                        cutout = self.transform(cutout)
+                        cutouts.append(cutout)
+            else:
+                self.catalogue.drop(i, inplace=True)
 
         cols = ['original_image', 'x', 'y']
 
@@ -562,9 +565,11 @@ class ImageDataset(Dataset):
         else:
             shp = [tot_size_y, tot_size_x]
         cutout = np.zeros(shp)
-        cutout[ystart - ymin:tot_size_y - (ymax - yend), 
-               xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend, 
-                                                               xstart:xend]
+        # cutout[ystart - ymin:tot_size_y - (ymax - yend), 
+        #        xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend, 
+        #                                                        xstart:xend]
+        cutout[ystart - ymin:yend - ymin, 
+               xstart - xmin:xend - xmin] = img[ystart:yend, xstart:xend]
         cutout = np.nan_to_num(cutout)
 
         cutout = self.transform(cutout)
