@@ -59,8 +59,8 @@ class PipelineStage(object):
         # is run). That means any class that inherits from this base class 
         # will have automated logging.
 
-        logging_tools.setup_logger(path.join(self.output_dir, 
-                                             'astronomaly.log'))
+        logging_tools.setup_logger(log_directory=self.output_dir, 
+                                   log_filename='astronomaly.log')
 
         if 'force_rerun' in kwargs and kwargs['force_rerun']:
             self.args_same = False
