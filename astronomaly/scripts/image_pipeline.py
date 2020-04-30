@@ -13,9 +13,10 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 
 # which_data = 'meerkat'
 # which_data = 'meerkat_deep2'
-which_data = 'goods'
+# which_data = 'goods'
 # which_data = 'tgss'
 # which_data = 'decals'
+which_data = 'galaxy_zoo'
 
 window_size = 128
 image_transform_function = [image_preprocessing.image_transform_inverse_sinh, 
@@ -23,6 +24,7 @@ image_transform_function = [image_preprocessing.image_transform_inverse_sinh,
 catalogue = None
 band_prefixes = []
 bands_rgb = {}
+plot_cmap = 'hot'
 
 if which_data == 'meerkat':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters')
@@ -55,6 +57,14 @@ elif which_data == 'decals':
     band_prefixes = ['z-', 'r-', 'g-']
     band_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
 
+elif which_data == 'galaxy_zoo':
+    image_dir = os.path.join(data_dir, 'GalaxyZoo', 
+                             'galaxy-zoo-the-galaxy-challenge', 
+                             'images_training_rev1', '')
+    output_dir = os.path.join(
+        data_dir, 'astronomaly_output', 'images', 'galaxy_zoo', '')
+    image_transform_function = [image_preprocessing.image_transform_scale]
+
 else:
     image_dir = os.path.join(data_dir, 'GOODS_S/', 'combined/')
     output_dir = os.path.join(
@@ -84,7 +94,7 @@ else:
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-feature_method = 'psd'
+feature_method = 'autoencoder'
 dim_reduction = 'pca'
 
 
@@ -112,15 +122,23 @@ def run_pipeline():
 
     """
 
-    image_dataset = image_reader.ImageDataset(
-        directory=image_dir,
-        window_size=window_size, output_dir=output_dir, plot_square=False,
-        transform_function=image_transform_function,
-        plot_cmap=plot_cmap,
-        catalogue=catalogue,
-        band_prefixes=band_prefixes,
-        bands_rgb=bands_rgb
+    if which_data == 'galaxy_zoo':
+        fls = os.listdir(image_dir)[:1000]
+        image_dataset = image_reader.ImageThumbnailsDataset(
+            directory=image_dir, output_dir=output_dir, 
+            transform_function=image_transform_function,
+            list_of_files=fls
         ) # noqa
+    else:
+        image_dataset = image_reader.ImageDataset(
+            directory=image_dir,
+            window_size=window_size, output_dir=output_dir, plot_square=False,
+            transform_function=image_transform_function,
+            plot_cmap=plot_cmap,
+            catalogue=catalogue,
+            band_prefixes=band_prefixes,
+            bands_rgb=bands_rgb
+            ) # noqa
 
     if feature_method == 'psd':
         pipeline_psd = power_spectrum.PSD_Features(
@@ -138,7 +156,7 @@ def run_pipeline():
             output_dir=output_dir, training_dataset=image_dataset,
             retrain=False)
         features_original = pipeline_autoenc.run_on_dataset(image_dataset)
-    
+
     features = features_original.copy()
 
     if dim_reduction == 'pca':

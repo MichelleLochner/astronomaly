@@ -7,11 +7,65 @@ import xarray
 import matplotlib as mpl
 import io
 from skimage.transform import resize
+import cv2
 from astronomaly.base.base_dataset import Dataset
 from astronomaly.base import logging_tools
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
+
+
+def convert_array_to_image(arr, plot_cmap='hot'):
+    """
+    Function to convert an array to a png image ready to be served on a web
+    page.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Input image
+
+    Returns
+    -------
+    png image object
+        Object ready to be passed directly to the frontend
+    """
+    with mpl.rc_context({'backend': 'Agg'}):
+        fig = plt.figure(figsize=(1, 1), dpi=4 * arr.shape[1])
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        plt.imshow(arr, cmap=plot_cmap)
+        output = io.BytesIO()
+        FigureCanvas(fig).print_png(output)
+        plt.close(fig)
+    return output
+
+
+def apply_transform(cutout, transform_function):
+    """
+    Applies the transform function(s) given at initialisation to the image.
+
+    Parameters
+    ----------
+    cutout : np.ndarray
+        Cutout of image
+
+    Returns
+    -------
+    np.ndarray
+        Transformed cutout
+    """
+    if transform_function is not None:
+        try:
+            len(transform_function)
+            new_cutout = cutout
+            for f in transform_function:
+                new_cutout = f(new_cutout)
+            cutout = new_cutout
+        except TypeError:  # Simple way to test if there's only one function
+            cutout = transform_function(cutout)
+    return cutout
 
 
 class AstroImage:
@@ -48,7 +102,8 @@ class AstroImage:
                     self.coords = coords
                 else:
                     if not (self.coords == coords).all():
-                        print('Coordinates of different bands are not the same')
+                        print(
+                            'Coordinates of different bands are not the same')
                         raise ValueError 
 
         except FileNotFoundError:
@@ -67,12 +122,12 @@ class AstroImage:
 
     def _get_image_data(self, hdul):
         """Returns the image data from a fits HDUlist object
-        
+
         Parameters
         ----------
         hdul : fits.HDUlist
             HDUlist object returned by fits.open
-        
+
         Returns
         -------
         np.array
@@ -205,8 +260,11 @@ class ImageDataset(Dataset):
 
         super().__init__(fits_index=fits_index, window_size=window_size, 
                          window_shift=window_shift, 
+                         display_image_size=display_image_size,
+                         band_prefixes=band_prefixes, bands_rgb=bands_rgb,
                          transform_function=transform_function, 
-                         plot_square=plot_square, plot_cmap=plot_cmap, 
+                         plot_square=plot_square, catalogue=catalogue, 
+                         plot_cmap=plot_cmap,
                          **kwargs)
         self.known_file_types = ['fits', 'fits.fz']
         self.data_type = 'image'
@@ -299,36 +357,6 @@ class ImageDataset(Dataset):
             self.get_cutouts_from_catalogue()
         self.index = self.metadata.index.values
 
-    def transform(self, cutout):
-        """
-        Applies the transform function(s) given at initialisation to the image.
-
-        Parameters
-        ----------
-        cutout : np.ndarray
-            Cutout of image
-
-        Returns
-        -------
-        np.ndarray
-            Transformed cutout
-        """
-        if self.transform_function is not None:
-            try:
-                len(self.transform_function)
-                new_cutout = cutout
-                for f in self.transform_function:
-                    # if len(cutout.shape) == 3:
-                    #     new_cutout = np.zeros(cutout.shape)
-                    #     for i in range(cutout.shape[-1]):
-                    #         new_cutout[:, :, i] = f(cutout[:, :, i])
-
-                    new_cutout = f(new_cutout)
-                cutout = new_cutout
-            except TypeError:
-                cutout = self.transform_function(cutout)
-        return cutout
-
     def generate_cutouts(self):
         """
         Cuts up all images into cutouts of the same size. An optional transform
@@ -372,7 +400,8 @@ class ImageDataset(Dataset):
 
                         original_image_names.append(astro_img.name)
 
-                        cutout = self.transform(cutout)
+                        cutout = apply_transform(cutout, 
+                                                 self.transform_function)
 
                         cutouts.append(cutout)
 
@@ -449,7 +478,8 @@ class ImageDataset(Dataset):
                         if np.isnan(self.catalogue['peak_flux'][i]):
                             self.catalogue['peak_flux'][i] = cutout.max()
 
-                        cutout = self.transform(cutout)
+                        cutout = apply_transform(cutout, 
+                                                 self.transform_function)
                         cutouts.append(cutout)
             else:
                 self.catalogue.drop(i, inplace=True)
@@ -495,32 +525,6 @@ class ImageDataset(Dataset):
             Array of image cutout
         """
         return self.cutouts.loc[idx].values
-
-    def convert_array_to_image(self, arr):
-        """
-        Function to convert an array to a png image ready to be served on a web
-        page.
-
-        Parameters
-        ----------
-        arr : np.ndarray
-            Input image
-
-        Returns
-        -------
-        png image object
-            Object ready to be passed directly to the frontend
-        """
-        with mpl.rc_context({'backend': 'Agg'}):
-            fig = plt.figure(figsize=(1, 1), dpi=4 * arr.shape[1])
-            ax = plt.Axes(fig, [0., 0., 1., 1.])
-            ax.set_axis_off()
-            fig.add_axes(ax)
-            plt.imshow(arr, cmap=self.plot_cmap)
-            output = io.BytesIO()
-            FigureCanvas(fig).print_png(output)
-            plt.close(fig)
-        return output
 
     def get_display_data(self, idx):
         """
@@ -572,7 +576,7 @@ class ImageDataset(Dataset):
                xstart - xmin:xend - xmin] = img[ystart:yend, xstart:xend]
         cutout = np.nan_to_num(cutout)
 
-        cutout = self.transform(cutout)
+        cutout = apply_transform(cutout, self.transform_function)
 
         if len(cutout.shape) > 2 and cutout.shape[-1] >= 3:
             new_cutout = np.zeros([cutout.shape[0], cutout.shape[1], 3])
@@ -608,4 +612,125 @@ class ImageDataset(Dataset):
                 new_shape.append(cutout.shape[-1])
             cutout = resize(cutout, new_shape, anti_aliasing=False)
 
-        return self.convert_array_to_image(cutout)
+        return convert_array_to_image(cutout, plot_cmap=self.plot_cmap)
+
+
+class ImageThumbnailsDataset(Dataset):
+    def __init__(self, display_image_size=128, transform_function=None, 
+                 catalogue=None, **kwargs):
+        """
+        Read in a set of images that have already been cut into thumbnails. 
+        This would be uncommon with astronomical data but is needed to read a 
+        dataset like galaxy zoo. Inherits from Dataset class.
+
+        Parameters
+        ----------
+        filename : str
+            If a single file (of any time) is to be read from, the path can be
+            given using this kwarg. 
+        directory : str
+            A directory can be given instead of an explicit list of files. The
+            child class will load all appropriate files in this directory.
+        list_of_files : list
+            Instead of the above, a list of files to be loaded can be
+            explicitly given.
+        output_dir : str
+            The directory to save the log file and all outputs to. Defaults to
+        display_image_size : The size of the image to be displayed on the
+            web page. If the image is smaller than this, it will be
+            interpolated up to the higher number of pixels. If larger, it will
+            be downsampled.
+        transform_function : function or list, optional
+            The transformation function or list of functions that will be 
+            applied to each cutout. The function should take an input 2d array 
+            (the cutout) and return an output 2d array. If a list is provided, 
+            each function is applied in the order of the list.
+        catalogue : pandas.DataFrame or similar
+            A catalogue of the positions of sources around which cutouts will
+            be extracted. Note that a cutout of size "window_size" will be
+            extracted around these positions and must be the same for all
+            sources. 
+        """
+
+        super().__init__(transform_function=transform_function, 
+                         display_image_size=128, catalogue=catalogue,
+                         **kwargs)
+
+        self.data_type = 'image'
+        self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff']
+        self.transform_function = transform_function
+        self.display_image_size = display_image_size
+
+        if catalogue is not None:
+            if 'objid' in catalogue.columns:
+                catalogue.set_index('objid')
+            self.metadata = catalogue
+        else:
+            inds = []
+            file_paths = []
+            for f in self.files:
+                extension = f.split('.')[-1]
+                if extension in self.known_file_types:
+                    inds.append(
+                        f.split(os.path.sep)[-1][:-(len(extension) + 1)])
+                    file_paths.append(f)
+            self.metadata = pd.DataFrame(index=inds, 
+                                         data={'filename': file_paths})
+
+        self.index = self.metadata.index.values
+
+    def get_sample(self, idx):
+        """
+        Returns the data for a single sample in the dataset as indexed by idx.
+
+        Parameters
+        ----------
+        idx : string
+            Index of sample
+
+        Returns
+        -------
+        nd.array
+            Array of image cutout
+        """
+
+        filename = self.metadata.loc[idx, 'filename']
+        img = cv2.imread(filename)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return apply_transform(img, self.transform_function)
+
+    def get_display_data(self, idx):
+        """
+        Returns a single instance of the dataset in a form that is ready to be
+        displayed by the web front end.
+
+        Parameters
+        ----------
+        idx : str
+            Index (should be a string to avoid ambiguity)
+
+        Returns
+        -------
+        png image object
+            Object ready to be passed directly to the frontend
+        """
+
+        filename = self.metadata.loc[idx, 'filename']
+        cutout = cv2.imread(filename)
+        cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
+        cutout = apply_transform(cutout, self.transform_function)
+
+        min_edge = min(cutout.shape[:2])
+        max_edge = max(cutout.shape[:2])
+        if max_edge != self.display_image_size:
+            new_max = self.display_image_size
+            new_min = int(min_edge * new_max / max_edge)
+            if cutout.shape[0] <= cutout.shape[1]:
+                new_shape = [new_min, new_max]
+            else:
+                new_shape = [new_max, new_min]
+            if len(cutout.shape) > 2:
+                new_shape.append(cutout.shape[-1])
+            cutout = resize(cutout, new_shape, anti_aliasing=False)
+
+        return convert_array_to_image(cutout)
