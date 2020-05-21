@@ -21,6 +21,7 @@ dependencies:
   - sphinx_rtd_theme
   - pyarrow
   - opencv
+  - hdbscan
   - pip:
     - pywavelets
     
