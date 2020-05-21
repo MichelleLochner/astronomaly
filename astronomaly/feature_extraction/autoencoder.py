@@ -98,11 +98,15 @@ class Autoencoder:
         x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)
         x = MaxPooling2D((2, 2), padding='same')(x)
         x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+        x = MaxPooling2D((2, 2), padding='same')(x)
+        x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
         encoder = MaxPooling2D((2, 2), padding='same', name='encoder')(x)
 
         # at this point the representation is (4, 4, 8) i.e. 128-dimensional
 
         x = Conv2D(16, (3, 3), activation='relu', padding='same')(encoder)
+        x = UpSampling2D((2, 2))(x)
+        x = Conv2D(16, (3, 3), activation='relu', padding='same')(x)
         x = UpSampling2D((2, 2))(x)
         x = Conv2D(32, (3, 3), activation='relu', padding='same')(x)
         x = UpSampling2D((2, 2))(x)

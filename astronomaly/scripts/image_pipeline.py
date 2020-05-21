@@ -94,7 +94,7 @@ else:
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-feature_method = 'autoencoder'
+feature_method = 'psd'
 dim_reduction = 'pca'
 
 
