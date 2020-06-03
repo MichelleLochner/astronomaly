@@ -1,6 +1,7 @@
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import power_spectrum, autoencoder
+from astronomaly.feature_extraction import ellipse_fitting
 from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
@@ -94,8 +95,8 @@ else:
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-feature_method = 'psd'
-dim_reduction = 'pca'
+feature_method = 'ellipse'
+dim_reduction = ''
 
 
 def run_pipeline():
@@ -156,6 +157,12 @@ def run_pipeline():
             output_dir=output_dir, training_dataset=image_dataset,
             retrain=False)
         features_original = pipeline_autoenc.run_on_dataset(image_dataset)
+
+    elif feature_method == 'ellipse':
+        pipeline_ellipse = ellipse_fitting.EllipseFitFeatures(
+            output_dir=output_dir, channel=0
+        )
+        features_original = pipeline_ellipse.run_on_dataset(image)
 
     features = features_original.copy()
 

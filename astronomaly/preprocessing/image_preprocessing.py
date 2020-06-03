@@ -121,3 +121,25 @@ def image_transform_resize(img, new_shape):
 
     """
     return resize(img, new_shape, preserve_range=True)
+
+
+def image_transform_crop(img, new_shape=[160, 160]):
+    """
+    Crops an image to new dimensions (assumes you want to keep the centre)
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+    new_shape : tuple
+        Expected new shape for image
+
+    Returns
+    -------
+    np.ndarray
+        Reshaped image
+
+    """
+    delt_0 = (img.shape[0] - new_shape[0]) // 2
+    delt_1 = (img.shape[1] - new_shape[1]) // 2
+    return img[delt_0:img.shape[0] - delt_0, delt_1:img.shape[1] - delt_1]

@@ -82,7 +82,7 @@ class PSD_Features(PipelineStage):
 
         Returns
         -------
-        pd.DataFrame
+        array
             Contains the extracted PSD features
         """
 
