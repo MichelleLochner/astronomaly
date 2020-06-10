@@ -143,11 +143,28 @@ def check_if_inputs_same(class_name, local_variables):
         args_same = False
         for ln in fl.readlines()[::-1]:
             if class_name + '(' in ln:
-                s = ln.split('-')[-2].split(')')[0].split('(')[-1].split(',')
+                # To be completely general, the string manipulation has to 
+                # be a little complicated
+                stripped_ln = ln.split('-')[-2].split(')')[0].split('(')[-1]
+                the_list = stripped_ln.split('=')
+                kwarg_list = []
+                for l in the_list:
+                    if ',' not in l:
+                        kwarg_list.append(l)
+                    else:
+                        s = l.split(',')
+                        if len(s) > 2:
+                            kwarg_list.append(','.join(s[:-1]))
+                        else:
+                            kwarg_list.append(s[0])
+                        kwarg_list.append(s[-1])
+
                 if len(s) != 0:
-                    for substring in s:
+                    for k in range(0, len(kwarg_list), 2):
                         try:
-                            key, value = substring.split('=')
+
+                            key = kwarg_list[k]
+                            value = kwarg_list[k + 1]
                             func_args[key.strip()] = value.strip()
                         except ValueError:
                             # This happens when there are no arguments
