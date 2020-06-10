@@ -1,5 +1,5 @@
 from astronomaly.base.base_pipeline import PipelineStage
-from sklearn.ensemble.iforest import IsolationForest
+from sklearn.ensemble import IsolationForest
 import pandas as pd
 import pickle
 from os import path
