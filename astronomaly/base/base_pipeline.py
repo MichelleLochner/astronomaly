@@ -273,6 +273,7 @@ class PipelineStage(object):
                                   columns=self.labels)
 
         if self.args_same and not new_output.index.equals(self.previous_output.index): # noqa E501
+            # This part doesn't seem to work ****
             output = pd.concat((self.previous_output, new_output))
         else:
             output = new_output

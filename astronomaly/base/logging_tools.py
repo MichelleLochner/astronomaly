@@ -181,7 +181,8 @@ def check_if_inputs_same(class_name, local_variables):
                         args_same = False
                         break
                     else:
-                        if func_args[k] != (str)(local_variables[k]):
+                        if k != "force_rerun" and \
+                                func_args[k] != (str)(local_variables[k]):
                             args_same = False
                             break
                 break
