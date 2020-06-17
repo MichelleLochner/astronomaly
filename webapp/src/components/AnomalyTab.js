@@ -23,6 +23,7 @@ export class AnomalyTab extends React.Component {
     super(props);
     this.handleForwardBackwardClick = this.handleForwardBackwardClick.bind(this);
     this.handleForwardBackwardKey = this.handleForwardBackwardKey.bind(this);
+    this.handleKeyDown = this.handleKeyDown.bind(this);
     // this.getImage = this.getImage.bind(this);
     this.handleChangeAlgorithmClick = this.handleChangeAlgorithmClick.bind(this);
     this.changeAlgorithm = this.changeAlgorithm.bind(this);
@@ -82,6 +83,41 @@ export class AnomalyTab extends React.Component {
     }
     else {
       newID = this.state.id;
+    }
+
+    this.setState({id:newID}, this.updateOriginalID(newID));
+
+    e.preventDefault();
+    return false;
+  }
+
+  handleKeyDown(e){
+    const whichKey = e.key;
+
+    let newID;
+    if (whichKey=="ArrowRight"){
+      newID = this.state.id+1;
+      /// Need some logic here checking we don't get to the end
+    }
+    else if (whichKey=="ArrowLeft") {
+      newID = this.state.id-1;
+      if (newID<0) {newID=0};
+    }
+    else {
+      newID = this.state.id;
+      
+      if (isNaN(whichKey) == false){
+        // *** Need some error checking here because you can give a score of 8
+        // even if there's only 5 buttons
+        fetch("/label", {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({'id':this.state.original_id, 'label':whichKey})
+        })
+        .catch(console.log)
+      }
     }
 
     this.setState({id:newID}, this.updateOriginalID(newID));
@@ -241,7 +277,7 @@ export class AnomalyTab extends React.Component {
     // console.log(this.props)
       return(
           <div>
-              <Grid component='div' container spacing={3} onKeyDown={this.handleForwardBackwardKey} tabIndex="0">
+              <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
                   <Grid item xs={12}>
                       <div></div>
                   </Grid>
