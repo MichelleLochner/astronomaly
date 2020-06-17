@@ -54,23 +54,24 @@ def run_pipeline():
 
     """
 
-    fls = os.listdir(image_dir)[:10000]
+    fls = os.listdir(image_dir)
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
         list_of_files=fls
     ) # noqa
 
-    # pipeline_psd = power_spectrum.PSD_Features(
-    #     force_rerun=False, output_dir=output_dir)
-    # features_psd = pipeline_psd.run_on_dataset(image_dataset)
-
     pipeline_ellipse = ellipse_fitting.EllipseFitFeatures(
         output_dir=output_dir, channel=0, force_rerun=False)
     features_ellipse = pipeline_ellipse.run_on_dataset(image_dataset)
 
+    # pipeline_psd = power_spectrum.PSD_Features(
+    #     force_rerun=False, output_dir=output_dir)
+    # features_psd = pipeline_psd.run_on_dataset(image_dataset)
+
     # features_original = features_ellipse.join(features_psd)
     features_original = features_ellipse
+    # features_original = features_psd
     features = features_original.copy()
 
     # pipeline_pca = decomposition.PCA_Decomposer(force_rerun=False, 
