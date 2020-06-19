@@ -110,8 +110,11 @@ class AstroImage:
             print("Error: File", f, "not found")
             raise FileNotFoundError
 
-        # Should now be a 3d array with multiple channels
-        self.image = np.dstack(images) 
+        if len(images) > 1:
+            # Should now be a 3d array with multiple channels
+            self.image = np.dstack(images)
+        else:
+            self.image = images[0]  # Was just the one image
 
         if len(name) == 0:
             self.name = self._strip_filename()
@@ -423,7 +426,6 @@ class ImageDataset(Dataset):
         self.cutouts = xarray.DataArray(cutouts, 
                                         coords={'index': self.metadata.index}, 
                                         dims=dims)
-
         print('Done!')
 
     def get_cutouts_from_catalogue(self):
