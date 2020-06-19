@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 
 class ImageCycler:
-    def __init__(self, images):
+    def __init__(self, images, xlabels=None):
         """
         Convenience object to cycle through a list of images inside a jupyter 
         notebook.
@@ -11,10 +11,13 @@ class ImageCycler:
         ----------
         images : list
             List of numpy arrays to display as images
+        xlabels : list, optional
+            List of custom labels for the images
         """
 
         self.current_ind = 0
         self.images = images
+        self.xlabels = xlabels
 
     def onkeypress(self, event):
         """
@@ -40,6 +43,8 @@ class ImageCycler:
         event.canvas.figure.gca().imshow(
             self.images[self.current_ind], origin='lower', cmap='hot')
 
+        if self.xlabels is not None:
+            plt.xlabel(self.xlabels[self.current_ind])
         plt.title(self.current_ind)
         event.canvas.draw()
 
