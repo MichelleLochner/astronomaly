@@ -21,6 +21,8 @@ def setup_logger(log_directory='', log_filename="astronomaly.log"):
     """
     root_logger = logging.getLogger()
 
+    reset = False
+
     if len(root_logger.handlers) != 0:
         for h in root_logger.handlers:
             try:
@@ -30,9 +32,13 @@ def setup_logger(log_directory='', log_filename="astronomaly.log"):
                     print(flname)
                     print('Now switching to new log file:')
                     print(os.path.join(log_directory, log_filename))
-                    root_logger.pop(h)
+                    reset = True
+
             except AttributeError:
                 pass
+
+            if reset:
+                root_logger.handlers = []
 
     if len(root_logger.handlers) == 0:
         log_formatter = logging.Formatter(
