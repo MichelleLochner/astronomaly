@@ -148,6 +148,7 @@ class Controller:
                     self.anomaly_scores.loc[self.anomaly_scores.index, 
                                             color_by_column]
             out = []
+            clst.sort_values('color')
             for idx in clst.index:
                 dat = clst.loc[idx].values
                 out.append({'id': (str)(idx), 
