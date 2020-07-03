@@ -1,13 +1,15 @@
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import power_spectrum, autoencoder
-from astronomaly.feature_extraction import ellipse_fitting
+from astronomaly.feature_extraction import shape_features
 from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
+from astronomaly.anomaly_detection import lof
 from astronomaly.clustering import tsne
 import os
 import pandas as pd
+import numpy as np
 
 data_dir = '/home/michelle/BigData/Anomaly/'
 
@@ -25,6 +27,12 @@ image_dir = os.path.join(data_dir, 'GalaxyZoo',
 output_dir = os.path.join(
     data_dir, 'astronomaly_output', 'images', 'galaxy_zoo', '')
 image_transform_function = [image_preprocessing.image_transform_scale]
+df = pd.read_csv(os.path.join(data_dir, 'GalaxyZoo', 
+                              'galaxy-zoo-the-galaxy-challenge', 
+                              'training_solutions_rev1.csv'),
+                 index_col=0)
+df.index = df.index.astype(str)
+additional_metadata = df[['Class6.1']]
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -58,18 +66,28 @@ def run_pipeline():
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
-        list_of_files=fls
+        list_of_files=fls,
+        additional_metadata=additional_metadata
     ) # noqa
 
-    pipeline_ellipse = ellipse_fitting.EllipseFitFeatures(
-        output_dir=output_dir, channel=0, force_rerun=False)
+    pipeline_ellipse = shape_features.EllipseFitFeatures(
+        sigma_levels=[1, 2, 3, 4, 5],
+        output_dir=output_dir, channel=0, force_rerun=True)
     features_ellipse = pipeline_ellipse.run_on_dataset(image_dataset)
 
     # pipeline_psd = power_spectrum.PSD_Features(
     #     force_rerun=False, output_dir=output_dir)
     # features_psd = pipeline_psd.run_on_dataset(image_dataset)
 
-    # features_original = features_ellipse.join(features_psd)
+    # pipeline_hu = shape_features.HuMomentsFeatures(
+    #     sigma_levels=[2, 3, 4],
+    #     output_dir=output_dir, channel=0, force_rerun=True)
+    # features_hu = pipeline_hu.run_on_dataset(image_dataset)
+
+    # features_original = features_ellipse.join(features_hu)
+    # features_original = features_hu
+    # features_ellipse = pd.read_parquet('/home/michelle/BigData/Anomaly/astronomaly_output/images/galaxy_zoo/EllipseFitFeatures_output.parquet')
+    # features_psd = pd.read_parquet('/home/michelle/BigData/Anomaly/astronomaly_output/images/galaxy_zoo/PSD_Features_output_back_06_16.parquet')
     features_original = features_ellipse
     # features_original = features_psd
     features = features_original.copy()
@@ -87,21 +105,34 @@ def run_pipeline():
         force_rerun=False, output_dir=output_dir)
     anomalies = pipeline_iforest.run(features)
 
+    # pipeline_lof = lof.LOF_Algorithm(
+    #     force_rerun=False, output_dir=output_dir)
+    # anomalies = pipeline_lof.run(features)
+
     pipeline_score_converter = human_loop_learning.ScoreConverter(
         force_rerun=False, output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
     anomalies = anomalies.sort_values('score', ascending=False)
 
-    try:
-        df = pd.read_csv(
-            os.path.join(output_dir, 'ml_scores.csv'), 
-            index_col=0,
-            dtype={'human_label': 'int'})
-        df.index = df.index.astype('str')
+    N_labels = 100
+    anomalies['human_label'] = [-1] * len(anomalies)
+    inds = anomalies.index[:N_labels]
+    human_probs = additional_metadata.loc[inds, 'Class6.1']
+    human_scores = np.zeros(len(human_probs))
+    human_scores[human_probs > 0.9] = 5
+    anomalies.loc[inds, 'human_label'] = human_scores.astype(int)
 
-        if len(anomalies) == len(df):
-            anomalies = pd.concat(
-                (anomalies, df['human_label']), axis=1, join='inner')
+    try:
+        if 'human_label' not in anomalies.columns:
+            df = pd.read_csv(
+                os.path.join(output_dir, 'ml_scores.csv'), 
+                index_col=0,
+                dtype={'human_label': 'int'})
+            df.index = df.index.astype('str')
+
+            if len(anomalies) == len(df):
+                anomalies = pd.concat(
+                    (anomalies, df['human_label']), axis=1, join='inner')
     except FileNotFoundError:
         pass
 

@@ -225,7 +225,6 @@ class NeighbourScore(PipelineStage):
             Contains the final scores using the same index as the input.
 
         """
-
         distances = self.compute_nearest_neighbour(features_with_labels)
         retrained_score = self.train_regression(features_with_labels)
         final_score = self.anom_func(distances, 

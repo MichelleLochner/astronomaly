@@ -16,8 +16,8 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 # which_data = 'meerkat_deep2'
 # which_data = 'goods'
 # which_data = 'tgss'
-# which_data = 'decals'
-which_data = 'galaxy_zoo'
+which_data = 'decals'
+# which_data = 'galaxy_zoo'
 
 window_size = 128
 image_transform_function = [image_preprocessing.image_transform_inverse_sinh, 
@@ -28,9 +28,9 @@ bands_rgb = {}
 plot_cmap = 'hot'
 
 if which_data == 'meerkat':
-    image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters')
+    image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
     output_dir = os.path.join(
-        data_dir, 'astronomaly_output', 'images', 'meerkat', '')
+        data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
     plot_cmap = 'hot'
 elif which_data == 'meerkat_deep2':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'meerkat_deep2')
@@ -162,7 +162,7 @@ def run_pipeline():
         pipeline_ellipse = ellipse_fitting.EllipseFitFeatures(
             output_dir=output_dir, channel=0
         )
-        features_original = pipeline_ellipse.run_on_dataset(image)
+        features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
 
