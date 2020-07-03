@@ -21,6 +21,19 @@ def setup_logger(log_directory='', log_filename="astronomaly.log"):
     """
     root_logger = logging.getLogger()
 
+    if len(root_logger.handlers) != 0:
+        for h in root_logger.handlers:
+            try:
+                flname = h.baseFilename
+                if flname != os.path.join(log_directory, log_filename):
+                    print('Warning: logger already attached to log file:')
+                    print(flname)
+                    print('Now switching to new log file:')
+                    print(os.path.join(log_directory, log_filename))
+                    root_logger.pop(h)
+            except AttributeError:
+                pass
+
     if len(root_logger.handlers) == 0:
         log_formatter = logging.Formatter(
             "%(asctime)s - %(levelname)s - %(message)s")
@@ -148,27 +161,30 @@ def check_if_inputs_same(class_name, local_variables):
                 stripped_ln = ln.split('-')[-2].split(')')[0].split('(')[-1]
                 the_list = stripped_ln.split('=')
                 kwarg_list = []
-                for l in the_list:
-                    if ',' not in l:
-                        kwarg_list.append(l)
-                    else:
-                        s = l.split(',')
-                        if len(s) > 2:
-                            kwarg_list.append(','.join(s[:-1]))
+
+                if len(the_list) > 1:
+                    for l in the_list:
+                        if ',' not in l:
+                            kwarg_list.append(l)
                         else:
-                            kwarg_list.append(s[0])
-                        kwarg_list.append(s[-1])
+                            s = l.split(',')
+                            if len(s) > 2:
+                                kwarg_list.append(','.join(s[:-1]))
+                            else:
+                                kwarg_list.append(s[0])
+                            kwarg_list.append(s[-1])
 
-                if len(s) != 0:
-                    for k in range(0, len(kwarg_list), 2):
-                        try:
+                    if len(s) != 0:
+                        for k in range(0, len(kwarg_list), 2):
+                            try:
 
-                            key = kwarg_list[k]
-                            value = kwarg_list[k + 1]
-                            func_args[key.strip()] = value.strip()
-                        except ValueError:
-                            # This happens when there are no arguments
-                            pass
+                                key = kwarg_list[k]
+                                value = kwarg_list[k + 1]
+                                func_args[key.strip()] = value.strip()
+                            except ValueError:
+                                # This happens when there are no arguments
+                                pass
+
                 checksum_ln = ln.split('checksum:')
                 if len(checksum_ln) > 1:
                     checksum = int(checksum_ln[-1])

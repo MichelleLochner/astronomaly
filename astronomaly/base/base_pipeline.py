@@ -36,6 +36,7 @@ class PipelineStage(object):
             parquet
 
         """
+
         # This will be the name of the child class, not the parent.
         self.class_name = type(locals()['self']).__name__
         self.function_call_signature = \
