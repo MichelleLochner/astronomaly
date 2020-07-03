@@ -38,9 +38,74 @@ def find_contours(img, n_sigma):
     return contours, hierarchy
 
 
-def fit_ellipse(contour, image):
+def fit_ellipse(contour, image, return_params=False):
     """
-    Fits an ellipse to a (single) contour.
+    Fits an ellipse to a contour and returns a binary image representation of
+    the ellipse.
+
+    Parameters
+    ----------
+    contour : np.ndarray
+        Array of x,y values describing the contours (as returned by opencv's
+        findCountours function)
+    image : np.ndarray
+        The original image the contour was fit to.
+    return_params : bool
+        If true also returns the parameters of the fitted ellipse
+
+    Returns
+    -------
+    np.ndarray
+        2d binary image with representation of the ellipse
+    """
+
+    thickness = -1
+    y_npix = image.shape[0]
+    x_npix = image.shape[1]
+    ellipse_arr = np.zeros([y_npix, x_npix], dtype=np.float)
+
+    # Sets some defaults for when the fitting fails
+    default_return_params = [0] * 5 
+
+    try:
+        ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(contour)
+    except cv2.error as e:
+        print(e)
+        print('Setting fit to zero')
+        if return_params:
+            return ellipse_arr, default_return_params
+        else:
+            return ellipse_arr
+
+    ellipse_params = x0, y0, maj_axis, min_axis, theta
+
+    # Sometimes the ellipse fitting function produces insane values
+    if not (0 <= x0 <= x_npix) or not (0 <= y0 <= y_npix):
+        print('Ellipse fitting failed')
+        if return_params:
+            return ellipse_arr, default_return_params
+        else:
+            return ellipse_arr
+
+    x0 = int(np.round(x0))
+    y0 = int(np.round(y0))
+    maj_axis = int(np.round(maj_axis))
+    min_axis = int(np.round(min_axis))
+    theta = int(np.round(theta))
+
+    cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2), 
+                theta, 0, 360, (1, 1, 1), thickness)
+
+    if return_params:
+        return ellipse_arr, ellipse_params
+    else:
+        return ellipse_arr
+
+
+def get_ellipse_leastsq(contour, image):
+    """
+    Fits an ellipse to a (single) contour and returns the sum of the
+    differences squared between the fitted ellipse and contour (normalised).
 
     Parameters
     ----------
@@ -55,33 +120,18 @@ def fit_ellipse(contour, image):
     float
         sum((ellipse-contour)^2)/number_of_pixels
     """
-
     thickness = -1
-    try:
-        ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(contour)
-    except cv2.error as e:
-        print(e)
-        print('Setting fit to zero')
-        return 0
-
-    x0 = int(np.round(x0))
-    y0 = int(np.round(y0))
-    maj_axis = int(np.round(maj_axis))
-    min_axis = int(np.round(min_axis))
-    theta = int(np.round(theta))
-
     y_npix = image.shape[0]
     x_npix = image.shape[1]
 
-    ellipse_arr = np.zeros([y_npix, x_npix], dtype=np.float)
     contour_arr = np.zeros([y_npix, x_npix], dtype=np.float)
-
-    cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2), 
-                theta, 0, 360, (1, 1, 1), thickness)
     cv2.drawContours(contour_arr, [contour], 0, (1, 1, 1), thickness)
+
+    ellipse_arr, params = fit_ellipse(contour, image, return_params=True)
+
     res = np.sum((ellipse_arr - contour_arr)**2) / np.prod(contour_arr.shape)
 
-    return res
+    return [res] + list(params)
 
 
 def draw_contour(contour, image, filled=False):
@@ -162,13 +212,14 @@ def get_hu_moments(img):
     """
     moms = cv2.moments(img)
     hu_feats = cv2.HuMoments(moms)
+    hu_feats = hu_feats.flatten()
 
-    return hu_feats.flatten()
+    return hu_feats
 
 
 class EllipseFitFeatures(PipelineStage):
     def __init__(self, sigma_levels=[1, 2, 3, 4, 5], channel=None, 
-                 central_contour=False, **kwargs):
+                 central_contour=True, **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features.
@@ -189,7 +240,11 @@ class EllipseFitFeatures(PipelineStage):
                          central_contour=central_contour, **kwargs)
 
         self.sigma_levels = sigma_levels
-        self.labels = ['Contour_%d' % n for n in sigma_levels]
+        self.labels = []
+        feat_labs = ['Residual_%d', 'Offset_%d', 'Aspect_%d', 'Theta_%d']
+        for f in feat_labs:
+            for n in sigma_levels:
+                self.labels.append(f % n)
         self.channel = channel
         self.central_contour = central_contour
 
@@ -245,14 +300,57 @@ class EllipseFitFeatures(PipelineStage):
                 in_contour = cv2.pointPolygonTest(c, (x0, y0), False)
 
                 if in_contour == 1 and not found:
-                    feats.append(fit_ellipse(c, this_image))
+                    params = get_ellipse_leastsq(c, this_image)
+                    # Params return in this order:
+                    # residual, x0, y0, maj_axis, min_axis, theta
+                    if params[3] == 0 or params[4] == 0:
+                        aspect = 1  # *** Should this be zero?
+                    else:
+                        aspect = params[4] / params[3]
+
+                    if aspect < 1:
+                        aspect = 1 / aspect
+                    if aspect > 100:
+                        aspect = 1
+
+                    new_params = params[:3] + [aspect] + [params[-1]]
+                    feats.append(new_params)
                     found = True
 
             if not found:
-                feats.append(0)
-        feats = np.hstack(feats)
+                feats.append([0, 0, 0, 1, 0])
 
-        return feats
+        # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each 
+        # sigma
+        # Normalise things relative to the highest sigma value
+        max_ind = np.argmax(self.sigma_levels)
+
+        residuals = []
+        dist_to_centre = []
+        aspect = []
+        theta = []
+
+        x0_max_sigma = feats[max_ind][1]
+        y0_max_sigma = feats[max_ind][2]
+        aspect_max_sigma = feats[max_ind][3]
+        theta_max_sigma = feats[max_ind][4]
+
+        for n in range(len(feats)):
+            prms = feats[n]
+            residuals.append(prms[0])
+            x_diff = prms[1] - x0_max_sigma
+            y_diff = prms[2] - y0_max_sigma
+            r = np.sqrt((x_diff)**2 + (y_diff)**2)
+            dist_to_centre.append(r)
+            aspect.append(prms[3] / aspect_max_sigma)
+            theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
+            # Because there's redundancy about which way an ellipse is aligned,
+            # we always take the acute angle
+            if theta_diff > 90:
+                theta_diff -= 90
+            theta.append(theta_diff)
+
+        return np.hstack((residuals, dist_to_centre, aspect, theta))
 
 
 class HuMomentsFeatures(PipelineStage):
