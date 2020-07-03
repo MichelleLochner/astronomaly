@@ -139,7 +139,7 @@ def get_clusters():
     if request.method == "POST":
         technique = request.get_json()
         if technique == 'tsne':
-            output = controller.get_cluster_data(color_by_column='score')
+            output = controller.get_cluster_data(color_by_column='final_score')
             js = json.dumps(output)
             return js
 
