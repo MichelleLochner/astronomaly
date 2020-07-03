@@ -619,7 +619,7 @@ class ImageDataset(Dataset):
 
 class ImageThumbnailsDataset(Dataset):
     def __init__(self, display_image_size=128, transform_function=None, 
-                 catalogue=None, **kwargs):
+                 catalogue=None, additional_metadata=None, **kwargs):
         """
         Read in a set of images that have already been cut into thumbnails. 
         This would be uncommon with astronomical data but is needed to read a 
@@ -680,6 +680,9 @@ class ImageThumbnailsDataset(Dataset):
                                          data={'filename': file_paths})
 
         self.index = self.metadata.index.values
+
+        if additional_metadata is not None:
+            self.metadata = self.metadata.join(additional_metadata)
 
     def get_sample(self, idx):
         """
