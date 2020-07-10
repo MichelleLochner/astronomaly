@@ -269,7 +269,7 @@ class ImageDataset(Dataset):
                          plot_square=plot_square, catalogue=catalogue, 
                          plot_cmap=plot_cmap,
                          **kwargs)
-        self.known_file_types = ['fits', 'fits.fz']
+        self.known_file_types = ['fits', 'fits.fz', 'fits.gz']
         self.data_type = 'image'
 
         images = {}
@@ -292,7 +292,7 @@ class ImageDataset(Dataset):
             for k in bands_files.keys():
                 extension = k.split('.')[-1]
                 # print(k, extension)
-                if extension == 'fz':
+                if extension == 'fz' or extension == 'gz':
                     extension = '.'.join(k.split('.')[-2:])
                 if extension in self.known_file_types:
                     astro_img = AstroImage(bands_files[k], file_type=extension, 
@@ -313,7 +313,7 @@ class ImageDataset(Dataset):
         else:
             for f in self.files:
                 extension = f.split('.')[-1]
-                if extension == 'fz':
+                if extension == 'fz' or extension == 'gz':
                     extension = '.'.join(f.split('.')[-2:])
                 if extension in self.known_file_types:
                     astro_img = AstroImage([f], file_type=extension, 
