@@ -25,7 +25,7 @@ def find_contours(img, n_sigma):
         documentation)
     """
 
-    thresh = n_sigma * img.std()
+    thresh = n_sigma * img.std() + np.median(img)
     img_bin = np.zeros(img.shape, dtype=np.uint8)
 
     img_bin[img <= thresh] = 0
@@ -80,12 +80,12 @@ def fit_ellipse(contour, image, return_params=False):
     ellipse_params = x0, y0, maj_axis, min_axis, theta
 
     # Sometimes the ellipse fitting function produces insane values
-    if not (0 <= x0 <= x_npix) or not (0 <= y0 <= y_npix):
-        print('Ellipse fitting failed')
-        if return_params:
-            return ellipse_arr, default_return_params
-        else:
-            return ellipse_arr
+    # if not (0 <= x0 <= x_npix) or not (0 <= y0 <= y_npix):
+    #     print('Ellipse fitting failed')
+    #     if return_params:
+    #         return ellipse_arr, default_return_params
+    #     else:
+    #         return ellipse_arr
 
     x0 = int(np.round(x0))
     y0 = int(np.round(y0))
@@ -274,28 +274,51 @@ class EllipseFitFeatures(PipelineStage):
         else:
             this_image = image
 
-        if self.central_contour:
-            x0 = this_image.shape[0] // 2
-            y0 = this_image.shape[1] // 2
-        else:
-            x0 = y0 = -1
-        feats = []
+        x0 = y0 = -1
+        x_cent = this_image.shape[0]
+        y_cent = this_image.shape[1]
 
-        for n in self.sigma_levels:
+        feats = []
+        # Start with the closest in contour (highest sigma)
+        sigma_levels = np.sort(self.sigma_levels)[::-1] 
+
+        failed = False
+        failure_message = ""
+
+        for n in sigma_levels:
             contours, hierarchy = find_contours(this_image, n_sigma=n)
+
+            x_contours = np.zeros(len(contours))
+            y_contours = np.zeros(len(contours))
+
             found = False
 
+            if x0 == -1 and len(contours) != 0:
+                for k in range(len(contours)):
+                    M = cv2.moments(contours[k])
+                    try:
+                        x_contours[k] = int(M["m10"] / M["m00"])
+                        y_contours[k] = int(M["m01"] / M["m00"])
+                    except ZeroDivisionError:
+                        pass
+                x_diff = x_contours - x_cent
+                y_diff = y_contours - y_cent
+                r_diff = np.sqrt(x_diff**2 + y_diff**2)
+
+                ind = np.argmin(r_diff)
+
+                x0 = x_contours[ind]
+                y0 = y_contours[ind]
+
             for c in contours:
-                # Only take the contour in the centre of the image
 
                 if x0 == -1:
-                    # We haven't set which contour we're going to look at
-                    # default to the largest
-                    lengths = [len(cont) for cont in contours]
-                    largest_cont = contours[np.argmax(lengths)]
-                    M = cv2.moments(largest_cont)
-                    x0 = int(M["m10"] / M["m00"])
-                    y0 = int(M["m01"] / M["m00"])
+                    # This happens if a 5-sigma contour isn't found
+                    # Usually because of a bright artifact on the edge
+                    failed = True
+                    failure_message = "Failed to detect all n_sigma contours. \
+                                       Applying a Gaussian window may help."
+                    print(failure_message)
 
                 in_contour = cv2.pointPolygonTest(c, (x0, y0), False)
 
@@ -317,7 +340,8 @@ class EllipseFitFeatures(PipelineStage):
                     feats.append(new_params)
                     found = True
 
-            if not found:
+            if not found or failed:
+                # print(failure_message)
                 feats.append([0, 0, 0, 1, 0])
 
         # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each 
@@ -338,9 +362,12 @@ class EllipseFitFeatures(PipelineStage):
         for n in range(len(feats)):
             prms = feats[n]
             residuals.append(prms[0])
-            x_diff = prms[1] - x0_max_sigma
-            y_diff = prms[2] - y0_max_sigma
-            r = np.sqrt((x_diff)**2 + (y_diff)**2)
+            if prms[1] == 0 or prms[2] == 0:
+                r = 0
+            else:
+                x_diff = prms[1] - x0_max_sigma
+                y_diff = prms[2] - y0_max_sigma
+                r = np.sqrt((x_diff)**2 + (y_diff)**2)
             dist_to_centre.append(r)
             aspect.append(prms[3] / aspect_max_sigma)
             theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
