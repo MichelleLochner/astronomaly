@@ -50,8 +50,7 @@ class IforestAlgorithm(PipelineStage):
             anomaly scores. More negative is more anomalous.
 
         """
-        iforest = IsolationForest(contamination=self.contamination, 
-                                  behaviour='new')
+        iforest = IsolationForest(contamination=self.contamination)
         iforest.fit(features)
 
         scores = iforest.decision_function(features)
