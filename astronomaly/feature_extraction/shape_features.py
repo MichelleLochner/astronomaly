@@ -1,6 +1,7 @@
 import numpy as np
-from astronomaly.base.base_pipeline import PipelineStage
 import cv2
+from astronomaly.base.base_pipeline import PipelineStage
+from astronomaly.base import logging_tools
 
 
 def find_contours(img, n_sigma):
@@ -65,13 +66,12 @@ def fit_ellipse(contour, image, return_params=False):
     ellipse_arr = np.zeros([y_npix, x_npix], dtype=np.float)
 
     # Sets some defaults for when the fitting fails
-    default_return_params = [0] * 5 
+    default_return_params = [np.nan] * 5 
 
     try:
         ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(contour)
     except cv2.error as e:
-        print(e)
-        print('Setting fit to zero')
+        logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
         if return_params:
             return ellipse_arr, default_return_params
         else:
@@ -129,7 +129,11 @@ def get_ellipse_leastsq(contour, image):
 
     ellipse_arr, params = fit_ellipse(contour, image, return_params=True)
 
-    res = np.sum((ellipse_arr - contour_arr)**2) / np.prod(contour_arr.shape)
+    if np.any(np.isnan(params)):
+        res = np.nan
+    else:
+        arr_diff = ellipse_arr - contour_arr
+        res = np.sum((arr_diff)**2) / np.prod(contour_arr.shape)
 
     return [res] + list(params)
 
@@ -293,6 +297,7 @@ class EllipseFitFeatures(PipelineStage):
 
             found = False
 
+            # First attempt to find the central point of the inner most contour
             if x0 == -1 and len(contours) != 0:
                 for k in range(len(contours)):
                     M = cv2.moments(contours[k])
@@ -318,66 +323,76 @@ class EllipseFitFeatures(PipelineStage):
                     failed = True
                     failure_message = "Failed to detect all n_sigma contours. \
                                        Applying a Gaussian window may help."
-                    print(failure_message)
 
-                in_contour = cv2.pointPolygonTest(c, (x0, y0), False)
+                else:
+                    in_contour = cv2.pointPolygonTest(c, (x0, y0), False)
 
-                if in_contour == 1 and not found:
-                    params = get_ellipse_leastsq(c, this_image)
-                    # Params return in this order:
-                    # residual, x0, y0, maj_axis, min_axis, theta
-                    if params[3] == 0 or params[4] == 0:
-                        aspect = 1  # *** Should this be zero?
-                    else:
-                        aspect = params[4] / params[3]
+                    if in_contour == 1 and not found:
+                        params = get_ellipse_leastsq(c, this_image)
+                        # Params return in this order:
+                        # residual, x0, y0, maj_axis, min_axis, theta
+                        if np.any(np.isnan(params)):
+                            failed = True
+                        else:
+                            if params[3] == 0 or params[4] == 0:
+                                aspect = 1
+                            else:
+                                aspect = params[4] / params[3]
 
-                    if aspect < 1:
-                        aspect = 1 / aspect
-                    if aspect > 100:
-                        aspect = 1
+                            if aspect < 1:
+                                aspect = 1 / aspect
+                            if aspect > 100:
+                                aspect = 1
 
-                    new_params = params[:3] + [aspect] + [params[-1]]
-                    feats.append(new_params)
-                    found = True
+                            new_params = params[:3] + [aspect] + [params[-1]]
+                            feats.append(new_params)
+                            found = True
 
-            if not found or failed:
-                # print(failure_message)
-                feats.append([0, 0, 0, 1, 0])
+            if not found:
+                failed = True
+                failure_message = "No contour found for n_sigma=" + str(n)
+            if failed:
+                feats.append([np.nan] * 5)
+                logging_tools.log(failure_message)
 
         # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each 
         # sigma
         # Normalise things relative to the highest sigma value
-        max_ind = np.argmax(self.sigma_levels)
+        # If there were problems with any sigma levels, set all values to NaNs
+        if np.any(np.isnan(feats)):
+            return [np.nan] * 4 * len(self.sigma_levels)
+        else:
+            max_ind = np.argmax(self.sigma_levels)
 
-        residuals = []
-        dist_to_centre = []
-        aspect = []
-        theta = []
+            residuals = []
+            dist_to_centre = []
+            aspect = []
+            theta = []
 
-        x0_max_sigma = feats[max_ind][1]
-        y0_max_sigma = feats[max_ind][2]
-        aspect_max_sigma = feats[max_ind][3]
-        theta_max_sigma = feats[max_ind][4]
+            x0_max_sigma = feats[max_ind][1]
+            y0_max_sigma = feats[max_ind][2]
+            aspect_max_sigma = feats[max_ind][3]
+            theta_max_sigma = feats[max_ind][4]
 
-        for n in range(len(feats)):
-            prms = feats[n]
-            residuals.append(prms[0])
-            if prms[1] == 0 or prms[2] == 0:
-                r = 0
-            else:
-                x_diff = prms[1] - x0_max_sigma
-                y_diff = prms[2] - y0_max_sigma
-                r = np.sqrt((x_diff)**2 + (y_diff)**2)
-            dist_to_centre.append(r)
-            aspect.append(prms[3] / aspect_max_sigma)
-            theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
-            # Because there's redundancy about which way an ellipse is aligned,
-            # we always take the acute angle
-            if theta_diff > 90:
-                theta_diff -= 90
-            theta.append(theta_diff)
+            for n in range(len(feats)):
+                prms = feats[n]
+                residuals.append(prms[0])
+                if prms[1] == 0 or prms[2] == 0:
+                    r = 0
+                else:
+                    x_diff = prms[1] - x0_max_sigma
+                    y_diff = prms[2] - y0_max_sigma
+                    r = np.sqrt((x_diff)**2 + (y_diff)**2)
+                dist_to_centre.append(r)
+                aspect.append(prms[3] / aspect_max_sigma)
+                theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
+                # Because there's redundancy about which way an ellipse 
+                # is aligned, we always take the acute angle
+                if theta_diff > 90:
+                    theta_diff -= 90
+                theta.append(theta_diff)
 
-        return np.hstack((residuals, dist_to_centre, aspect, theta))
+            return np.hstack((residuals, dist_to_centre, aspect, theta))
 
 
 class HuMomentsFeatures(PipelineStage):
