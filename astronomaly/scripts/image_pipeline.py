@@ -1,7 +1,7 @@
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import power_spectrum, autoencoder
-from astronomaly.feature_extraction import ellipse_fitting
+from astronomaly.feature_extraction import shape_features
 from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
@@ -12,25 +12,31 @@ import pandas as pd
 data_dir = '/home/michelle/BigData/Anomaly/'
 # data_dir = './'
 
-# which_data = 'meerkat'
+which_data = 'meerkat'
 # which_data = 'meerkat_deep2'
 # which_data = 'goods'
 # which_data = 'tgss'
-which_data = 'decals'
+# which_data = 'decals'
 # which_data = 'galaxy_zoo'
 
-window_size = 128
+window_size = 64
 image_transform_function = [image_preprocessing.image_transform_inverse_sinh, 
                             image_preprocessing.image_transform_scale]
 catalogue = None
 band_prefixes = []
 bands_rgb = {}
 plot_cmap = 'hot'
+list_of_files = []
 
 if which_data == 'meerkat':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
+    list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
+    catalogue = pd.read_csv(
+        os.path.join(
+            data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues', 
+            'J0232.2-4420.Fix.1pln.csv'))
     plot_cmap = 'hot'
 elif which_data == 'meerkat_deep2':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'meerkat_deep2')
@@ -133,6 +139,7 @@ def run_pipeline():
     else:
         image_dataset = image_reader.ImageDataset(
             directory=image_dir,
+            list_of_files=list_of_files,
             window_size=window_size, output_dir=output_dir, plot_square=False,
             transform_function=image_transform_function,
             plot_cmap=plot_cmap,
@@ -143,7 +150,7 @@ def run_pipeline():
 
     if feature_method == 'psd':
         pipeline_psd = power_spectrum.PSD_Features(
-            force_rerun=False, output_dir=output_dir)
+            force_rerun=True, output_dir=output_dir)
         features_original = pipeline_psd.run_on_dataset(image_dataset)
 
     elif feature_method == 'autoencoder':
@@ -159,8 +166,8 @@ def run_pipeline():
         features_original = pipeline_autoenc.run_on_dataset(image_dataset)
 
     elif feature_method == 'ellipse':
-        pipeline_ellipse = ellipse_fitting.EllipseFitFeatures(
-            output_dir=output_dir, channel=0
+        pipeline_ellipse = shape_features.EllipseFitFeatures(
+            output_dir=output_dir, channel=0, force_rerun=True
         )
         features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
