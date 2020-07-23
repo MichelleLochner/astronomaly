@@ -1,5 +1,7 @@
 import numpy as np
 from skimage.transform import resize
+import cv2
+from astropy.stats import sigma_clipped_stats
 
 
 def image_transform_log(img):
@@ -180,3 +182,48 @@ def image_transform_gaussian_window(img, width=2.5):
         for i in range(img.shape[-1]):
             new_img[:, :, i] = img[:, :, i] * Z
         return new_img
+
+
+def image_transform_sigma_clipping(img, sigma=3, central=True):
+    """
+    Applies sigma clipping, fits contours and
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+
+    Returns
+    -------
+    np.ndarray
+
+    """
+    if len(img.shape) > 2:
+        im = img[:, :, 0]
+    else:
+        im = img
+    mean, median, std = sigma_clipped_stats(im, sigma=3.0)
+    thresh = std + median
+    img_bin = np.zeros(im.shape, dtype=np.uint8)
+
+    img_bin[im <= thresh] = 0
+    img_bin[im > thresh] = 1
+
+    contours, hierarchy = cv2.findContours(img_bin, 
+                                           cv2.RETR_EXTERNAL, 
+                                           cv2.CHAIN_APPROX_SIMPLE)
+
+    x0 = img.shape[0]//2
+    y0 = img.shape[1]//2
+    for c in contours:
+        if cv2.pointPolygonTest(c, (x0, y0), False) == 1:
+            break
+
+    contour_mask = np.zeros_like(img)
+    cv2.drawContours(contour_mask, [c], 0, (1, 1, 1), -1)
+
+    new_img = np.zeros_like(img)
+    new_img[contour_mask == 1] = img[contour_mask == 1]
+
+    return new_img
+   
