@@ -195,7 +195,8 @@ class AstroImage:
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None, 
                  display_image_size=128, band_prefixes=[], bands_rgb={},
-                 transform_function=None, plot_square=False, catalogue=None,
+                 transform_function=None, display_transform_function=None,
+                 plot_square=False, catalogue=None,
                  plot_cmap='hot', **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
@@ -344,6 +345,10 @@ class ImageDataset(Dataset):
 
         self.images = images
         self.transform_function = transform_function
+        if display_transform_function is None:
+            self.display_transform_function = transform_function
+        else:
+            self.display_transform_function = display_transform_function
         self.plot_square = plot_square
         self.plot_cmap = plot_cmap
         self.catalogue = catalogue
@@ -578,7 +583,7 @@ class ImageDataset(Dataset):
                xstart - xmin:xend - xmin] = img[ystart:yend, xstart:xend]
         cutout = np.nan_to_num(cutout)
 
-        cutout = apply_transform(cutout, self.transform_function)
+        cutout = apply_transform(cutout, self.display_transform_function)
 
         if len(cutout.shape) > 2 and cutout.shape[-1] >= 3:
             new_cutout = np.zeros([cutout.shape[0], cutout.shape[1], 3])
@@ -619,6 +624,7 @@ class ImageDataset(Dataset):
 
 class ImageThumbnailsDataset(Dataset):
     def __init__(self, display_image_size=128, transform_function=None, 
+                 display_transform_function=None,
                  catalogue=None, additional_metadata=None, **kwargs):
         """
         Read in a set of images that have already been cut into thumbnails. 
@@ -661,6 +667,10 @@ class ImageThumbnailsDataset(Dataset):
         self.data_type = 'image'
         self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff']
         self.transform_function = transform_function
+        if display_transform_function is None:
+            self.display_transform_function = self.transform_function
+        else:
+            self.display_transform_function = display_transform_function
         self.display_image_size = display_image_size
 
         if catalogue is not None:
@@ -723,7 +733,7 @@ class ImageThumbnailsDataset(Dataset):
         filename = self.metadata.loc[idx, 'filename']
         cutout = cv2.imread(filename)
         cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
-        cutout = apply_transform(cutout, self.transform_function)
+        cutout = apply_transform(cutout, self.display_transform_function)
 
         min_edge = min(cutout.shape[:2])
         max_edge = max(cutout.shape[:2])
