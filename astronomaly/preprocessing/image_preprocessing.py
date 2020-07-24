@@ -202,6 +202,7 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
         im = img[:, :, 0]
     else:
         im = img
+
     mean, median, std = sigma_clipped_stats(im, sigma=sigma)
     thresh = std + median
     img_bin = np.zeros(im.shape, dtype=np.uint8)
@@ -213,17 +214,16 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
                                            cv2.RETR_EXTERNAL, 
                                            cv2.CHAIN_APPROX_SIMPLE)
 
-    x0 = img.shape[0]//2
-    y0 = img.shape[1]//2
+    x0 = img.shape[0] // 2
+    y0 = img.shape[1] // 2
     for c in contours:
         if cv2.pointPolygonTest(c, (x0, y0), False) == 1:
             break
 
-    contour_mask = np.zeros_like(img)
+    contour_mask = np.zeros_like(img, dtype=np.uint8)
     cv2.drawContours(contour_mask, [c], 0, (1, 1, 1), -1)
 
     new_img = np.zeros_like(img)
     new_img[contour_mask == 1] = img[contour_mask == 1]
 
     return new_img
-   
