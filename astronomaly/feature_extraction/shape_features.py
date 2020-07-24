@@ -4,17 +4,16 @@ from astronomaly.base.base_pipeline import PipelineStage
 from astronomaly.base import logging_tools
 
 
-def find_contours(img, n_sigma):
+def find_contours(img, threshold):
     """
-    Finds the contours of an image that meet a threshold, defined as the 
-    n_sigma * standard deviation of the image.
+    Finds the contours of an image that meet a threshold
 
     Parameters
     ----------
     img : np.ndarray
         Input image (must be greyscale)
-    n_sigma : float
-        Number of standard deviations above zero to threshold.
+    threshold : float
+        What threshold to use
 
     Returns
     -------
@@ -26,11 +25,10 @@ def find_contours(img, n_sigma):
         documentation)
     """
 
-    thresh = n_sigma * img.std() + np.median(img)
     img_bin = np.zeros(img.shape, dtype=np.uint8)
 
-    img_bin[img <= thresh] = 0
-    img_bin[img > thresh] = 1
+    img_bin[img <= threshold] = 0
+    img_bin[img > threshold] = 1
 
     contours, hierarchy = cv2.findContours(img_bin, 
                                            cv2.RETR_EXTERNAL, 
@@ -222,17 +220,13 @@ def get_hu_moments(img):
 
 
 class EllipseFitFeatures(PipelineStage):
-    def __init__(self, sigma_levels=[1, 2, 3, 4, 5], channel=None, 
-                 central_contour=True, **kwargs):
+    def __init__(self, percentiles=[90, 70, 50, 0], channel=None, **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features.
 
         Parameters
         ----------
-        sigma_levels : array-like
-            The levels at which to calculate the contours in numbers of
-            standard deviations of the image.
         channel : int
             Specify which channel to use for multiband images
         central_contour : bool
@@ -240,17 +234,15 @@ class EllipseFitFeatures(PipelineStage):
             image
         """
 
-        super().__init__(sigma_levels=sigma_levels, channel=channel, 
-                         central_contour=central_contour, **kwargs)
+        super().__init__(percentiles=percentiles, channel=channel, **kwargs)
 
-        self.sigma_levels = sigma_levels
+        self.percentiles = percentiles
         self.labels = []
         feat_labs = ['Residual_%d', 'Offset_%d', 'Aspect_%d', 'Theta_%d']
         for f in feat_labs:
-            for n in sigma_levels:
+            for n in percentiles:
                 self.labels.append(f % n)
         self.channel = channel
-        self.central_contour = central_contour
 
     def _execute_function(self, image):
         """
@@ -279,26 +271,25 @@ class EllipseFitFeatures(PipelineStage):
             this_image = image
 
         x0 = y0 = -1
-        x_cent = this_image.shape[0]
-        y_cent = this_image.shape[1]
+        x_cent = this_image.shape[0] // 2
+        y_cent = this_image.shape[1] // 2
 
         feats = []
-        # Start with the closest in contour (highest sigma)
-        sigma_levels = np.sort(self.sigma_levels)[::-1] 
+        # Start with the closest in contour (highest percentile)
+        percentiles = np.sort(self.percentiles)[::-1] 
 
         failed = False
         failure_message = ""
 
-        for n in sigma_levels:
-            contours, hierarchy = find_contours(this_image, n_sigma=n)
+        for p in percentiles:
+            thresh = np.percentile(this_image[this_image > 0], p)
+            contours, hierarchy = find_contours(this_image, thresh)
 
             x_contours = np.zeros(len(contours))
             y_contours = np.zeros(len(contours))
 
-            found = False
-
             # First attempt to find the central point of the inner most contour
-            if x0 == -1 and len(contours) != 0:
+            if len(contours) != 0:
                 for k in range(len(contours)):
                     M = cv2.moments(contours[k])
                     try:
@@ -306,63 +297,58 @@ class EllipseFitFeatures(PipelineStage):
                         y_contours[k] = int(M["m01"] / M["m00"])
                     except ZeroDivisionError:
                         pass
-                x_diff = x_contours - x_cent
-                y_diff = y_contours - y_cent
+                if x0 == -1:
+                    x_diff = x_contours - x_cent
+                    y_diff = y_contours - y_cent
+                else:
+                    x_diff = x_contours - x0
+                    y_diff = y_contours - y0
+
+                # Will try to find the CLOSEST contour to the central one
                 r_diff = np.sqrt(x_diff**2 + y_diff**2)
 
                 ind = np.argmin(r_diff)
 
-                x0 = x_contours[ind]
-                y0 = y_contours[ind]
-
-            for c in contours:
-
                 if x0 == -1:
-                    # This happens if a 5-sigma contour isn't found
-                    # Usually because of a bright artifact on the edge
+                    x0 = x_contours[ind]
+                    y0 = y_contours[ind]
+
+                c = contours[ind]
+
+                params = get_ellipse_leastsq(c, this_image)
+                # Params return in this order:
+                # residual, x0, y0, maj_axis, min_axis, theta
+                if np.any(np.isnan(params)):
                     failed = True
-                    failure_message = "Failed to detect all n_sigma contours. \
-                                       Applying a Gaussian window may help."
-
                 else:
-                    in_contour = cv2.pointPolygonTest(c, (x0, y0), False)
+                    if params[3] == 0 or params[4] == 0:
+                        aspect = 1
+                    else:
+                        aspect = params[4] / params[3]
 
-                    if in_contour == 1 and not found:
-                        params = get_ellipse_leastsq(c, this_image)
-                        # Params return in this order:
-                        # residual, x0, y0, maj_axis, min_axis, theta
-                        if np.any(np.isnan(params)):
-                            failed = True
-                        else:
-                            if params[3] == 0 or params[4] == 0:
-                                aspect = 1
-                            else:
-                                aspect = params[4] / params[3]
+                    if aspect < 1:
+                        aspect = 1 / aspect
+                    if aspect > 100:
+                        aspect = 1
 
-                            if aspect < 1:
-                                aspect = 1 / aspect
-                            if aspect > 100:
-                                aspect = 1
-
-                            new_params = params[:3] + [aspect] + [params[-1]]
-                            feats.append(new_params)
-                            found = True
-
-            if not found:
+                    new_params = params[:3] + [aspect] + [params[-1]]
+                    feats.append(new_params)
+            else:
                 failed = True
-                failure_message = "No contour found for n_sigma=" + str(n)
+                failure_message = "No contour found"
+
             if failed:
                 feats.append([np.nan] * 5)
                 logging_tools.log(failure_message)
 
         # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each 
         # sigma
-        # Normalise things relative to the highest sigma value
+        # Normalise things relative to the highest threshold value
         # If there were problems with any sigma levels, set all values to NaNs
         if np.any(np.isnan(feats)):
-            return [np.nan] * 4 * len(self.sigma_levels)
+            return [np.nan] * 4 * len(self.percentiles)
         else:
-            max_ind = np.argmax(self.sigma_levels)
+            max_ind = np.argmax(self.percentiles)
 
             residuals = []
             dist_to_centre = []
