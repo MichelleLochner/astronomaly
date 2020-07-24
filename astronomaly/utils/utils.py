@@ -72,9 +72,9 @@ def create_catalogue_spreadsheet(image_dataset, scores,
     worksheet = workbook.add_worksheet()
 
     # Widen the first column to make the text clearer.
-    worksheet.set_column('A:D', 25)
-    worksheet.set_column('F:G', 25)
-    worksheet.set_column('E:E', 30)
+    worksheet.set_column('A:E', 25)
+    worksheet.set_column('G:H', 25)
+    worksheet.set_column('F:F', 30)
 
     cell_format = workbook.add_format({
         'bold': True, 'font_size': 14, 'center_across': True})
@@ -84,9 +84,10 @@ def create_catalogue_spreadsheet(image_dataset, scores,
     worksheet.write('B1', 'Image Name')
     worksheet.write('C1', 'RA')
     worksheet.write('D1', 'DEC')
-    worksheet.write('E1', 'Cutout')
-    worksheet.write('F1', 'Type')
-    worksheet.write('G1', 'Comments')
+    worksheet.write('E1', 'Peak Flux')
+    worksheet.write('F1', 'Cutout')
+    worksheet.write('G1', 'Type')
+    worksheet.write('H1', 'Comments')
 
     cell_format = workbook.add_format({'center_across': True})
     hgt = 180
@@ -100,8 +101,8 @@ def create_catalogue_spreadsheet(image_dataset, scores,
         proceed = True
 
         if ignore_nearby_sources and i > 0:
-            ra_prev = cat.loc[scores.index[:i - 1], 'ra']
-            dec_prev = cat.loc[scores.index[:i - 1], 'dec']
+            ra_prev = cat.loc[scores.index[:i], 'ra']
+            dec_prev = cat.loc[scores.index[:i], 'dec']
 
             ra_diff = ra_prev - cat.loc[idx, 'ra']
             dec_diff = dec_prev - cat.loc[idx, 'dec']
@@ -117,10 +118,11 @@ def create_catalogue_spreadsheet(image_dataset, scores,
             worksheet.write('B%d' % row, cat.loc[idx, 'original_image'])
             worksheet.write('C%d' % row, cat.loc[idx, 'ra'])
             worksheet.write('D%d' % row, cat.loc[idx, 'dec'])
+            worksheet.write('E%d' % row, cat.loc[idx, 'peak_flux'])
             fig = image_dataset.get_display_data(idx)
 
             image_options = {'image_data': fig, 'x_scale': 2, 'y_scale': 2}
-            worksheet.insert_image('E%d' % row, 'img.png', image_options)
+            worksheet.insert_image('F%d' % row, 'img.png', image_options)
 
             row += 1
     workbook.close()
