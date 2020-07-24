@@ -164,8 +164,8 @@ class AstroImage:
 
         """
         s1 = self.filenames[0].split(os.path.sep)[-1]
-        extension = s1.split('.')[-1]
-        return s1.split('.' + extension)[0]
+        # extension = s1.split('.')[-1]
+        return s1
 
     def _convert_to_world_coords(self, hdul, image):
         """
@@ -398,6 +398,7 @@ class ImageDataset(Dataset):
 
                     cutout = img[i:i + self.window_size_y, 
                                  j:j + self.window_size_x]
+
                     if not np.any(np.isnan(cutout)):
                         y0 = i + self.window_size_y // 2
                         x0 = j + self.window_size_x // 2
@@ -486,7 +487,6 @@ class ImageDataset(Dataset):
                     else:
                         if np.isnan(self.catalogue['peak_flux'][i]):
                             self.catalogue['peak_flux'][i] = cutout.max()
-
                         cutout = apply_transform(cutout, 
                                                  self.transform_function)
                         cutouts.append(cutout)
