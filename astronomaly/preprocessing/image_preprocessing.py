@@ -202,7 +202,7 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
         im = img[:, :, 0]
     else:
         im = img
-    mean, median, std = sigma_clipped_stats(im, sigma=3.0)
+    mean, median, std = sigma_clipped_stats(im, sigma=sigma)
     thresh = std + median
     img_bin = np.zeros(im.shape, dtype=np.uint8)
 
