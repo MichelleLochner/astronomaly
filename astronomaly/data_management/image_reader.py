@@ -267,6 +267,7 @@ class ImageDataset(Dataset):
                          display_image_size=display_image_size,
                          band_prefixes=band_prefixes, bands_rgb=bands_rgb,
                          transform_function=transform_function, 
+                         display_transform_function=display_transform_function,
                          plot_square=plot_square, catalogue=catalogue, 
                          plot_cmap=plot_cmap,
                          **kwargs)
@@ -349,6 +350,7 @@ class ImageDataset(Dataset):
             self.display_transform_function = transform_function
         else:
             self.display_transform_function = display_transform_function
+
         self.plot_square = plot_square
         self.plot_cmap = plot_cmap
         self.catalogue = catalogue
