@@ -26,7 +26,9 @@ image_dir = os.path.join(data_dir, 'GalaxyZoo',
                          'images_training_rev1', '')
 output_dir = os.path.join(
     data_dir, 'astronomaly_output', 'images', 'galaxy_zoo', '')
-image_transform_function = [image_preprocessing.image_transform_scale]
+image_transform_function = [
+    image_preprocessing.image_transform_sigma_clipping,
+    image_preprocessing.image_transform_scale]
 df = pd.read_csv(os.path.join(data_dir, 'GalaxyZoo', 
                               'galaxy-zoo-the-galaxy-challenge', 
                               'training_solutions_rev1.csv'),
@@ -62,17 +64,18 @@ def run_pipeline():
 
     """
 
-    fls = os.listdir(image_dir)
+    # fls = os.listdir(image_dir)[:100]
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
-        list_of_files=fls,
+        # list_of_files=fls,
         additional_metadata=additional_metadata
     ) # noqa
 
     pipeline_ellipse = shape_features.EllipseFitFeatures(
-        sigma_levels=[1, 2, 3, 4, 5],
-        output_dir=output_dir, channel=0, force_rerun=True)
+        percentiles=[90, 80, 70, 60, 50, 0],
+        output_dir=output_dir, channel=0, force_rerun=True, 
+        central_contour=False)
     features_ellipse = pipeline_ellipse.run_on_dataset(image_dataset)
 
     # pipeline_psd = power_spectrum.PSD_Features(
@@ -88,7 +91,17 @@ def run_pipeline():
     # features_original = features_hu
     # features_ellipse = pd.read_parquet('/home/michelle/BigData/Anomaly/astronomaly_output/images/galaxy_zoo/EllipseFitFeatures_output.parquet')
     # features_psd = pd.read_parquet('/home/michelle/BigData/Anomaly/astronomaly_output/images/galaxy_zoo/PSD_Features_output_back_06_16.parquet')
+
+    # features2 = pd.read_parquet('/home/michelle/BigData/Anomaly/astronomaly_output/images/galaxy_zoo/EllipseFitFeatures_output_back_06_16.parquet')
+    # features = pd.read_parquet('/home/michelle/BigData/Anomaly/astronomaly_output/images/galaxy_zoo/EllipseFitFeatures_output_back_07_02.parquet')
+    # features = features[features.columns[5:]]
+    # new_features = features2[features2.columns[:5]].join(features)
+    # features_ellipse = new_features
+
     features_original = features_ellipse
+    # for col in features_original.columns:
+    #     if "_0" in col or "_50" in col or "_60" in col:
+    #         features_original = features_original.drop(col, axis=1)
     # features_original = features_psd
     features = features_original.copy()
 
@@ -114,12 +127,11 @@ def run_pipeline():
     anomalies = pipeline_score_converter.run(anomalies)
     anomalies = anomalies.sort_values('score', ascending=False)
 
-    N_labels = 100
+    N_labels = 200
     anomalies['human_label'] = [-1] * len(anomalies)
     inds = anomalies.index[:N_labels]
     human_probs = additional_metadata.loc[inds, 'Class6.1']
-    human_scores = np.zeros(len(human_probs))
-    human_scores[human_probs > 0.9] = 5
+    human_scores = np.round(human_probs * 5).astype('int')
     anomalies.loc[inds, 'human_label'] = human_scores.astype(int)
 
     try:
