@@ -223,15 +223,16 @@ class EllipseFitFeatures(PipelineStage):
     def __init__(self, percentiles=[90, 70, 50, 0], channel=None, **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
-        rotation invariate features.
+        rotation invariate features. Warning: it's strongly recommended to
+        apply a sigma-clipping transform before running this feature extraction
+        algorithm.
 
         Parameters
         ----------
         channel : int
             Specify which channel to use for multiband images
-        central_contour : bool
-            If true will only use the contour surrounding the centre of the 
-            image
+        percentiles: array-like
+            What percentiles to use as thresholds for the ellipses
         """
 
         super().__init__(percentiles=percentiles, channel=channel, **kwargs)
