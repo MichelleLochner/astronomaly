@@ -6,6 +6,7 @@ from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.clustering import tsne
+from astronomaly.utils import utils
 import os
 import pandas as pd
 
@@ -20,8 +21,13 @@ which_data = 'meerkat'
 # which_data = 'galaxy_zoo'
 
 window_size = 64
-image_transform_function = [image_preprocessing.image_transform_inverse_sinh, 
+image_transform_function = [image_preprocessing.image_transform_sigma_clipping,
+                            # image_preprocessing.image_transform_inverse_sinh,
                             image_preprocessing.image_transform_scale]
+
+display_transform_function = [image_preprocessing.image_transform_inverse_sinh,
+                              image_preprocessing.image_transform_scale]
+
 catalogue = None
 band_prefixes = []
 bands_rgb = {}
@@ -33,10 +39,16 @@ if which_data == 'meerkat':
     list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
     output_dir = os.path.join(
         data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
-    catalogue = pd.read_csv(
-        os.path.join(
-            data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues', 
-            'J0232.2-4420.Fix.1pln.csv'))
+    # catalogue = pd.read_csv(
+    #     os.path.join(
+    #         data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues', 
+    #         'J0232.2-4420.Fix.1pln.csv'))
+    cat_file = os.path.join(
+        data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues',
+        'J0232.2-4420_processed1.pybdsm.srl.fits')
+
+    image_file = os.path.join(image_dir, list_of_files[0])
+    catalogue = utils.convert_pydsf_catalogue(cat_file, image_file)
     plot_cmap = 'hot'
 elif which_data == 'meerkat_deep2':
     image_dir = os.path.join(data_dir, 'Meerkat_data', 'meerkat_deep2')
@@ -142,6 +154,7 @@ def run_pipeline():
             list_of_files=list_of_files,
             window_size=window_size, output_dir=output_dir, plot_square=False,
             transform_function=image_transform_function,
+            display_transform_function=display_transform_function,
             plot_cmap=plot_cmap,
             catalogue=catalogue,
             band_prefixes=band_prefixes,
@@ -167,7 +180,8 @@ def run_pipeline():
 
     elif feature_method == 'ellipse':
         pipeline_ellipse = shape_features.EllipseFitFeatures(
-            output_dir=output_dir, channel=0, force_rerun=True
+            percentiles=[90, 80, 70, 60, 50, 0],
+            output_dir=output_dir, channel=0, force_rerun=False
         )
         features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
