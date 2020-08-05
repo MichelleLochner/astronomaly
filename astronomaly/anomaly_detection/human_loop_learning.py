@@ -138,9 +138,8 @@ class NeighbourScore(PipelineStage):
         """
 
         f_u = self.min_score + 0.85 * (user_score / self.max_score)
-        dist_penalty = np.exp(
-            nearest_neighbour_distance / np.mean(nearest_neighbour_distance) * 
-            self.alpha)
+        d0 = nearest_neighbour_distance / np.mean(nearest_neighbour_distance)
+        dist_penalty = np.exp(d0 * self.alpha)
         return anomaly_score * np.tanh(dist_penalty - 1 + np.arctanh(f_u))
 
     def compute_nearest_neighbour(self, features_with_labels):
@@ -228,7 +227,8 @@ class NeighbourScore(PipelineStage):
         distances = self.compute_nearest_neighbour(features_with_labels)
         retrained_score = self.train_regression(features_with_labels)
         trained_score = self.anom_func(distances, 
-                                     retrained_score, 
-                                     features_with_labels.score.values)
-        return pd.DataFrame(data=trained_score, index=features_with_labels.index, 
+                                       retrained_score, 
+                                       features_with_labels.score.values)
+        return pd.DataFrame(data=trained_score, 
+                            index=features_with_labels.index, 
                             columns=['trained_score'])
