@@ -4,6 +4,7 @@ from astronomaly.data_management import raw_features
 # from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import lof, human_loop_learning
 from astronomaly.clustering import tsne
+from astronomaly.dimensionality_reduction import pca, truncated_svd
 
 input_dir = '/home/michelle/Project/Anomaly/badac_data/'
 input_files = [os.path.join(input_dir, 'y_test.npy'), 
@@ -43,6 +44,13 @@ def run_pipeline():
 
     # pipeline_scaler = scaling.FeatureScaler(output_dir=output_dir)
     # features = pipeline_scaler.run(raw_dataset.features)
+
+    # pipeline_pca = pca.PCA_Decomposer(threshold=0.95, output_dir=output_dir)
+    # features = pipeline_pca.run(features)
+
+    pipeline_svd = truncated_svd.Truncated_SVD_Decomposer(
+        n_components=5, output_dir=output_dir, force_rerun=False)
+    features = pipeline_svd.run(features)
 
     pipeline_lof = lof.LOF_Algorithm(output_dir=output_dir, n_neighbors=100, 
                                      force_rerun=False)
