@@ -137,7 +137,7 @@ class WaveletFeatures(PipelineStage):
         wavelet_family : string or pywt.Wavelet object
             Which wavelet family to use
         """
-        
+
         super().__init__(level=level, wavelet_family=wavelet_family, **kwargs)
 
         self.level = level

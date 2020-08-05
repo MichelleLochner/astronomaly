@@ -99,7 +99,6 @@ class PSD_Features(PipelineStage):
 
         if len(self.labels) == 0:
             # Only call this once we know the dimensions of the input data. 
-            # *****Needs to be more robust!
             self._set_labels() 
 
         if self.nbands == 1:
