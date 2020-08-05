@@ -29,6 +29,10 @@ output_dir = os.path.join(
 image_transform_function = [
     image_preprocessing.image_transform_sigma_clipping,
     image_preprocessing.image_transform_scale]
+
+display_transform_function = [
+    image_preprocessing.image_transform_scale]
+
 df = pd.read_csv(os.path.join(data_dir, 'GalaxyZoo', 
                               'galaxy-zoo-the-galaxy-challenge', 
                               'training_solutions_rev1.csv'),
@@ -68,13 +72,14 @@ def run_pipeline():
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
+        display_transform_function=display_transform_function,
         # list_of_files=fls,
         additional_metadata=additional_metadata
     ) # noqa
 
     pipeline_ellipse = shape_features.EllipseFitFeatures(
         percentiles=[90, 80, 70, 60, 50, 0],
-        output_dir=output_dir, channel=0, force_rerun=True, 
+        output_dir=output_dir, channel=0, force_rerun=False, 
         central_contour=False)
     features_ellipse = pipeline_ellipse.run_on_dataset(image_dataset)
 
