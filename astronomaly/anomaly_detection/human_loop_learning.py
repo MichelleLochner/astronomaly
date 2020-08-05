@@ -227,8 +227,8 @@ class NeighbourScore(PipelineStage):
         """
         distances = self.compute_nearest_neighbour(features_with_labels)
         retrained_score = self.train_regression(features_with_labels)
-        final_score = self.anom_func(distances, 
+        trained_score = self.anom_func(distances, 
                                      retrained_score, 
                                      features_with_labels.score.values)
-        return pd.DataFrame(data=final_score, index=features_with_labels.index, 
-                            columns=['final_score'])
+        return pd.DataFrame(data=trained_score, index=features_with_labels.index, 
+                            columns=['trained_score'])

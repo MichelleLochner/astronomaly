@@ -336,7 +336,7 @@ export class AnomalyTab extends React.Component {
                                           <Button variant="contained" id="score" onClick={this.handleChangeAlgorithmClick}> ML Algorithm </Button> 
                                       </Grid> 
                                       <Grid item xs={4}>
-                                          <Button variant="contained" id="final_score" onClick={this.handleChangeAlgorithmClick}> Trained </Button> 
+                                          <Button variant="contained" id="trained_score" onClick={this.handleChangeAlgorithmClick}> Trained </Button> 
                                       </Grid> 
                                   </Grid>
 

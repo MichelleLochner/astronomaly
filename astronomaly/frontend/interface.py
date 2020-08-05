@@ -121,7 +121,7 @@ class Controller:
                                                          self.anomaly_scores)
         # print(features_with_labels)
         scores = pipeline_active_learning.run(features_with_labels)
-        self.anomaly_scores['final_score'] = scores
+        self.anomaly_scores['trained_score'] = scores
 
     def get_cluster_data(self, color_by_column=''):
         """

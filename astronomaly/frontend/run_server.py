@@ -151,7 +151,7 @@ def sort_data():
     """
     if request.method == "POST":
         column = (str)(request.get_json())
-        if column == "final_score":
+        if column == "trained_score":
             controller.run_active_learning()
 
         if column == "random":
