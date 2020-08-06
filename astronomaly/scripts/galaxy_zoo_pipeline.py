@@ -2,7 +2,7 @@ from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import power_spectrum, autoencoder
 from astronomaly.feature_extraction import shape_features
-from astronomaly.dimensionality_reduction import decomposition
+from astronomaly.dimensionality_reduction import pca
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.anomaly_detection import lof
@@ -110,7 +110,7 @@ def run_pipeline():
     # features_original = features_psd
     features = features_original.copy()
 
-    # pipeline_pca = decomposition.PCA_Decomposer(force_rerun=False, 
+    # pipeline_pca = pca.PCA_Decomposer(force_rerun=False, 
     #                                             output_dir=output_dir,
     #                                             threshold=0.95)
     # features = pipeline_pca.run(features_original)
