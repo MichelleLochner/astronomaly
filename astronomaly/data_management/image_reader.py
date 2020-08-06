@@ -271,7 +271,8 @@ class ImageDataset(Dataset):
                          plot_square=plot_square, catalogue=catalogue, 
                          plot_cmap=plot_cmap,
                          **kwargs)
-        self.known_file_types = ['fits', 'fits.fz', 'fits.gz']
+        self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
+                                 'FITS', 'FITS.fz', 'FITS.gz']
         self.data_type = 'image'
 
         images = {}
