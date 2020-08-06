@@ -4,7 +4,7 @@ from astronomaly.feature_extraction import shape_features, power_spectrum
 from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.clustering import tsne
+from astronomaly.visualisation import tsne
 from astronomaly.utils import utils
 import os
 import pandas as pd

@@ -131,15 +131,15 @@ def get_image():
         return ""
 
 
-@app.route('/cluster', methods=["GET", "POST"])
-def get_clusters():
+@app.route('/visualisation', methods=["GET", "POST"])
+def get_visualisation():
     """
-    Serves the data to be displayed on the clustering tab
+    Serves the data to be displayed on the visualisation tab
     """
     if request.method == "POST":
         technique = request.get_json()
         if technique == 'tsne':
-            output = controller.get_cluster_data(color_by_column='score')
+            output = controller.get_visualisation_data(color_by_column='score')
             js = json.dumps(output)
             return js
 

@@ -24,7 +24,7 @@ class Controller:
         self.dataset = None
         self.features = None
         self.anomaly_scores = None
-        self.clustering = None
+        self.visualisation = None
         self.module_name = None
         self.active_learning = None
 
@@ -44,8 +44,8 @@ class Controller:
         self.dataset = pipeline_dict['dataset']
         self.features = pipeline_dict['features']
         self.anomaly_scores = pipeline_dict['anomaly_scores']
-        if 'cluster' in list(pipeline_dict.keys()):
-            self.clustering = pipeline_dict['cluster']
+        if 'visualisation' in list(pipeline_dict.keys()):
+            self.visualisation = pipeline_dict['visualisation']
         if 'active_learning' in list(pipeline_dict.keys()):
             self.active_learning = pipeline_dict['active_learning']
 
@@ -123,9 +123,9 @@ class Controller:
         scores = pipeline_active_learning.run(features_with_labels)
         self.anomaly_scores['trained_score'] = scores
 
-    def get_cluster_data(self, color_by_column=''):
+    def get_visualisation_data(self, color_by_column=''):
         """
-        Returns the data for the clustering plot in the correct json format.
+        Returns the data for the visualisation plot in the correct json format.
 
         Parameters
         ----------
@@ -136,9 +136,9 @@ class Controller:
         Returns
         -------
         dict
-            Formatting cluster plot data
+            Formatting visualisation plot data
         """
-        clst = self.clustering
+        clst = self.visualisation
         if clst is not None:
             if len(color_by_column) == 0:
                 cols = [0.5] * len(clst)

@@ -6,7 +6,7 @@ from astronomaly.dimensionality_reduction import decomposition
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.anomaly_detection import lof
-from astronomaly.clustering import tsne
+from astronomaly.visualisation import tsne
 import os
 import pandas as pd
 import numpy as np
@@ -166,7 +166,7 @@ def run_pipeline():
     return {'dataset': image_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
-            'cluster': t_plot, 
+            'visualisation': t_plot, 
             'active_learning': pipeline_active_learning}
 
 

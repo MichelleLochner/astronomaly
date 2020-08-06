@@ -39,7 +39,7 @@ import {XYPlot, XAxis, YAxis, MarkSeries, VerticalGridLines, HorizontalGridLines
 // const randomData = getRandomData();
 
 /**
- * Scatter plot for visualising clustering
+ * Scatter plot for visualisation
  */
 class MakeScatter extends React.Component {
     constructor(props){
@@ -75,12 +75,12 @@ class MakeScatter extends React.Component {
 }
 
 /**
- * Tab to display clustering visualisation
+ * Tab to display visualisation
  */
-export class ClusteringTab extends React.Component {
+export class VisualisationTab extends React.Component {
     constructor(props){
       super(props);
-      this.getClustering = this.getClustering.bind(this);
+      this.getVisualisation = this.getVisualisation.bind(this);
       this.updateDisplayData = this.updateDisplayData.bind(this);
       this.getLightCurve = this.getLightCurve.bind(this);
       this.getRawFeatures = this.getRawFeatures.bind(this);
@@ -96,8 +96,8 @@ export class ClusteringTab extends React.Component {
         this.setState({displayData:newData}, this.getLightCurve(newData.id));
 
     }
-    getClustering(){
-        fetch("/cluster", {
+    getVisualisation(){
+        fetch("/visualisation", {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json'
@@ -156,7 +156,7 @@ export class ClusteringTab extends React.Component {
     }
 
     componentDidMount() {
-      this.getClustering();
+      this.getVisualisation();
     }
 
     render() {

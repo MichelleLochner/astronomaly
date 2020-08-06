@@ -14,5 +14,5 @@ Tabs
 .. .. js:autoclass:: AnomalyTab.AnomalyTab
       .. :members:
 
-.. .. js:autoclass:: ClusteringTab.MakeScatter
+.. .. js:autoclass:: VisualisationTab.MakeScatter
 ..       :members:

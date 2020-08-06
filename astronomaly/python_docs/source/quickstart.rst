@@ -16,7 +16,7 @@ return a dictionary with the following keywords:
 * ``features`` - DataFrame containing the final set of features used for anomaly detection
 * ``anomaly_scores`` - DataFrame containing the machine learning anomaly
   scores (in a column called "score")
-* ``cluster`` - t-SNE or similar DataFrame
+* ``visualisation`` - t-SNE or similar DataFrame
 * | ``active_learning`` - A PipelineStage object (see below under "Contributing")
   | which can be called to interactively run active learning.
 

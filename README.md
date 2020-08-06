@@ -27,7 +27,7 @@ To run the frontend, navigate to `astronomaly/frontend` and type `python run_ser
 `dataset` - the Dataset object that supplies the required functions for the frontend to plot data <p>
 `features` - DataFrame containing the final set of features used for anomaly detection <p>
 `anomaly_scores` - DataFrame containing the machine learning anomaly scores (in a column called "score") <p>
-`cluster` - t-SNE or similar DataFrame <p>
+`visualisation` - t-SNE or similar DataFrame <p>
 `active_learning` - A PipelineStage object (see below under "Contributing") which can be called to interactively run active learning.
 
 After the pipeline has been run by `run_server.py`, the console will display a url, usually http://127.0.0.1:5000/. Navigate there to see the frontend, no JavaScript development, running or compiling required.

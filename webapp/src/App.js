@@ -16,7 +16,7 @@ import Tab from '@material-ui/core/Tab';
 import './App.css';
 import {AlgorithmTab} from './components/AlgorithmTab'
 import {AnomalyTab} from './components/AnomalyTab'
-import {ClusteringTab} from './components/ClusteringTab'
+import {VisualisationTab} from './components/VisualisationTab'
 
 // const DATA_TYPE = 'image';
 // const DATA_TYPE = 'light_curve';
@@ -138,13 +138,13 @@ class App extends React.Component {
             >
               {/* <Tab label="Algorithm" /> */}
               <Tab label="Anomaly Scoring"/>
-              <Tab label="Clustering"/>
+              <Tab label="Visualisation"/>
             </Tabs>
           </AppBar>
 
           {/* {this.state.tabNumber === 0 && <AlgorithmTab />} */}
           {this.state.tabNumber === 0 && <AnomalyTab datatype={this.state.dataType} />}
-          {this.state.tabNumber === 1 && <ClusteringTab datatype={this.state.dataType}/>}
+          {this.state.tabNumber === 1 && <VisualisationTab datatype={this.state.dataType}/>}
         </ThemeProvider>
       </div>
     );

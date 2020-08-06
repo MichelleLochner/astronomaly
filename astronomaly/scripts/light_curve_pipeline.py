@@ -1,7 +1,7 @@
 from astronomaly.data_management import light_curve_reader
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.clustering import tsne
+from astronomaly.visualisation import tsne
 import os
 import pandas as pd
 
@@ -70,7 +70,7 @@ def run_pipeline():
         return {'dataset': light_curve_dataset, 
                 'features': features, 
                 'anomaly_scores': anomalies,
-                'cluster': t_plot, 
+                'visualisation': t_plot, 
                 'active_learning': pipeline_active_learning}
     else:
         return None

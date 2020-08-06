@@ -3,7 +3,7 @@ import numpy as np
 from astronomaly.data_management import raw_features
 # from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import lof, human_loop_learning
-from astronomaly.clustering import tsne
+from astronomaly.visualisation import tsne
 from astronomaly.dimensionality_reduction import pca, truncated_svd
 
 input_dir = '/home/michelle/Project/Anomaly/badac_data/'
@@ -74,5 +74,5 @@ def run_pipeline():
     return {'dataset': raw_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
-            'cluster': t_plot, 
+            'visualisation': t_plot, 
             'active_learning': pipeline_active_learning}
