@@ -6,6 +6,7 @@ import pandas as pd
 import xarray
 import matplotlib as mpl
 import io
+import psutil
 from skimage.transform import resize
 import cv2
 from astronomaly.base.base_dataset import Dataset
@@ -197,7 +198,8 @@ class ImageDataset(Dataset):
                  display_image_size=128, band_prefixes=[], bands_rgb={},
                  transform_function=None, display_transform_function=None,
                  plot_square=False, catalogue=None,
-                 plot_cmap='hot', **kwargs):
+                 plot_cmap='hot', 
+                 memory_threshold=80, **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
         paths (absolute). Inherits from Dataset class.
@@ -260,6 +262,11 @@ class ImageDataset(Dataset):
             the original cutout when the image is displayed in the webapp.
         plot_cmap : str, optional
             The colormap with which to plot the image
+        memory_threshold: float, optional
+            Allows the control of out of memory usage. Astronomaly will monitor
+            RAM usage and if it gets above this threshold, will start clearing
+            data from memory. This will obviously run slower but allows the
+            ability to work with arbitrarily large datasets.
         """
 
         super().__init__(fits_index=fits_index, window_size=window_size, 
@@ -356,6 +363,7 @@ class ImageDataset(Dataset):
         self.catalogue = catalogue
         self.display_image_size = display_image_size
         self.band_prefixes = band_prefixes
+        self.memory_threshold = memory_threshold
 
         self.metadata = pd.DataFrame(data=[])
         self.cutouts = pd.DataFrame(data=[])

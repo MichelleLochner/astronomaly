@@ -15,6 +15,7 @@ dependencies:
   - astropy
   - xarray
   - flask
+  - psutil
   - scikit-image
   - sphinx
   - sphinx-js
