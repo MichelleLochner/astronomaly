@@ -356,7 +356,6 @@ class ImageDataset(Dataset):
         self.catalogue = catalogue
         self.display_image_size = display_image_size
         self.band_prefixes = band_prefixes
-        self.memory_threshold = memory_threshold
 
         self.metadata = pd.DataFrame(data=[])
         self.cutouts = pd.DataFrame(data=[])
