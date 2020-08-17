@@ -86,7 +86,7 @@ class AstroImage:
         self.filenames = filenames
         self.file_type = file_type
         self.metadata = {}
-        self.coords = None
+        self.wcs = None
         self.fits_index = fits_index
 
         images = []
@@ -98,8 +98,8 @@ class AstroImage:
                 metadata = dict(hdul[self.fits_index].header)
                 self.metadata[f] = metadata
                 coords = self._convert_to_world_coords(hdul, image)
-                if self.coords is None:
-                    self.coords = coords
+                if self.wcs is None:
+                    self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
                 else:
                     if not (self.coords == coords).all():
                         print(
@@ -166,31 +166,26 @@ class AstroImage:
         s1 = self.filenames[0].split(os.path.sep)[-1]
         # extension = s1.split('.')[-1]
         return s1
-
-    def _convert_to_world_coords(self, hdul, image):
+    
+    def get_coords(self, x, y):
         """
-        Converts pixels to (ra,dec) in degrees. This is much faster to do once 
-        per image than on-demand for individual cutouts.
+        Returns the RA and DEC coordinates for a given set of pixels.
 
         Parameters
         ----------
-        hdul : fits.HDUlist
-            HDUlist object returned by fits.open
-        image : np.array
-            The image data to determine the coordinates shape
+        x : int
+            x pixel value
+        y : y
+            y pixel value
 
         Returns
         -------
-        np.array
-            Nx2 array with RA,DEC pairs for every pixel in image
+        ra, dec
+            Sky coordinates
         """
 
-        w = WCS(hdul[self.fits_index].header, naxis=2)
-        coords = w.wcs_pix2world(np.vstack(
-                                 (np.arange(image.shape[0])[::-1], 
-                                  np.arange(image.shape[1])[::-1])).T, 0)
-        return coords
-
+        ra, dec = self.wcs.wcs_pix2world(x, y, 0)
+        return float(ra), float(dec)
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None, 

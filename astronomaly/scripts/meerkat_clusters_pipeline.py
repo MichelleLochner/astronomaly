@@ -12,8 +12,12 @@ import pandas as pd
 data_dir = '/home/michelle/BigData/Anomaly/'
 
 image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
-#list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
-list_of_files = ['Abell_S295.1pln.fits']
+# list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
+fls = os.listdir(image_dir)
+to_leave_out = ['Abell_168.1pln.fits.gz', 'Abell_2811B.1pln.fits.gz',
+                'J2340.1-8510.Fix.1pln.fits.gz',
+                'Abell_4038.Fix.1pln.fits.gz']
+list_of_files = [f for f in fls if f not in to_leave_out]
 output_dir = os.path.join(
     data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
 
@@ -24,8 +28,9 @@ cat_file = os.path.join(
     data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues',
     'Abell_S295.plane0.pybdsm.srl.fits')
 
-image_file = os.path.join(image_dir, list_of_files[0])
-catalogue = utils.convert_pydsf_catalogue(cat_file, image_file)
+# image_file = os.path.join(image_dir, list_of_files[0])
+# catalogue = utils.convert_pydsf_catalogue(cat_file, image_file)
+catalogue = None
 
 window_size = 64
 image_transform_function = [
