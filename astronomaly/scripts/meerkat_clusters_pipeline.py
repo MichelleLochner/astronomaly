@@ -12,13 +12,17 @@ import pandas as pd
 data_dir = '/home/michelle/BigData/Anomaly/'
 
 image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
-list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
+#list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
+list_of_files = ['Abell_S295.1pln.fits']
 output_dir = os.path.join(
     data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
 
+# cat_file = os.path.join(
+#     data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues',
+#     'J0232.2-4420_processed1.pybdsm.srl.fits')
 cat_file = os.path.join(
     data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues',
-    'J0232.2-4420_processed1.pybdsm.srl.fits')
+    'Abell_S295.plane0.pybdsm.srl.fits')
 
 image_file = os.path.join(image_dir, list_of_files[0])
 catalogue = utils.convert_pydsf_catalogue(cat_file, image_file)
@@ -120,6 +124,12 @@ def run_pipeline():
         output_dir=output_dir,
         perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])
+
+    flname = os.path.join(output_dir, 'anomaly_catalogue.xlsx')
+    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:100],
+                                       filename=flname,
+                                       ignore_nearby_sources=True,
+                                       source_radius=0.016)
 
     return {'dataset': image_dataset, 
             'features': features, 
