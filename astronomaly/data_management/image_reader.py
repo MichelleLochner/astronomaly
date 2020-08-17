@@ -524,7 +524,17 @@ class ImageDataset(Dataset):
         nd.array
             Array of image cutout
         """
-        return self.cutouts.loc[idx].values
+
+        x0 = self.metadata.loc[idx, 'x']
+        y0 = self.metadata.loc[idx, 'y']
+        original_image = self.metadata.loc[idx, 'original_image']
+        this_image = self.images[original_image]
+        img = this_image.image
+        x_wid = self.window_size_x // 2
+        y_wid = self.window_size_y // 2
+        cutout = img[y0 - y_wid: y0 + y_wid, x0 - x_wid: x0 + x_wid]
+        cutout = apply_transform(cutout, self.transform_function)
+        return cutout
 
     def get_display_data(self, idx):
         """
