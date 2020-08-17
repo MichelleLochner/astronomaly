@@ -97,14 +97,8 @@ class AstroImage:
                 images.append(image)
                 metadata = dict(hdul[self.fits_index].header)
                 self.metadata[f] = metadata
-                coords = self._convert_to_world_coords(hdul, image)
                 if self.wcs is None:
                     self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
-                else:
-                    if not (self.coords == coords).all():
-                        print(
-                            'Coordinates of different bands are not the same')
-                        raise ValueError 
 
         except FileNotFoundError:
             print("Error: File", f, "not found")
@@ -402,8 +396,9 @@ class ImageDataset(Dataset):
                         y_vals.append(y0)
                         peak_flux.append(cutout.max())
 
-                        ra.append(astro_img.coords[x0, 0])
-                        dec.append(astro_img.coords[y0, 1])
+                        r, d = astro_img.get_coords(x0, y0)
+                        ra.append(r)
+                        dec.append(d)
 
                         original_image_names.append(astro_img.name)
 
