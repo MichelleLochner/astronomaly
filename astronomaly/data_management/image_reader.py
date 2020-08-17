@@ -160,7 +160,7 @@ class AstroImage:
         s1 = self.filenames[0].split(os.path.sep)[-1]
         # extension = s1.split('.')[-1]
         return s1
-    
+
     def get_coords(self, x, y):
         """
         Returns the RA and DEC coordinates for a given set of pixels.
@@ -180,6 +180,7 @@ class AstroImage:
 
         ra, dec = self.wcs.wcs_pix2world(x, y, 0)
         return float(ra), float(dec)
+
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None, 
