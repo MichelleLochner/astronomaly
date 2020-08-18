@@ -3,7 +3,6 @@ from astropy.wcs import WCS
 import numpy as np
 import os
 import pandas as pd
-import xarray
 import matplotlib as mpl
 import io
 from skimage.transform import resize
@@ -350,13 +349,9 @@ class ImageDataset(Dataset):
         self.metadata = pd.DataFrame(data=[])
         if self.catalogue is None:
             self.create_catalogue()
-        # self.cutouts = pd.DataFrame(data=[])
+        else:
+            self.convert_catalogue_to_metadata()
 
-        # if self.catalogue is None:
-        #     self.generate_cutouts()
-
-        # else:
-        #     self.get_cutouts_from_catalogue()
         self.index = self.metadata.index.values
 
     def create_catalogue(self):
@@ -395,83 +390,8 @@ class ImageDataset(Dataset):
                                       ignore_index=True)
         self.metadata.index = self.metadata.index.astype('str')
 
-        print('Done!')
+    def convert_catalogue_to_metadata(self):
 
-    def generate_cutouts(self):
-        """
-        Cuts up all images into cutouts of the same size. An optional transform
-        function (or series of functions) can be supplied to provide local 
-        transformations to the cutouts. A log transform is highly recommended 
-        for high dynamic range astronomy images to highlight fainter objects.
-        """
-        print('Generating cutouts...')
-        cutouts = []
-        x_vals = []
-        y_vals = []
-        ra = []
-        dec = []
-        peak_flux = []
-        original_image_names = []
-
-        for image_name in list(self.images.keys()):
-            astro_img = self.images[image_name]
-            img = astro_img.image
-
-            # Remember, numpy array index of [row, column] 
-            # corresponds to [y, x]
-            for j in range(self.window_size_x // 2, 
-                           img.shape[1] - (int)(1.5 * self.window_size_x), 
-                           self.window_shift_x):
-                for i in range(self.window_size_y // 2, 
-                               img.shape[0] - (int)(1.5 * self.window_size_y),
-                               self.window_shift_y):
-
-                    cutout = img[i:i + self.window_size_y, 
-                                 j:j + self.window_size_x]
-
-                    if not np.any(np.isnan(cutout)):
-                        y0 = i + self.window_size_y // 2
-                        x0 = j + self.window_size_x // 2
-                        x_vals.append(x0)
-                        y_vals.append(y0)
-                        peak_flux.append(cutout.max())
-
-                        r, d = astro_img.get_coords(x0, y0)
-                        ra.append(r)
-                        dec.append(d)
-
-                        original_image_names.append(astro_img.name)
-
-                        cutout = apply_transform(cutout, 
-                                                 self.transform_function)
-
-                        cutouts.append(cutout)
-
-        self.metadata = pd.DataFrame(data={
-                                     'original_image': original_image_names,
-                                     'x': x_vals, 
-                                     'y': y_vals, 
-                                     'ra': ra, 
-                                     'dec': dec, 
-                                     'peak_flux': peak_flux},
-                                     index=np.array(np.arange(len(cutouts)), 
-                                     dtype='str'))
-
-        if len(cutouts[0].shape) > 2:
-            dims = ['index', 'dim_1', 'dim_2', 'dim_3']
-        else:
-            dims = ['index', 'dim_1', 'dim_2'] 
-
-        self.cutouts = xarray.DataArray(cutouts, 
-                                        coords={'index': self.metadata.index}, 
-                                        dims=dims)
-        print('Done!')
-
-    def get_cutouts_from_catalogue(self):
-        """
-        Generates cutouts using a provided catalogue
-        """
-        print('Generating cutouts from catalogue...')
         if 'original_image' not in self.catalogue.columns:
             if len(self.images) > 1:
                 logging_tools.log("""If multiple fits images are used the
@@ -492,39 +412,15 @@ class ImageDataset(Dataset):
         if 'peak_flux' not in self.catalogue.columns:
             self.catalogue['peak_flux'] = [np.NaN] * len(self.catalogue)
 
-        cutouts = []
-
-        for i in range(len(self.catalogue)):
-            img_name = self.catalogue['original_image'][i]
-            if img_name in self.images.keys():
-                img = self.images[img_name].image
-                x0 = int(self.catalogue['x'][i])
-                y0 = int(self.catalogue['y'][i])
-                xmin = x0 - self.window_size_x // 2
-                xmax = x0 + self.window_size_x // 2
-                ymin = y0 - self.window_size_y // 2
-                ymax = y0 + self.window_size_y // 2
-
-                if ymin < 0 or xmin < 0 or ymax > img.shape[0] \
-                        or xmax > img.shape[1]:
-                    self.catalogue.drop(i, inplace=True)
-
-                else:
-                    cutout = img[ymin:ymax, xmin:xmax]
-
-                    if (cutout.max() == cutout.min()):
-                        self.catalogue.drop(i, inplace=True)
-
-                    else:
-                        if np.isnan(self.catalogue['peak_flux'][i]):
-                            self.catalogue['peak_flux'][i] = cutout.max()
-                        cutout = apply_transform(cutout, 
-                                                 self.transform_function)
-                        cutouts.append(cutout)
-            else:
-                self.catalogue.drop(i, inplace=True)
-
         cols = ['original_image', 'x', 'y']
+
+        for c in cols[1:]:
+            if c not in self.catalogue.columns:
+                logging_tools.log("""If a catalogue is provided the x and y
+                columns (corresponding to pixel values) must be present""", 
+                                  level='ERROR')
+
+                raise ValueError("Incorrect input supplied")
 
         if 'ra' in self.catalogue.columns:
             cols.append('ra')
@@ -539,16 +435,8 @@ class ImageDataset(Dataset):
 
         the_index = np.array(self.catalogue['objid'].values, dtype='str')
         self.metadata = pd.DataFrame(met, index=the_index)
-
-        if len(cutouts[0].shape) > 2:
-            dims = ['index', 'dim_1', 'dim_2', 'dim_3']
-        else:
-            dims = ['index', 'dim_1', 'dim_2'] 
-        self.cutouts = xarray.DataArray(cutouts, 
-                                        coords={'index': the_index}, 
-                                        dims=dims)
-
-        print('Done!')
+        self.metadata['x'] = self.metadata['x'].astype('int')
+        self.metadata['y'] = self.metadata['y'].astype('int')
 
     def get_sample(self, idx):
         """
@@ -572,7 +460,18 @@ class ImageDataset(Dataset):
         img = this_image.image
         x_wid = self.window_size_x // 2
         y_wid = self.window_size_y // 2
-        cutout = img[y0 - y_wid: y0 + y_wid, x0 - x_wid: x0 + x_wid]
+
+        y_start = y0 - y_wid
+        y_end = y0 + y_wid
+        x_start = x0 - x_wid
+        x_end = x0 + x_wid
+
+        invalid_y = y_start < 0 or y_end > img.shape[0]
+        invalid_x = x_start < 0 or x_end > img.shape[1]
+        if invalid_y or invalid_x:
+            cutout = np.ones((self.window_size_y, self.window_size_x)) * np.nan
+        else:
+            cutout = img[y_start:y_end, x_start:x_end]
 
         cutout = apply_transform(cutout, self.transform_function)
         return cutout

@@ -203,7 +203,7 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
     else:
         im = img
 
-    im = np.nan_to_num(im) # OpenCV can't handle NaNs
+    im = np.nan_to_num(im)  # OpenCV can't handle NaNs
 
     mean, median, std = sigma_clipped_stats(im, sigma=sigma)
     thresh = std + median
