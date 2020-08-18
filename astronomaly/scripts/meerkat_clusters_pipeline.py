@@ -13,11 +13,18 @@ data_dir = '/home/michelle/BigData/Anomaly/'
 
 image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
 # list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
+
+# to_leave_out = ['Abell_168.1pln.fits.gz', 'Abell_2811B.1pln.fits.gz',
+#                 'J2340.1-8510.Fix.1pln.fits.gz',
+#                 'Abell_4038.Fix.1pln.fits.gz']
+# # list_of_files = [f for f in fls if f not in to_leave_out]
+# # list_of_files = ['Abell_S295.1pln.fits']
+# list_of_files = ['Abell_168.1pln.fits.gz', 'Abell_2811B.1pln.fits.gz',
+# 'Abell_S295.1pln.fits']
+
 fls = os.listdir(image_dir)
-to_leave_out = ['Abell_168.1pln.fits.gz', 'Abell_2811B.1pln.fits.gz',
-                'J2340.1-8510.Fix.1pln.fits.gz',
-                'Abell_4038.Fix.1pln.fits.gz']
-list_of_files = [f for f in fls if f not in to_leave_out]
+list_of_files = fls[:10]
+
 output_dir = os.path.join(
     data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
 
@@ -28,7 +35,7 @@ cat_file = os.path.join(
     data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues',
     'Abell_S295.plane0.pybdsm.srl.fits')
 
-# image_file = os.path.join(image_dir, list_of_files[0])
+image_file = os.path.join(image_dir, list_of_files[0])
 # catalogue = utils.convert_pydsf_catalogue(cat_file, image_file)
 catalogue = None
 
@@ -91,8 +98,8 @@ def run_pipeline():
 
     if dim_reduction == 'pca':
         pipeline_pca = pca.PCA_Decomposer(force_rerun=False, 
-                                                    output_dir=output_dir,
-                                                    threshold=0.95)
+                                          output_dir=output_dir,
+                                          threshold=0.95)
         features = pipeline_pca.run(features_original)
 
     pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
@@ -130,7 +137,7 @@ def run_pipeline():
         perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])
 
-    flname = os.path.join(output_dir, 'anomaly_catalogue.xlsx')
+    flname = os.path.join(output_dir, 'anomaly_catalogue_10_fls.xlsx')
     utils.create_catalogue_spreadsheet(image_dataset, anomalies[:100],
                                        filename=flname,
                                        ignore_nearby_sources=True,
