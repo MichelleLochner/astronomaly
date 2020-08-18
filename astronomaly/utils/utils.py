@@ -92,7 +92,7 @@ def create_catalogue_spreadsheet(image_dataset, scores,
     cell_format = workbook.add_format({'center_across': True})
     hgt = 180
 
-    cat = image_dataset.catalogue
+    cat = image_dataset.metadata
     cat.index = cat.index.astype('str')
 
     row = 2
@@ -110,7 +110,10 @@ def create_catalogue_spreadsheet(image_dataset, scores,
             if np.any(radius < source_radius):
                 proceed = False
 
-        if proceed:       
+        if proceed:     
+            if cat.loc[idx, 'peak_flux'] == -1:
+                # Will trigger it to set the flux
+                image_dataset.get_sample(idx)  
             worksheet.set_row(row - 1, hgt, cell_format)
 
             worksheet.write('A%d' % row, idx)

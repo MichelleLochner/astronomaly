@@ -399,7 +399,8 @@ class ImageDataset(Dataset):
                 'x': x_coords,
                 'y': y_coords,
                 'ra': ra,
-                'dec': dec})
+                'dec': dec,
+                'peak_flux': [-1] * len(ra)})
             self.metadata = pd.concat((self.metadata, new_df), 
                                       ignore_index=True)
         self.metadata.index = self.metadata.index.astype('str')
@@ -489,6 +490,13 @@ class ImageDataset(Dataset):
             cutout = np.ones((self.window_size_y, self.window_size_x)) * np.nan
         else:
             cutout = img[y_start:y_end, x_start:x_end]
+
+        if self.metadata.loc[idx, 'peak_flux'] == -1:
+            if np.any(np.isnan(cutout)):
+                flx = -1
+            else:
+                flx = np.max(cutout)
+            self.metadata.loc[idx, 'peak_flux'] = flx
 
         cutout = apply_transform(cutout, self.transform_function)
         return cutout
