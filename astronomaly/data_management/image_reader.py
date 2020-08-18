@@ -178,8 +178,7 @@ class AstroImage:
             Sky coordinates
         """
 
-        ra, dec = self.wcs.wcs_pix2world(x, y, 0)
-        return float(ra), float(dec)
+        return self.wcs.wcs_pix2world(x, y, 0)
 
 
 class ImageDataset(Dataset):
@@ -349,14 +348,54 @@ class ImageDataset(Dataset):
         self.band_prefixes = band_prefixes
 
         self.metadata = pd.DataFrame(data=[])
-        self.cutouts = pd.DataFrame(data=[])
-
         if self.catalogue is None:
-            self.generate_cutouts()
+            self.create_catalogue()
+        # self.cutouts = pd.DataFrame(data=[])
 
-        else:
-            self.get_cutouts_from_catalogue()
+        # if self.catalogue is None:
+        #     self.generate_cutouts()
+
+        # else:
+        #     self.get_cutouts_from_catalogue()
         self.index = self.metadata.index.values
+
+    def create_catalogue(self):
+        """
+        If a catalogue is not supplied, this will generate one by cutting up
+        the image into cutouts.
+        """
+
+        for image_name in list(self.images.keys()):
+            print(image_name)
+            astro_img = self.images[image_name]
+            img = astro_img.image
+
+            # Remember, numpy array index of [row, column] 
+            # corresponds to [y, x]
+            xvals = np.arange(self.window_size_x // 2, 
+                              img.shape[1] - self.window_size_x // 2, 
+                              self.window_shift_x)
+            yvals = np.arange(self.window_size_y // 2, 
+                              img.shape[0] - self.window_size_y // 2,
+                              self.window_shift_y)
+            X, Y = np.meshgrid(xvals, yvals)
+
+            x_coords = X.ravel()
+            y_coords = Y.ravel()
+            ra, dec = astro_img.get_coords(x_coords, y_coords)
+            original_image_names = [image_name] * len(x_coords)
+
+            new_df = pd.DataFrame(data={
+                'original_image': original_image_names,
+                'x': x_coords,
+                'y': y_coords,
+                'ra': ra,
+                'dec': dec})
+            self.metadata = pd.concat((self.metadata, new_df), 
+                                      ignore_index=True)
+        self.metadata.index = self.metadata.index.astype('str')
+
+        print('Done!')
 
     def generate_cutouts(self):
         """
@@ -534,6 +573,7 @@ class ImageDataset(Dataset):
         x_wid = self.window_size_x // 2
         y_wid = self.window_size_y // 2
         cutout = img[y0 - y_wid: y0 + y_wid, x0 - x_wid: x0 + x_wid]
+
         cutout = apply_transform(cutout, self.transform_function)
         return cutout
 
