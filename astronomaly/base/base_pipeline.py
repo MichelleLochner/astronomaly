@@ -265,6 +265,10 @@ class PipelineStage(object):
 
         print('Extracting features using', self.class_name, '...')
         t1 = time.time()
+        logged_nan_msg = False
+        nan_msg = "NaNs detected in some input images." \
+                  "NaNs will be set to zero. You can change " \
+                  "behaviour by setting drop_nan=False"
 
         new_index = []
         output = []
@@ -274,6 +278,13 @@ class PipelineStage(object):
                 if n % 100 == 0:
                     print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
+
+                if self.drop_nans and np.any(np.isnan(input_instance)):
+                    input_instance = np.nan_to_num(input_instance)
+                    if not logged_nan_msg:
+                        print(nan_msg)
+                        logging_tools.log(nan_msg, level='WARNING')
+                        logged_nan_msg = True
                 out = self._execute_function(input_instance)
                 if np.any(np.isnan(out)):
                     logging_tools.log("Feature extraction failed for id " + i)

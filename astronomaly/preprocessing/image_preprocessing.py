@@ -203,6 +203,8 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
     else:
         im = img
 
+    im = np.nan_to_num(im) # OpenCV can't handle NaNs
+
     mean, median, std = sigma_clipped_stats(im, sigma=sigma)
     thresh = std + median
     img_bin = np.zeros(im.shape, dtype=np.uint8)
@@ -216,11 +218,15 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
 
     x0 = img.shape[0] // 2
     y0 = img.shape[1] // 2
+
     for c in contours:
         if cv2.pointPolygonTest(c, (x0, y0), False) == 1:
             break
 
     contour_mask = np.zeros_like(img, dtype=np.uint8)
+    if len(contours) == 0:
+        # This happens if there's no data in the image so we just return zeros
+        return contour_mask
     cv2.drawContours(contour_mask, [c], 0, (1, 1, 1), -1)
 
     new_img = np.zeros_like(img)

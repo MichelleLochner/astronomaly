@@ -271,6 +271,9 @@ class EllipseFitFeatures(PipelineStage):
         else:
             this_image = image
 
+        # Get rid of possible NaNs
+        # this_image = np.nan_to_num(this_image)
+
         x0 = y0 = -1
         x_cent = this_image.shape[0] // 2
         y_cent = this_image.shape[1] // 2
@@ -279,15 +282,22 @@ class EllipseFitFeatures(PipelineStage):
         # Start with the closest in contour (highest percentile)
         percentiles = np.sort(self.percentiles)[::-1] 
 
-        failed = False
-        failure_message = ""
+        if np.all(this_image == 0):
+            failed = True
+            failure_message = "Invalid cutout for feature extraction"
+        else:
+            failed = False
+            failure_message = ""
 
         for p in percentiles:
-            thresh = np.percentile(this_image[this_image > 0], p)
-            contours, hierarchy = find_contours(this_image, thresh)
+            if failed:
+                contours = []
+            else:
+                thresh = np.percentile(this_image[this_image > 0], p)
+                contours, hierarchy = find_contours(this_image, thresh)
 
-            x_contours = np.zeros(len(contours))
-            y_contours = np.zeros(len(contours))
+                x_contours = np.zeros(len(contours))
+                y_contours = np.zeros(len(contours))
 
             # First attempt to find the central point of the inner most contour
             if len(contours) != 0:
