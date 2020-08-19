@@ -6,7 +6,7 @@ import numpy as np
 import xlsxwriter
 
 
-def convert_pydsf_catalogue(catalogue_file, image_file):
+def convert_pybdsf_catalogue(catalogue_file, image_file):
     """
     Converts a pybdsf fits file to a pandas dataframe to be given
     directly to an ImageDataset object.
