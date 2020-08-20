@@ -12,6 +12,7 @@ from astronomaly.base import logging_tools
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
+import tracemalloc
 
 
 def convert_array_to_image(arr, plot_cmap='hot'):
@@ -87,26 +88,18 @@ class AstroImage:
         self.metadata = {}
         self.wcs = None
         self.fits_index = fits_index
+        self.hdul_list = []
 
-        images = []
         try:
-            for f in filenames:
-                hdul = fits.open(f)
-                image = self._get_image_data(hdul)
-                images.append(image)
-                metadata = dict(hdul[self.fits_index].header)
-                self.metadata[f] = metadata
-                if self.wcs is None:
-                    self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
+            for f in filenames:       
+                hdul = fits.open(f, memmap=True)
+                self.hdul_list.append(hdul)               
 
         except FileNotFoundError:
             raise FileNotFoundError("File", f, "not found")
 
-        if len(images) > 1:
-            # Should now be a 3d array with multiple channels
-            self.image = np.dstack(images)
-        else:
-            self.image = images[0]  # Was just the one image
+        # get a test sample
+        self.get_image_data(0, 10, 0, 10)
 
         if len(name) == 0:
             self.name = self._strip_filename()
@@ -115,32 +108,50 @@ class AstroImage:
 
         print('Done!')
 
-    def _get_image_data(self, hdul):
+    def get_image_data(self, row_start, row_end, col_start, col_end):
         """Returns the image data from a fits HDUlist object
 
         Parameters
         ----------
-        hdul : fits.HDUlist
-            HDUlist object returned by fits.open
-
         Returns
         -------
         np.array
             Image data
         """
-        if self.fits_index is None:
-            for i in range(len(hdul)):
-                self.fits_index = i
-                dat = hdul[self.fits_index].data
-                if dat is not None:
-                    image = dat
-                    break
+        images = []
+        rs = row_start
+        re = row_end
+        cs = col_start
+        ce = col_end
+
+        for hdul in self.hdul_list:
+            if self.fits_index is None:
+                for i in range(len(hdul)):
+                    self.fits_index = i
+                    snap1 = tracemalloc.take_snapshot()
+
+                    dat = hdul[self.fits_index].data[0, 0, rs:re, cs:ce]
+                    snap2 = tracemalloc.take_snapshot()
+                    diff = snap2.compare_to(snap1, 'lineno')
+                    print(diff[0].size_diff)
+                    if dat is not None:
+                        image = dat
+                        break
+                self.metadata = dict(hdul[self.fits_index].header)
+                if self.wcs is None:
+                    self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
+            else:
+                image = hdul[self.fits_index].data[0, 0, rs:re, cs:ce]
+
+            if len(image.shape) > 2:
+                image = np.squeeze(image)
+            images.append(image)
+
+        if len(images) > 1:
+            # Should now be a 3d array with multiple channels
+            image = np.dstack(images)
         else:
-            image = hdul[self.fits_index].data
-
-        if len(image.shape) > 2:
-            image = np.squeeze(image)
-
+            image = images[0]  # Was just the one image
         return image
 
     def _strip_filename(self):
@@ -263,6 +274,7 @@ class ImageDataset(Dataset):
         self.data_type = 'image'
 
         images = {}
+        tracemalloc.start()
 
         if len(band_prefixes) != 0:
             # Get the matching images in different bands
@@ -291,6 +303,7 @@ class ImageDataset(Dataset):
                                                fits_index=fits_index, 
                                                name=k)
                         images[k] = astro_img
+
                     except Exception as e:
                         msg = "Cannot read image " + k + "\n \
                             Exception is: " + (str)(e)
@@ -364,7 +377,19 @@ class ImageDataset(Dataset):
             self.create_catalogue()
         else:
             self.convert_catalogue_to_metadata()
-            print('A catalogue of ', len(self.metadata), 'has been provided.')
+            print('A catalogue of ', len(self.metadata), 
+                  'sources has been provided.')
+
+        if len(images) > 1 and 'original_image' in self.metadata.columns:
+            for img in np.unique(self.metadata.original_image):
+                if img not in images.keys():
+                    logging_tools.log('Image ' + img + ' found in catalogue \
+                        but not in provided image data. Removing from \
+                        catalogue.', level='WARNING')
+                    msk = self.metadata.original_image == img
+                    self.metadata.drop(self.metadata.index[msk], inplace=True)
+                    print('Catalogue reduced to ', len(self.metadata), 
+                          'sources')
 
         self.index = self.metadata.index.values
 
@@ -475,7 +500,7 @@ class ImageDataset(Dataset):
         y0 = self.metadata.loc[idx, 'y']
         original_image = self.metadata.loc[idx, 'original_image']
         this_image = self.images[original_image]
-        img = this_image.image
+
         x_wid = self.window_size_x // 2
         y_wid = self.window_size_y // 2
 
@@ -484,13 +509,12 @@ class ImageDataset(Dataset):
         x_start = x0 - x_wid
         x_end = x0 + x_wid
 
-        invalid_y = y_start < 0 or y_end > img.shape[0]
-        invalid_x = x_start < 0 or x_end > img.shape[1]
+        invalid_y = y_start < 0 or y_end > this_image.metadata['NAXIS1']
+        invalid_x = x_start < 0 or x_end > this_image.metadata['NAXIS2']
         if invalid_y or invalid_x:
             cutout = np.ones((self.window_size_y, self.window_size_x)) * np.nan
         else:
-            cutout = img[y_start:y_end, x_start:x_end]
-
+            cutout = this_image.get_image_data(y_start, y_end, x_start, x_end)
         if self.metadata.loc[idx, 'peak_flux'] == -1:
             if np.any(np.isnan(cutout)):
                 flx = -1
@@ -522,7 +546,7 @@ class ImageDataset(Dataset):
         except KeyError:
             return None
 
-        img = self.images[img_name].image
+        this_image = self.images[img_name]
         x0 = self.metadata.loc[idx, 'x']
         y0 = self.metadata.loc[idx, 'y']
 
@@ -533,22 +557,25 @@ class ImageDataset(Dataset):
         ymax = (int)(y0 + self.window_size_y * factor)
 
         xstart = max(xmin, 0)
-        xend = min(xmax, img.shape[1])
+        xend = min(xmax, this_image.metadata['NAXIS1'])
         ystart = max(ymin, 0)
-        yend = min(ymax, img.shape[0])
+        yend = min(ymax, this_image.metadata['NAXIS2'])
         tot_size_x = int(2 * self.window_size_x * factor)
         tot_size_y = int(2 * self.window_size_y * factor)
 
-        if len(img.shape) > 2:
-            shp = [tot_size_y, tot_size_x, img.shape[-1]]
+        third_axis = this_image.metadata['NAXIS3']
+
+        if third_axis > 1:
+            shp = [tot_size_y, tot_size_x, third_axis]
         else:
             shp = [tot_size_y, tot_size_x]
         cutout = np.zeros(shp)
         # cutout[ystart - ymin:tot_size_y - (ymax - yend), 
         #        xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend, 
         #                                                        xstart:xend]
+        img_data = this_image.get_image_data(ystart, yend, xstart, xend)
         cutout[ystart - ymin:yend - ymin, 
-               xstart - xmin:xend - xmin] = img[ystart:yend, xstart:xend]
+               xstart - xmin:xend - xmin] = img_data
         cutout = np.nan_to_num(cutout)
 
         cutout = apply_transform(cutout, self.display_transform_function)

@@ -8,6 +8,7 @@ from astronomaly.visualisation import tsne
 from astronomaly.utils import utils
 import os
 import pandas as pd
+import numpy as np
 
 data_dir = '/home/michelle/BigData/Anomaly/'
 
@@ -23,7 +24,7 @@ image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
 # 'Abell_S295.1pln.fits']
 
 fls = os.listdir(image_dir)
-list_of_files = fls[:10]
+list_of_files = fls
 
 output_dir = os.path.join(
     data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
@@ -33,11 +34,12 @@ output_dir = os.path.join(
 #     'J0232.2-4420_processed1.pybdsm.srl.fits')
 cat_file = os.path.join(
     data_dir, 'Meerkat_data', 'Clusters_legacy', 'Catalogues',
-    'Abell_S295.plane0.pybdsm.srl.fits')
+    'all_images_catalogue.csv')
 
-image_file = os.path.join(image_dir, list_of_files[0])
-# catalogue = utils.convert_pydsf_catalogue(cat_file, image_file)
-catalogue = None
+# image_file = os.path.join(image_dir, list_of_files[0])
+# catalogue = utils.convert_pybdsf_catalogue(cat_file, image_file)
+# catalogue = None
+catalogue = pd.read_csv(cat_file)
 
 window_size = 64
 image_transform_function = [
@@ -137,8 +139,8 @@ def run_pipeline():
         perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])
 
-    flname = os.path.join(output_dir, 'anomaly_catalogue_10_fls.xlsx')
-    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:100],
+    flname = os.path.join(output_dir, 'anomaly_catalogue_all.xlsx')
+    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:200],
                                        filename=flname,
                                        ignore_nearby_sources=True,
                                        source_radius=0.016)
@@ -146,5 +148,5 @@ def run_pipeline():
     return {'dataset': image_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
-            'cluster': t_plot, 
+            'visualisation': t_plot, 
             'active_learning': pipeline_active_learning}
