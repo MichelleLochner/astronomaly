@@ -2,6 +2,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 import numpy as np
 import os
+import tracemalloc
 import pandas as pd
 import matplotlib as mpl
 import io
@@ -12,7 +13,6 @@ from astronomaly.base import logging_tools
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
-import tracemalloc
 
 
 def convert_array_to_image(arr, plot_cmap='hot'):

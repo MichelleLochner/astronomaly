@@ -8,12 +8,11 @@ from astronomaly.visualisation import tsne
 from astronomaly.utils import utils
 import os
 import pandas as pd
-import numpy as np
 
 data_dir = '/home/michelle/BigData/Anomaly/'
 
 image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
-# list_of_files = ['J0232.2-4420.Fix.1pln.fits.gz']
+list_of_files = ['J0449.9-4440.Fix.1pln.fits.gz']
 
 # to_leave_out = ['Abell_168.1pln.fits.gz', 'Abell_2811B.1pln.fits.gz',
 #                 'J2340.1-8510.Fix.1pln.fits.gz',
@@ -23,8 +22,8 @@ image_dir = os.path.join(data_dir, 'Meerkat_data', 'Clusters_legacy')
 # list_of_files = ['Abell_168.1pln.fits.gz', 'Abell_2811B.1pln.fits.gz',
 # 'Abell_S295.1pln.fits']
 
-fls = os.listdir(image_dir)
-list_of_files = fls
+# fls = os.listdir(image_dir)
+# list_of_files = fls
 
 output_dir = os.path.join(
     data_dir, 'astronomaly_output', 'images', 'meerkat_clusters', '')
@@ -107,6 +106,7 @@ def run_pipeline():
     pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
+    print(features)
 
     pipeline_iforest = isolation_forest.IforestAlgorithm(
         force_rerun=False, output_dir=output_dir)
