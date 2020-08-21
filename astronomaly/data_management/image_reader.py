@@ -380,12 +380,12 @@ class ImageDataset(Dataset):
             print('A catalogue of ', len(self.metadata), 
                   'sources has been provided.')
 
-        if len(images) > 1 and 'original_image' in self.metadata.columns:
+        if 'original_image' in self.metadata.columns:
             for img in np.unique(self.metadata.original_image):
                 if img not in images.keys():
-                    logging_tools.log('Image ' + img + ' found in catalogue \
-                        but not in provided image data. Removing from \
-                        catalogue.', level='WARNING')
+                    logging_tools.log('Image ' + img + """ found in catalogue 
+                        but not in provided image data. Removing from 
+                        catalogue.""", level='WARNING')
                     msk = self.metadata.original_image == img
                     self.metadata.drop(self.metadata.index[msk], inplace=True)
                     print('Catalogue reduced to ', len(self.metadata), 
