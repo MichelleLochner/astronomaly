@@ -25,7 +25,6 @@ export class AnomalyTab extends React.Component {
   constructor(props){
     super(props);
     this.handleForwardBackwardClick = this.handleForwardBackwardClick.bind(this);
-    this.handleForwardBackwardKey = this.handleForwardBackwardKey.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
     // this.getImage = this.getImage.bind(this);
     this.handleChangeAlgorithmClick = this.handleChangeAlgorithmClick.bind(this);
@@ -38,6 +37,7 @@ export class AnomalyTab extends React.Component {
     this.getFeatures = this.getFeatures.bind(this);
     this.getRawFeatures = this.getRawFeatures.bind(this);
     this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
+    this.doNothing = this.doNothing.bind(this);
     this.changeButtonColor = this.changeButtonColor.bind(this);
 
     this.state = {id:0,
@@ -79,47 +79,26 @@ export class AnomalyTab extends React.Component {
     // this.getImage(newID);
   }
 
-  handleForwardBackwardKey(e){
-    const whichKey = e.key;
-
-    let newID;
-    if (whichKey=="ArrowRight"){
-      newID = this.state.id+1;
-      /// Need some logic here checking we don't get to the end
-    }
-    else if (whichKey=="ArrowLeft") {
-      newID = this.state.id-1;
-      if (newID<0) {newID=0};
-    }
-    else {
-      newID = this.state.id;
-    }
-
-    this.setState({id:newID}, this.updateOriginalID(newID));
-
-    e.preventDefault();
-    return false;
-  }
-
   handleKeyDown(e){
     const whichKey = e.key;
+    const allowed_keys = ["0", "1", "2", "3", "4", "5"];
 
     let newID;
     if (whichKey=="ArrowRight"){
       newID = this.state.id+1;
+      e.preventDefault();
       /// Need some logic here checking we don't get to the end
     }
     else if (whichKey=="ArrowLeft") {
       newID = this.state.id-1;
       if (newID<0) {newID=0};
+      e.preventDefault();
     }
     else {
       newID = this.state.id;
       
-      if (isNaN(whichKey) == false){
+      if ((isNaN(whichKey) == false) && (allowed_keys.includes(whichKey))){
         this.changeButtonColor(whichKey);
-        // *** Need some error checking here because you can give a score of 8
-        // even if there's only 5 buttons
         fetch("/label", {
           method: 'POST',
           headers: {
@@ -128,12 +107,13 @@ export class AnomalyTab extends React.Component {
           body: JSON.stringify({'id':this.state.original_id, 'label':whichKey})
         })
         .catch(console.log)
+
+        e.preventDefault();
       }
     }
 
     this.setState({id:newID}, this.updateOriginalID(newID));
 
-    e.preventDefault();
     return false;
   }
 
@@ -142,8 +122,16 @@ export class AnomalyTab extends React.Component {
    * @param {event} e 
    */
   handleChangeIndexChange(e){
-    const newID = parseInt(e.currentTarget.value);
-    this.setState({id:newID}, this.updateOriginalID(newID));
+    const value = e.currentTarget.value;
+    if (isNaN(value) === false) {
+      const newID = parseInt(value);
+      this.setState({id:newID}, this.updateOriginalID(newID));
+      e.stopPropagation();
+    }
+  }
+
+  doNothing(e) {
+    e.stopPropagation();
   }
 
   /**
@@ -329,7 +317,7 @@ export class AnomalyTab extends React.Component {
                               <Grid item xs={4}>
                                 <TextField id="chooseNumber" label="Index" value={this.state.id} type="number" fullWidth={false} 
                                 inputProps={{style:{textAlign:"center"}}} InputLabelProps={{style:{textAlign:"center"}}}
-                                onChange={this.handleChangeIndexChange}/>
+                                onChange={this.handleChangeIndexChange} onKeyDown={this.doNothing} />
                               </Grid>
                               <Grid item xs={4} align="right">
                                   <Button variant="contained" align="right" id="forward" onClick={this.handleForwardBackwardClick}> Forward </Button> 
