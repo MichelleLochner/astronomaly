@@ -10,12 +10,18 @@ import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
 import {PlotImage} from './PlotImage.js';
 import TextField from '@material-ui/core/TextField';
+import Select from '@material-ui/core/Select';
+import InputLabel from '@material-ui/core/InputLabel';
+import FormHelperText from '@material-ui/core/FormHelperText';
+import FormControl from '@material-ui/core/FormControl';
 import {TimeSeriesPlot} from './PlotLightCurve.js';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
+import { MenuItem } from '@material-ui/core';
 
 const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
+                                            
 
 /**
  * Tab for displaying the data, cycling through anomalous objects and adding
@@ -26,9 +32,8 @@ export class AnomalyTab extends React.Component {
     super(props);
     this.handleForwardBackwardClick = this.handleForwardBackwardClick.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
-    // this.getImage = this.getImage.bind(this);
-    this.handleChangeAlgorithmClick = this.handleChangeAlgorithmClick.bind(this);
-    this.changeAlgorithm = this.changeAlgorithm.bind(this);
+    this.handleSortBy = this.handleSortBy.bind(this);
+    this.changeSortBy = this.changeSortBy.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
     this.updateOriginalID = this.updateOriginalID.bind(this);
     this.getLightCurve = this.getLightCurve.bind(this);
@@ -135,13 +140,12 @@ export class AnomalyTab extends React.Component {
   }
 
   /**
-   * Changes which algorithm is used to sort the objects by.
+   * Changes which scores are used to sort the objects by.
    * @param {event} e 
    */
-  handleChangeAlgorithmClick(e) {
-    const whichButton = e.currentTarget.id;
-    // console.log(whichButton);
-    this.changeAlgorithm(whichButton);
+  handleSortBy(e){
+    const sortByColumn = e.target.value;
+    this.changeSortBy(sortByColumn);
   }
 
   /**
@@ -183,7 +187,12 @@ export class AnomalyTab extends React.Component {
 
   }
 
-  changeAlgorithm(columnName){
+  /**
+   * Tells the backend to reorder the data according to a different scoring 
+   * method
+   * @param {string} columnName
+   */
+  changeSortBy(columnName){
     fetch("/sort", {
       method: 'POST',
       headers: {
@@ -352,17 +361,18 @@ export class AnomalyTab extends React.Component {
 
                               <Grid item xs={12} align="center">
                                 <Grid container alignItems="center">
-                                      <Grid item xs={4}>
-                                          <Button variant="contained" id="random" onClick={this.handleChangeAlgorithmClick}> Random </Button> 
-                                      </Grid> 
-                                      <Grid item xs={4}>
-                                          <Button variant="contained" id="score" onClick={this.handleChangeAlgorithmClick}> ML Algorithm </Button> 
-                                      </Grid> 
-                                      <Grid item xs={4}>
-                                          <Button variant="contained" id="trained_score" onClick={this.handleChangeAlgorithmClick}> Trained </Button> 
-                                      </Grid> 
+                                  <Grid item xs={3}>
+                                    <FormControl variant="outlined" fullWidth={true} margin='dense'>
+                                      {/* <InputLabel id="select-label">Sort By</InputLabel> */}
+                                      <Select id="select" onChange={this.handleSortBy} defaultValue="score">
+                                        <MenuItem value="score">Raw anomaly score</MenuItem>
+                                        <MenuItem value="trained_score">Human retrained score</MenuItem>
+                                        <MenuItem value="random">Random</MenuItem>
+                                      </Select>
+                                      <FormHelperText>Scoring method to sort by</FormHelperText>
+                                    </FormControl>
                                   </Grid>
-
+                                </Grid>
                               </Grid>
                             </Grid>  
                         </Grid>
