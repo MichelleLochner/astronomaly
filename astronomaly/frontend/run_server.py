@@ -144,6 +144,15 @@ def get_visualisation():
             return js
 
 
+@app.route('/retrain', methods=["GET", "POST"])
+def retrain():
+    """
+    Calls the human-in-the-loop learning
+    """
+    controller.run_active_learning()
+    return json.dumps("success")
+
+
 @app.route('/sort', methods=["GET", "POST"])
 def sort_data():
     """
@@ -151,9 +160,6 @@ def sort_data():
     """
     if request.method == "POST":
         column = (str)(request.get_json())
-        if column == "trained_score":
-            controller.run_active_learning()
-
         if column == "random":
             controller.randomise_ml_scores()
         else:

@@ -34,6 +34,7 @@ export class AnomalyTab extends React.Component {
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleSortBy = this.handleSortBy.bind(this);
     this.changeSortBy = this.changeSortBy.bind(this);
+    this.handleRetrainButton = this.handleRetrainButton.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
     this.updateOriginalID = this.updateOriginalID.bind(this);
     this.getLightCurve = this.getLightCurve.bind(this);
@@ -57,7 +58,8 @@ export class AnomalyTab extends React.Component {
                                 "2": "primary",
                                 "3": "primary",
                                 "4": "primary",
-                                "5": "primary"}};
+                                "5": "primary"},
+                 sortby:"score"};
     
     // this.getImage(this.state.id);
   }
@@ -145,7 +147,21 @@ export class AnomalyTab extends React.Component {
    */
   handleSortBy(e){
     const sortByColumn = e.target.value;
+    this.setState({sortby:sortByColumn});
     this.changeSortBy(sortByColumn);
+  }
+
+  handleRetrainButton(e) {
+    fetch("/retrain", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify('retrain')
+    })
+    .then((res) => {this.setState({sortby:"trained_score"});
+                    this.changeSortBy("trained_score")})
+    .catch(console.log)
   }
 
   /**
@@ -361,10 +377,10 @@ export class AnomalyTab extends React.Component {
 
                               <Grid item xs={12} align="center">
                                 <Grid container alignItems="center">
-                                  <Grid item xs={3}>
+                                  <Grid item xs={4}>
                                     <FormControl variant="outlined" fullWidth={true} margin='dense'>
-                                      {/* <InputLabel id="select-label">Sort By</InputLabel> */}
-                                      <Select id="select" onChange={this.handleSortBy} defaultValue="score">
+                                      {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
+                                      <Select id="select" onChange={this.handleSortBy} value={this.state.sortby}>
                                         <MenuItem value="score">Raw anomaly score</MenuItem>
                                         <MenuItem value="trained_score">Human retrained score</MenuItem>
                                         <MenuItem value="random">Random</MenuItem>
@@ -372,6 +388,10 @@ export class AnomalyTab extends React.Component {
                                       <FormHelperText>Scoring method to sort by</FormHelperText>
                                     </FormControl>
                                   </Grid>
+                                  <Grid item xs={1}></Grid>
+                                  <Grid item xs={3}>
+                                      <Button variant="contained" color="primary" id="retrain" onClick={this.handleRetrainButton}> Retrain algorithm </Button> 
+                                  </Grid> 
                                 </Grid>
                               </Grid>
                             </Grid>  
