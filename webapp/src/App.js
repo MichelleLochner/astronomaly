@@ -136,15 +136,15 @@ class App extends React.Component {
               textColor="primary"
               centered
             >
-              <Tab label="Algorithm" />
+              {/* <Tab label="Algorithm" /> */}
               <Tab label="Anomaly Scoring"/>
               <Tab label="Visualisation"/>
             </Tabs>
           </AppBar>
 
-          {this.state.tabNumber === 0 && <AlgorithmTab />}
-          {this.state.tabNumber === 1 && <AnomalyTab datatype={this.state.dataType} />}
-          {this.state.tabNumber === 2 && <VisualisationTab datatype={this.state.dataType}/>}
+          {/* {this.state.tabNumber === 0 && <AlgorithmTab />} */}
+          {this.state.tabNumber === 0 && <AnomalyTab datatype={this.state.dataType} />}
+          {this.state.tabNumber === 1 && <VisualisationTab datatype={this.state.dataType}/>}
         </ThemeProvider>
       </div>
     );

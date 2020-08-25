@@ -1,8 +1,9 @@
 import React from 'react';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
-import { makeStyles } from '@material-ui/core/styles';
-import { blue, indigo, green } from '@material-ui/core/colors';
+// import {makeStyles } from '@material-ui/core/styles';
+import {createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles'
+import { blue, indigo, green, grey } from '@material-ui/core/colors';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 import Card from '@material-ui/core/Card';
@@ -13,6 +14,8 @@ import {TimeSeriesPlot} from './PlotLightCurve.js';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
 
+const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
+                                            secondary:{main:indigo[500]} }})
 
 /**
  * Tab for displaying the data, cycling through anomalous objects and adding
@@ -35,6 +38,7 @@ export class AnomalyTab extends React.Component {
     this.getFeatures = this.getFeatures.bind(this);
     this.getRawFeatures = this.getRawFeatures.bind(this);
     this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
+    this.changeButtonColor = this.changeButtonColor.bind(this);
 
     this.state = {id:0,
                  img_src:'',
@@ -42,7 +46,13 @@ export class AnomalyTab extends React.Component {
                  light_curve_data:{data:[],errors:[]},
                  raw_features_data:{data:[],categories:[]},
                  features:{},
-                 metadata:{}};
+                 metadata:{},
+                 button_colors:{"0": "primary",
+                                "1": "primary",
+                                "2": "primary",
+                                "3": "primary",
+                                "4": "primary",
+                                "5": "primary"}};
     
     // this.getImage(this.state.id);
   }
@@ -107,6 +117,7 @@ export class AnomalyTab extends React.Component {
       newID = this.state.id;
       
       if (isNaN(whichKey) == false){
+        this.changeButtonColor(whichKey);
         // *** Need some error checking here because you can give a score of 8
         // even if there's only 5 buttons
         fetch("/label", {
@@ -149,10 +160,29 @@ export class AnomalyTab extends React.Component {
    * Allows the user to label objects based on relevance
    * @param {event} e 
    */
-  handleScoreButtonClick(e){
+  changeButtonColor(button_id) {
+    let new_colors = this.state.button_colors;
+    for (const key in new_colors) {
+      new_colors[key] = "primary";
+    }
+    if (button_id !== "-1") {
+      new_colors[button_id] = "secondary";
+    }
+    this.setState({button_colors: new_colors});
+  }
+
+  resetButtonColors() {
+    let new_colors = this.state.button_colors;
+    for (const key in new_colors) {
+      new_colors[key] = "primary";
+    }
+    this.setState({button_colors: new_colors});
+  }
+   handleScoreButtonClick(e){
     // console.log(e.currentTarget.color);
     // e.currentTarget.color = "secondary";
-
+    
+    this.changeButtonColor(e.currentTarget.id);
     fetch("/label", {
       method: 'POST',
       headers: {
@@ -160,6 +190,7 @@ export class AnomalyTab extends React.Component {
       },
       body: JSON.stringify({'id':this.state.original_id, 'label':e.currentTarget.id})
     })
+    .then((res) => {this.getMetadata(this.state.original_id)})
     .catch(console.log)
 
   }
@@ -245,6 +276,7 @@ export class AnomalyTab extends React.Component {
     // .then((res)=> {console.log(res);
     //               return res})
     .then((res) => this.setState({metadata:res}))
+    .then((res) => {this.changeButtonColor(parseInt(this.state.metadata.human_label).toString())})
     .catch(console.log);
   }
 
@@ -306,25 +338,28 @@ export class AnomalyTab extends React.Component {
 
                               <Grid item xs={12} align="center">
                                   <Grid container alignItems="center">
+                                  <MuiThemeProvider theme={muiTheme}>
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary" onClick={this.handleScoreButtonClick} id="0"> 0 </Button> 
+                                          <Button variant="contained" color={this.state.button_colors["0"]} onClick={this.handleScoreButtonClick} id="0"> 0 </Button>  
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="1"> 1 </Button> 
+                                          <Button variant="contained" color={this.state.button_colors["1"]} onClick={this.handleScoreButtonClick} id="1"> 1 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="2"> 2 </Button> 
+                                          <Button variant="contained" color={this.state.button_colors["2"]} onClick={this.handleScoreButtonClick} id="2"> 2 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="3"> 3 </Button> 
+                                          <Button variant="contained" color={this.state.button_colors["3"]} onClick={this.handleScoreButtonClick} id="3"> 3 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="4"> 4 </Button> 
+                                          <Button variant="contained" color={this.state.button_colors["4"]} onClick={this.handleScoreButtonClick} id="4"> 4 </Button> 
                                       </Grid> 
                                       <Grid item xs={2}>
-                                          <Button variant="contained" color="primary"onClick={this.handleScoreButtonClick} id="5"> 5 </Button> 
+                                          <Button variant="contained" color={this.state.button_colors["5"]} onClick={this.handleScoreButtonClick} id="5"> 5 </Button> 
                                       </Grid> 
+                                      </MuiThemeProvider>
                                   </Grid>
+                                  
                               </Grid>
 
                               <Grid item xs={12} align="center">
