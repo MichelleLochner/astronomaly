@@ -18,6 +18,7 @@ import {TimeSeriesPlot} from './PlotLightCurve.js';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
 import { MenuItem } from '@material-ui/core';
+import Divider from '@material-ui/core/Divider';
 
 const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
@@ -348,6 +349,18 @@ export class AnomalyTab extends React.Component {
                                   <Button variant="contained" align="right" id="forward" onClick={this.handleForwardBackwardClick}> Forward </Button> 
                               </Grid> 
                               
+                              <Grid item xs={12} align="center">
+                                <Grid container alignItems="center">
+                                  <Grid item xs={1} align="center">
+                                  </Grid>
+                                  <Grid item xs={4} align="center">
+                                    <Typography variant="overline" display="block" gutterBottom>
+                                      How interesting is this object?
+                                    </Typography>
+                                  </Grid>
+                                </Grid>
+
+                              </Grid>
 
                               <Grid item xs={12} align="center">
                                   <Grid container alignItems="center">
@@ -377,6 +390,8 @@ export class AnomalyTab extends React.Component {
 
                               <Grid item xs={12} align="center">
                                 <Grid container alignItems="center">
+                                  <Grid item xs={1}>
+                                  </Grid>
                                   <Grid item xs={4}>
                                     <FormControl variant="outlined" fullWidth={true} margin='dense'>
                                       {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
