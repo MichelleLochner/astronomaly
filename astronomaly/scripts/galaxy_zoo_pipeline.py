@@ -68,7 +68,7 @@ def run_pipeline():
 
     """
 
-    # fls = os.listdir(image_dir)[:100]
+    # fls = os.listdir(image_dir)[:10]
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,

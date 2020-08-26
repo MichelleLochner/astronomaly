@@ -180,6 +180,16 @@ def get_label():
         return json.dumps("success")
 
 
+@app.route('/getmaxid', methods=["GET", "POST"])
+def get_max_id():
+    """
+    Let's the frontend know how long the list of objects is
+    """
+    if request.method == "POST":
+        max_id = controller.get_max_id()
+        return json.dumps(max_id)
+
+
 if __name__ == "__main__":
     controller.run_pipeline()
     host = 'http://127.0.0.1:5000/'

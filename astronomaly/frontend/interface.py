@@ -240,3 +240,6 @@ class Controller:
                                        ascending=ascending)
         else:
             print("Requested column not in ml_scores dataframe")
+
+    def get_max_id(self):
+        return len(self.anomaly_scores)

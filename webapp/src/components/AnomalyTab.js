@@ -46,8 +46,10 @@ export class AnomalyTab extends React.Component {
     this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
     this.doNothing = this.doNothing.bind(this);
     this.changeButtonColor = this.changeButtonColor.bind(this);
+    this.getMaxID = this.getMaxID.bind(this);
 
     this.state = {id:0,
+                 max_id:0,
                  img_src:'',
                  original_id:'-1',
                  light_curve_data:{data:[],errors:[]},
@@ -76,7 +78,7 @@ export class AnomalyTab extends React.Component {
     let newID;
     if (whichButton=="forward"){
       newID = this.state.id+1;
-      /// Need some logic here checking we don't get to the end
+      if (newID >= this.state.max_id) {newID = this.state.max_id - 1}
     }
     else {
       newID = this.state.id-1;
@@ -94,8 +96,9 @@ export class AnomalyTab extends React.Component {
     let newID;
     if (whichKey=="ArrowRight"){
       newID = this.state.id+1;
+      if (newID >= this.state.max_id) {newID = this.state.max_id - 1}
       e.preventDefault();
-      /// Need some logic here checking we don't get to the end
+      
     }
     else if (whichKey=="ArrowLeft") {
       newID = this.state.id-1;
@@ -132,7 +135,8 @@ export class AnomalyTab extends React.Component {
   handleChangeIndexChange(e){
     const value = e.currentTarget.value;
     if (isNaN(value) === false) {
-      const newID = parseInt(value);
+      let newID = parseInt(value);
+      if (newID >= this.state.max_id) {newID = this.state.max_id - 1}
       this.setState({id:newID}, this.updateOriginalID(newID));
       e.stopPropagation();
     }
@@ -312,9 +316,27 @@ export class AnomalyTab extends React.Component {
     .catch(console.log)
   }
 
+  getMaxID() {
+    fetch("/getmaxid", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify("")
+    })
+    .then(res => res.json())
+    .then((res) => {
+      this.setState({max_id:parseInt(res)});
+    })
+    .catch(console.log)
+  }
+
   componentDidMount(){
     if (this.state.original_id == '-1'){
       this.updateOriginalID(this.state.id);}
+    if (this.state.max_id == 0) {
+      this.getMaxID();
+    }
   }
  
 
