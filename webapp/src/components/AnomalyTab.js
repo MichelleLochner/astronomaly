@@ -19,6 +19,7 @@ import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
 import { MenuItem } from '@material-ui/core';
 import Divider from '@material-ui/core/Divider';
+import CircularProgress from '@material-ui/core/CircularProgress';
 
 const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
@@ -62,7 +63,8 @@ export class AnomalyTab extends React.Component {
                                 "3": "primary",
                                 "4": "primary",
                                 "5": "primary"},
-                 sortby:"score"};
+                 sortby:"score",
+                 training: false};
     
     // this.getImage(this.state.id);
   }
@@ -157,6 +159,7 @@ export class AnomalyTab extends React.Component {
   }
 
   handleRetrainButton(e) {
+    this.setState({training:true})
     fetch("/retrain", {
       method: 'POST',
       headers: {
@@ -164,7 +167,7 @@ export class AnomalyTab extends React.Component {
       },
       body: JSON.stringify('retrain')
     })
-    .then((res) => {this.setState({sortby:"trained_score"});
+    .then((res) => {this.setState({sortby:"trained_score", training:false});
                     this.changeSortBy("trained_score")})
     .catch(console.log)
   }
@@ -427,7 +430,12 @@ export class AnomalyTab extends React.Component {
                                   </Grid>
                                   <Grid item xs={1}></Grid>
                                   <Grid item xs={3}>
-                                      <Button variant="contained" color="primary" id="retrain" onClick={this.handleRetrainButton}> Retrain algorithm </Button> 
+                                    <Button variant="contained" color="primary" id="retrain" onClick={this.handleRetrainButton} disabled={this.state.training}> 
+                                      Retrain algorithm 
+                                    </Button> 
+                                  </Grid>
+                                  <Grid item xs={1}>
+                                    {this.state.training && <CircularProgress/>}
                                   </Grid> 
                                 </Grid>
                               </Grid>
