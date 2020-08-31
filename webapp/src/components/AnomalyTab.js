@@ -352,97 +352,103 @@ export class AnomalyTab extends React.Component {
                   <Grid item xs={12}>
                       <div></div>
                   </Grid>
-                  <Grid item xs={8}>
+                  <Grid item container xs={8}>
                       {/* <MakePlot plot={this.props.plot}/> */}
-                      <Grid container spacing={3} >
-                      <Grid item xs={12} align="center">
+                      <Grid container spacing={3} alignItems="center">
+                        <Grid item xs={12} align="center">
                           <PlotContainer datatype={this.props.datatype} original_id={this.state.original_id} light_curve_data={this.state.light_curve_data}
                                         raw_features_data={this.state.raw_features_data}/>
                         </Grid>
 
-                        <Grid item xs={12} align="center">
-                          <Grid container spacing={3}>
-                              <Grid item xs={4}>
-                                  <Button variant="contained" align="left" id="back" onClick={this.handleForwardBackwardClick}> Back</Button>  
-                              </Grid>
-                              <Grid item xs={4}>
-                                <TextField id="chooseNumber" label="Index" value={this.state.id} type="number" fullWidth={false} 
-                                inputProps={{style:{textAlign:"center"}}} InputLabelProps={{style:{textAlign:"center"}}}
-                                onChange={this.handleChangeIndexChange} onKeyDown={this.doNothing} />
-                              </Grid>
-                              <Grid item xs={4} align="right">
-                                  <Button variant="contained" align="right" id="forward" onClick={this.handleForwardBackwardClick}> Forward </Button> 
-                              </Grid> 
-                              
-                              <Grid item xs={12} align="center">
-                                <Grid container alignItems="center">
-                                  <Grid item xs={1} align="center">
-                                  </Grid>
-                                  <Grid item xs={4} align="center">
-                                    <Typography variant="overline" display="block" gutterBottom>
-                                      How interesting is this object?
-                                    </Typography>
-                                  </Grid>
-                                </Grid>
-
-                              </Grid>
-
-                              <Grid item xs={12} align="center">
-                                  <Grid container alignItems="center">
-                                  <MuiThemeProvider theme={muiTheme}>
-                                      <Grid item xs={2}>
-                                          <Button variant="contained" color={this.state.button_colors["0"]} onClick={this.handleScoreButtonClick} id="0"> 0 </Button>  
-                                      </Grid> 
-                                      <Grid item xs={2}>
-                                          <Button variant="contained" color={this.state.button_colors["1"]} onClick={this.handleScoreButtonClick} id="1"> 1 </Button> 
-                                      </Grid> 
-                                      <Grid item xs={2}>
-                                          <Button variant="contained" color={this.state.button_colors["2"]} onClick={this.handleScoreButtonClick} id="2"> 2 </Button> 
-                                      </Grid> 
-                                      <Grid item xs={2}>
-                                          <Button variant="contained" color={this.state.button_colors["3"]} onClick={this.handleScoreButtonClick} id="3"> 3 </Button> 
-                                      </Grid> 
-                                      <Grid item xs={2}>
-                                          <Button variant="contained" color={this.state.button_colors["4"]} onClick={this.handleScoreButtonClick} id="4"> 4 </Button> 
-                                      </Grid> 
-                                      <Grid item xs={2}>
-                                          <Button variant="contained" color={this.state.button_colors["5"]} onClick={this.handleScoreButtonClick} id="5"> 5 </Button> 
-                                      </Grid> 
-                                      </MuiThemeProvider>
-                                  </Grid>
-                                  
-                              </Grid>
-
-                              <Grid item xs={12} align="center">
-                                <Grid container alignItems="center">
-                                  <Grid item xs={1}>
-                                  </Grid>
-                                  <Grid item xs={4}>
-                                    <FormControl variant="outlined" fullWidth={true} margin='dense'>
-                                      {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
-                                      <Select id="select" onChange={this.handleSortBy} value={this.state.sortby}>
-                                        <MenuItem value="score">Raw anomaly score</MenuItem>
-                                        <MenuItem value="trained_score">Human retrained score</MenuItem>
-                                        <MenuItem value="random">Random</MenuItem>
-                                      </Select>
-                                      <FormHelperText>Scoring method to sort by</FormHelperText>
-                                    </FormControl>
-                                  </Grid>
-                                  <Grid item xs={1}></Grid>
-                                  <Grid item xs={3}>
-                                    <Button variant="contained" color="primary" id="retrain" onClick={this.handleRetrainButton} disabled={this.state.training}> 
-                                      Retrain algorithm 
-                                    </Button> 
-                                  </Grid>
-                                  <Grid item xs={1}>
-                                    {this.state.training && <CircularProgress/>}
-                                  </Grid> 
-                                </Grid>
-                              </Grid>
-                            </Grid>  
+                        <Grid container item xs={12} align="center">
+                          <Grid item xs={2}>
+                              <Button variant="contained" id="back" onClick={this.handleForwardBackwardClick}> B</Button>  
+                          </Grid>
+                          <Grid item xs={2}>
+                              <div></div>
+                          </Grid>
+                          <Grid item xs={4}>
+                            <TextField id="chooseNumber" label="Index" value={this.state.id} type="number" fullWidth={false} 
+                            inputProps={{style:{textAlign:"center"}}} InputLabelProps={{style:{textAlign:"center"}}}
+                            onChange={this.handleChangeIndexChange} onKeyDown={this.doNothing} />
+                          </Grid>
+                          <Grid item xs={2}>
+                              <div></div>
+                          </Grid>
+                          <Grid item xs={2}>
+                              <Button variant="contained" id="forward" onClick={this.handleForwardBackwardClick}> F </Button> 
+                          </Grid>
                         </Grid>
-                      </Grid>
-                  </Grid>
+                              
+                        <Grid item xs={12} align="center" container alignItems="center">
+
+                          <Grid item xs={5} align="center">
+                            <Typography variant="overline" display="block" gutterBottom>
+                              How interesting is this object?
+                            </Typography>
+                          </Grid>
+
+                        </Grid>
+
+                        <Grid item xs={12} align="center">
+                            <Grid container alignItems="center">
+                            <MuiThemeProvider theme={muiTheme}>
+                                <Grid item xs={2}>
+                                    <Button variant="contained" color={this.state.button_colors["0"]} onClick={this.handleScoreButtonClick} id="0"> 0 </Button>  
+                                </Grid> 
+                                <Grid item xs={2}>
+                                    <Button variant="contained" color={this.state.button_colors["1"]} onClick={this.handleScoreButtonClick} id="1"> 1 </Button> 
+                                </Grid> 
+                                <Grid item xs={2}>
+                                    <Button variant="contained" color={this.state.button_colors["2"]} onClick={this.handleScoreButtonClick} id="2"> 2 </Button> 
+                                </Grid> 
+                                <Grid item xs={2}>
+                                    <Button variant="contained" color={this.state.button_colors["3"]} onClick={this.handleScoreButtonClick} id="3"> 3 </Button> 
+                                </Grid> 
+                                <Grid item xs={2}>
+                                    <Button variant="contained" color={this.state.button_colors["4"]} onClick={this.handleScoreButtonClick} id="4"> 4 </Button> 
+                                </Grid> 
+                                <Grid item xs={2}>
+                                    <Button variant="contained" color={this.state.button_colors["5"]} onClick={this.handleScoreButtonClick} id="5"> 5 </Button> 
+                                </Grid> 
+                                </MuiThemeProvider>
+                            </Grid>
+                            
+                        </Grid>
+
+                        <Grid item xs={12} align="center" container alignItems="center">
+                          {/* <Grid container alignItems="center"> */}
+                            {/* <Grid item xs={1}>
+                            </Grid> */}
+                            <Grid item xs={5} align="center">
+                              <Grid container item xs={12} alignItems="center">
+                                <Grid item xs={1}></Grid>
+                                <Grid item xs={8}>
+                                <FormControl variant="outlined" fullWidth={true} margin='dense'>
+                                  {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
+                                  <Select id="select" onChange={this.handleSortBy} value={this.state.sortby}>
+                                    <MenuItem value="score">Raw anomaly score </MenuItem>
+                                    <MenuItem value="trained_score">Human retrained score</MenuItem>
+                                    <MenuItem value="random">Random</MenuItem>
+                                  </Select>
+                                  <FormHelperText>Scoring method to sort by</FormHelperText>
+                                </FormControl>
+                                </Grid>
+                                <Grid item xs={2}></Grid>
+                              </Grid>
+                            </Grid>
+                            <Grid item xs={3}>
+                            {this.state.training && <CircularProgress/>}
+                            </Grid>
+                            <Grid item xs={3}>
+                              <Button variant="contained" color="primary" id="retrain" onClick={this.handleRetrainButton} disabled={this.state.training}> 
+                                Retrain algorithm 
+                              </Button> 
+                            </Grid>
+                          </Grid>
+                        {/* </Grid> */}
+                      </Grid>  
+                    </Grid>
 
                   <Grid item xs={2}>
                     <Grid container alignItems="center" spacing={5}>
