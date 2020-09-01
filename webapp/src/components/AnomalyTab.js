@@ -17,9 +17,12 @@ import FormControl from '@material-ui/core/FormControl';
 import {TimeSeriesPlot} from './PlotLightCurve.js';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
-import { MenuItem } from '@material-ui/core';
+import { MenuItem, Icon } from '@material-ui/core';
 import Divider from '@material-ui/core/Divider';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import IconButton from '@material-ui/core/IconButton';
+import SkipNext from '@material-ui/icons/SkipNext';
+import SkipPrevious from '@material-ui/icons/SkipPrevious';
 
 const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
@@ -349,10 +352,8 @@ export class AnomalyTab extends React.Component {
       return(
           <div>
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
-                  <Grid item xs={12}>
-                      <div></div>
-                  </Grid>
-                  <Grid item container xs={8}>
+                  <Grid item xs={12}></Grid>
+                  <Grid item container xs={8} justify="center">
                       {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3} alignItems="center">
                         <Grid item xs={12} align="center">
@@ -362,28 +363,33 @@ export class AnomalyTab extends React.Component {
 
                         <Grid container item xs={12} align="center">
                           <Grid item xs={2}>
-                              <Button variant="contained" id="back" onClick={this.handleForwardBackwardClick}> B</Button>  
+                            {/* <Button variant="contained" id="back" startIcon={<SkipPrevious />} onClick={this.handleForwardBackwardClick}>Back</Button>   */}
+                            <IconButton id="back" size="medium" onClick={this.handleForwardBackwardClick}>
+                              <SkipPrevious />
+                            </IconButton>
                           </Grid>
-                          <Grid item xs={2}>
-                              <div></div>
-                          </Grid>
-                          <Grid item xs={4}>
-                            <TextField id="chooseNumber" label="Index" value={this.state.id} type="number" fullWidth={false} 
-                            inputProps={{style:{textAlign:"center"}}} InputLabelProps={{style:{textAlign:"center"}}}
-                            onChange={this.handleChangeIndexChange} onKeyDown={this.doNothing} />
-                          </Grid>
-                          <Grid item xs={2}>
-                              <div></div>
-                          </Grid>
-                          <Grid item xs={2}>
-                              <Button variant="contained" id="forward" onClick={this.handleForwardBackwardClick}> F </Button> 
-                          </Grid>
-                        </Grid>
-                              
-                        <Grid item xs={12} align="center" container alignItems="center">
 
-                          <Grid item xs={5} align="center">
-                            <Typography variant="overline" display="block" gutterBottom>
+                          <Grid item xs={3}>
+                          </Grid>
+                          <Grid item xs={2}>
+                            <TextField id="chooseNumber" value={this.state.id} type="number" fullWidth={false} 
+                            inputProps={{style:{textAlign:"center"}}} FormHelperTextProps={{style:{textAlign:"center"}}}
+                            onChange={this.handleChangeIndexChange} onKeyDown={this.doNothing} helperText="Index" />
+                          </Grid>
+                          <Grid item xs={3}>
+                          </Grid>
+                          <Grid item xs={2} align="center">
+                            {/* <Button variant="contained" id="forward" onClick={this.handleForwardBackwardClick}> F </Button>  */}
+                            <IconButton id="forward" size="medium" onClick={this.handleForwardBackwardClick}>
+                              <SkipNext />
+                            </IconButton>
+                        </Grid>
+                      </Grid>
+                              
+                        <Grid item xs={12} container justify="center">
+
+                          <Grid item xs={4}>
+                            <Typography variant="overline" display="block">
                               How interesting is this object?
                             </Typography>
                           </Grid>
@@ -416,13 +422,12 @@ export class AnomalyTab extends React.Component {
                             
                         </Grid>
 
-                        <Grid item xs={12} align="center" container alignItems="center">
+                        <Grid item xs={12} container justify="center" alignItems="center">
                           {/* <Grid container alignItems="center"> */}
                             {/* <Grid item xs={1}>
                             </Grid> */}
-                            <Grid item xs={5} align="center">
-                              <Grid container item xs={12} alignItems="center">
-                                <Grid item xs={1}></Grid>
+                            <Grid item xs={6}>
+                              <Grid container item xs={12} justify="center">
                                 <Grid item xs={8}>
                                 <FormControl variant="outlined" fullWidth={true} margin='dense'>
                                   {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
@@ -437,18 +442,21 @@ export class AnomalyTab extends React.Component {
                                 <Grid item xs={2}></Grid>
                               </Grid>
                             </Grid>
-                            <Grid item xs={3}>
+                            <Grid item xs={2}></Grid>
+                            <Grid item xs={2}>
                             {this.state.training && <CircularProgress/>}
                             </Grid>
-                            <Grid item xs={3}>
+                            
+                            <Grid item xs={2}>
                               <Button variant="contained" color="primary" id="retrain" onClick={this.handleRetrainButton} disabled={this.state.training}> 
-                                Retrain algorithm 
+                                Retrain
                               </Button> 
                             </Grid>
                           </Grid>
                         {/* </Grid> */}
                       </Grid>  
                     </Grid>
+                  
 
                   <Grid item xs={2}>
                     <Grid container alignItems="center" spacing={5}>

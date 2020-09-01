@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@material-ui/core": "^4.0.0-rc.0",
+    "@material-ui/icons": "^4.9.1",
     "@nivo/heatmap": "^0.59.1",
     "babel": "^6.23.0",
     "babel-core": "^6.26.3",
@@ -48,6 +49,7 @@
     "eslint": "^6.6.0",
     "highcharts": "^7.1.2",
     "highcharts-react-official": "^2.2.2",
+    "icons": "^1.0.0",
     "ify-loader": "^1.1.0",
     "image-webpack-loader": "^5.0.0",
     "jsdoc": "^3.6.3",
