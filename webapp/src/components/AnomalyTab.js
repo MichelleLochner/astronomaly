@@ -350,7 +350,6 @@ export class AnomalyTab extends React.Component {
     // console.log('Anomaly')
     // console.log(this.props)
       return(
-          <div>
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
                   <Grid item xs={12}></Grid>
                   <Grid item container xs={8} justify="center">
@@ -458,27 +457,24 @@ export class AnomalyTab extends React.Component {
                     </Grid>
                   
 
-                  <Grid item xs={2}>
-                    <Grid container alignItems="center" spacing={5}>
-                      <Grid item xs={12}>
+                  <Grid item xs={4}>
+                    <Grid container alignItems="flex-start" spacing={5}>
+                      <Grid item xs={8}>
                           <ObjectDisplayer title='Metadata' object={this.state.metadata} />
                       </Grid>
 
-                      <Grid item xs={12}>
+                      <Grid item xs={8}>
                         <ObjectDisplayer title='Features' object={this.state.features} />
                       </Grid>
                     </Grid>
                   </Grid>
                   <Grid item xs={12}>
-                      <div></div>
                   </Grid>
 
 
 
 
               </Grid>
-
-          </div>
       )
     }
 
