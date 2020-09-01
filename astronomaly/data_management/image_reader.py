@@ -91,7 +91,7 @@ class AstroImage:
         self.hdul_list = []
 
         try:
-            for f in filenames:       
+            for f in filenames:     
                 hdul = fits.open(f, memmap=True)
                 self.hdul_list.append(hdul)               
 
@@ -128,20 +128,24 @@ class AstroImage:
             if self.fits_index is None:
                 for i in range(len(hdul)):
                     self.fits_index = i
-                    snap1 = tracemalloc.take_snapshot()
-
-                    dat = hdul[self.fits_index].data[0, 0, rs:re, cs:ce]
-                    snap2 = tracemalloc.take_snapshot()
-                    diff = snap2.compare_to(snap1, 'lineno')
-                    print(diff[0].size_diff)
+                    # snap1 = tracemalloc.take_snapshot()
+                    dat = hdul[self.fits_index].data
+                    # snap2 = tracemalloc.take_snapshot()
+                    # diff = snap2.compare_to(snap1, 'lineno')
+                    # print(diff[0].size_diff)
                     if dat is not None:
-                        image = dat
+                        if len(dat.shape) > 2:
+                            dat = dat[0][0]
+                        image = dat[rs:re, cs:ce]
                         break
                 self.metadata = dict(hdul[self.fits_index].header)
                 if self.wcs is None:
                     self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
             else:
-                image = hdul[self.fits_index].data[0, 0, rs:re, cs:ce]
+                dat = hdul[self.fits_index].data
+                if len(dat.shape) > 2:
+                    dat = dat[0][0]
+                image = dat[rs:re, cs:ce]
 
             if len(image.shape) > 2:
                 image = np.squeeze(image)
