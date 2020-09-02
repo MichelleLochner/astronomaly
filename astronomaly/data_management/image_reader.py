@@ -154,6 +154,7 @@ class AstroImage:
         if len(images) > 1:
             # Should now be a 3d array with multiple channels
             image = np.dstack(images)
+            self.metadata['NAXIS3'] = image.shape[-1]
         else:
             image = images[0]  # Was just the one image
         return image
@@ -572,21 +573,24 @@ class ImageDataset(Dataset):
 
         xstart = max(xmin, 0)
         xend = min(xmax, this_image.metadata['NAXIS1'])
+
         ystart = max(ymin, 0)
         yend = min(ymax, this_image.metadata['NAXIS2'])
         tot_size_x = int(2 * self.window_size_x * factor)
         tot_size_y = int(2 * self.window_size_y * factor)
 
-        third_axis = this_image.metadata['NAXIS3']
+        naxis3_present = 'NAXIS3' in this_image.metadata.keys()
 
-        if third_axis > 1:
-            shp = [tot_size_y, tot_size_x, third_axis]
+        if naxis3_present and this_image.metadata['NAXIS3'] > 1:
+            shp = [tot_size_y, tot_size_x, this_image.metadata['NAXIS3']]
         else:
             shp = [tot_size_y, tot_size_x]
         cutout = np.zeros(shp)
         # cutout[ystart - ymin:tot_size_y - (ymax - yend), 
         #        xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend, 
-        #                                                        xstart:xend]
+        #                  
+        #                                      xstart:xend]
+
         img_data = this_image.get_image_data(ystart, yend, xstart, xend)
         cutout[ystart - ymin:yend - ymin, 
                xstart - xmin:xend - xmin] = img_data

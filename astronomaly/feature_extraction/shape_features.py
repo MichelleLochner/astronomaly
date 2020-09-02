@@ -65,25 +65,25 @@ def fit_ellipse(contour, image, return_params=False):
 
     # Sets some defaults for when the fitting fails
     default_return_params = [np.nan] * 5 
+    raised_error = False
 
     try:
         ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(contour)
+        ellipse_params = x0, y0, maj_axis, min_axis, theta
+
+        if np.any(np.isnan(ellipse_params)):
+            raised_error = True
+            logging_tools.log('fit_ellipse failed with unknown error:')
+
     except cv2.error as e:
         logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
+        raised_error = True
+
+    if raised_error:
         if return_params:
             return ellipse_arr, default_return_params
         else:
             return ellipse_arr
-
-    ellipse_params = x0, y0, maj_axis, min_axis, theta
-
-    # Sometimes the ellipse fitting function produces insane values
-    # if not (0 <= x0 <= x_npix) or not (0 <= y0 <= y_npix):
-    #     print('Ellipse fitting failed')
-    #     if return_params:
-    #         return ellipse_arr, default_return_params
-    #     else:
-    #         return ellipse_arr
 
     x0 = int(np.round(x0))
     y0 = int(np.round(y0))
