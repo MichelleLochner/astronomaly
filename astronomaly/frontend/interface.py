@@ -27,6 +27,7 @@ class Controller:
         self.visualisation = None
         self.module_name = None
         self.active_learning = None
+        self.current_index = 0  # Index in the anomalies list
 
         self.set_pipeline_script(pipeline_file)
 

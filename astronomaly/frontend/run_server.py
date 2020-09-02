@@ -190,6 +190,27 @@ def get_max_id():
         return json.dumps(max_id)
 
 
+@app.route('/getlistindex', methods=["GET", "POST"])
+def get_list_index():
+    """
+    Let's the frontend know how long the list of objects is
+    """
+    if request.method == "POST":
+        idx = controller.current_index
+        return json.dumps(idx)
+
+
+@app.route('/setlistindex', methods=["GET", "POST"])
+def set_list_index():
+    """
+    Let's the frontend know how long the list of objects is
+    """
+    if request.method == "POST":
+        idx = int(request.get_json())
+        controller.current_index = idx
+        return json.dumps("success")
+
+
 if __name__ == "__main__":
     controller.run_pipeline()
     host = 'http://127.0.0.1:5000/'

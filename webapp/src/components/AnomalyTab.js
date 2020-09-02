@@ -51,8 +51,10 @@ export class AnomalyTab extends React.Component {
     this.doNothing = this.doNothing.bind(this);
     this.changeButtonColor = this.changeButtonColor.bind(this);
     this.getMaxID = this.getMaxID.bind(this);
+    this.getCurrentListIndex = this.getCurrentListIndex.bind(this);
+    this.setCurrentListIndex = this.setCurrentListIndex.bind(this);
 
-    this.state = {id:0,
+    this.state = {id:-1,
                  max_id:0,
                  img_src:'',
                  original_id:'-1',
@@ -241,6 +243,7 @@ export class AnomalyTab extends React.Component {
       this.getRawFeatures(newOriginalId)
     this.getFeatures(newOriginalId);
     this.getMetadata(newOriginalId);
+    this.setCurrentListIndex();
   }
 
   getLightCurve(original_id){
@@ -322,6 +325,32 @@ export class AnomalyTab extends React.Component {
     .catch(console.log)
   }
 
+  getCurrentListIndex(){
+    fetch("/getlistindex", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify("")
+    })
+    .then(res => res.json())
+    .then((res) => {
+      this.setState({id:parseInt(res)}, this.updateOriginalID(res));
+    })
+    .catch(console.log)
+  }
+
+  setCurrentListIndex(){
+    fetch("/setlistindex", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(this.state.id)
+    })
+    .catch(console.log)
+  }
+
   getMaxID() {
     fetch("/getmaxid", {
       method: 'POST',
@@ -338,7 +367,10 @@ export class AnomalyTab extends React.Component {
   }
 
   componentDidMount(){
-    if (this.state.original_id == '-1'){
+    if (this.state.id == -1){
+      this.getCurrentListIndex();
+    }
+    else if (this.state.original_id == '-1'){
       this.updateOriginalID(this.state.id);}
     if (this.state.max_id == 0) {
       this.getMaxID();
