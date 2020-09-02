@@ -75,6 +75,12 @@ class Dataset(object):
             class_name, *args, **kwargs)
         logging_tools.log(function_call_signature)
 
+    def clean_up(self):
+        """
+        Allows for any clean up tasks that might be required.
+        """
+        pass
+
     def get_sample(self, idx):
         """
         Returns a single instance of the dataset given an index.

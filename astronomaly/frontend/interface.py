@@ -244,3 +244,6 @@ class Controller:
 
     def get_max_id(self):
         return len(self.anomaly_scores)
+
+    def clean_up(self):
+        self.dataset.clean_up()

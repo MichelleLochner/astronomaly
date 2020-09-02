@@ -211,6 +211,20 @@ def set_list_index():
         return json.dumps("success")
 
 
+@app.route('/close', methods=["GET", "POST"])
+def close():
+    """
+    Let's the frontend know how long the list of objects is
+    """
+    if request.method == "POST":
+        controller.clean_up()
+        print("Exiting Astronomaly... Goodbye!")
+        shutdown_hook = request.environ.get('werkzeug.server.shutdown')
+        if shutdown_hook is not None:
+            shutdown_hook()
+        return Response("Bye", mimetype='text/plain')
+
+
 if __name__ == "__main__":
     controller.run_pipeline()
     host = 'http://127.0.0.1:5000/'

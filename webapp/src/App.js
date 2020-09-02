@@ -1,5 +1,9 @@
 import React from 'react';
 import Button from '@material-ui/core/Button';
+import IconButton from '@material-ui/core/IconButton';
+import Cancel from '@material-ui/icons/Cancel';
+import Tooltip from '@material-ui/core/Tooltip';
+import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography'
 import TextField from '@material-ui/core/TextField'
 import Paper from '@material-ui/core/Paper'
@@ -95,8 +99,10 @@ class App extends React.Component {
     super(props);
     this.handleChange = this.handleChange.bind(this);
     this.getDataType = this.getDataType.bind(this);
+    this.closeWindow = this.closeWindow.bind(this);
     this.state = {tabNumber: 0,
-                  dataType: ''};
+                  dataType: '',
+                  closing: false};
   }
 
 
@@ -120,26 +126,61 @@ class App extends React.Component {
     .catch(console.log);
   }
 
+  closeWindow(){
+    this.setState({closing:true})
+    fetch("close", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify("")
+    })
+    .catch(console.log)   
+  }
   render (){
     // console.log('HELLO');
     // console.log(this.props);
+    if (this.state.closing) {
+      return (
+          <Grid container spacing={3}>
+            <Grid item xs={12}> </Grid>
+            <Grid item xs={12} align="center">
+              <Typography variant="h5">
+                Astronomaly has been shut down. You may now close this window.
+              </Typography>
+            </Grid>
+          </Grid>
+      )
+    }
     this.getDataType();
     const { classes } = this.props;
     return (
       <div className={classes.root}>
         <ThemeProvider theme={theme}>
           <AppBar position="static" color="default">
-            <Tabs 
-              value={this.state.tabNumber}
-              onChange={this.handleChange}
-              indicatorColor="primary"
-              textColor="primary"
-              centered
-            >
-              {/* <Tab label="Algorithm" /> */}
-              <Tab label="Anomaly Scoring"/>
-              <Tab label="Visualisation"/>
-            </Tabs>
+            <Grid container>
+              <Grid item xs={10}>
+                <Tabs 
+                  value={this.state.tabNumber}
+                  onChange={this.handleChange}
+                  indicatorColor="primary"
+                  textColor="primary"
+                  centered
+                >
+                  {/* <Tab label="Algorithm" /> */}
+                  <Tab label="Anomaly Scoring"/>
+                  <Tab label="Visualisation"/>
+                </Tabs>
+              </Grid>
+              <Grid item xs={2}>
+                {/* <Button>Close</Button> */}
+                <Tooltip title="Close Astronomaly">
+                  <IconButton id="close" size="medium" onClick={this.closeWindow}>
+                    <Cancel />
+                  </IconButton>
+                </Tooltip>
+              </Grid>
+            </Grid>
           </AppBar>
 
           {/* {this.state.tabNumber === 0 && <AlgorithmTab />} */}

@@ -158,6 +158,16 @@ class AstroImage:
             image = images[0]  # Was just the one image
         return image
 
+    def clean_up(self):
+        """
+        Closes all open fits files so they don't remain in memory.
+        """
+        print("Closing Fits files...")
+        for hdul in self.hdul_list:
+            hdul.close()
+        logging_tools.log("Fits files closed successfully.")
+        print("Files closed.")
+
     def _strip_filename(self):
 
         """
