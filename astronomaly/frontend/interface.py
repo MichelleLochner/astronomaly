@@ -86,6 +86,12 @@ class Controller:
         try:
             out_dict = dict(zip(self.features.columns.astype('str'), 
                                 self.features.loc[idx].values))
+            for key in list(out_dict.keys()):
+                try:
+                    formatted_val = '%.3g' % out_dict[key]
+                    out_dict[key] = formatted_val
+                except TypeError:  # Probably a string already
+                    pass
             return out_dict
         except KeyError:
             return {}
@@ -212,10 +218,17 @@ class Controller:
 
             for col in cols:
                 if col not in exclude_keywords:
-                    out_dict[col] = (str)(meta_df.loc[idx, col])
+                    out_dict[col] = meta_df.loc[idx, col]
             for col in ml_df.columns:
                 if col not in exclude_keywords:
-                    out_dict[col] = (str)(ml_df.loc[idx, col])
+                    out_dict[col] = ml_df.loc[idx, col]
+
+            for key in (list)(out_dict.keys()):
+                try:
+                    formatted_val = '%.3g' % out_dict[key]
+                    out_dict[key] = formatted_val
+                except TypeError:  # Probably a string already
+                    pass
             return out_dict
         except KeyError:
             return {}
