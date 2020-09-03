@@ -3,28 +3,22 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3
-  - pip
-  - numpy
-  - scipy
-  - pandas
-  - matplotlib
-  - ipympl
-  - jupyter
-  - scikit-learn
-  - astropy
-  - xarray
-  - flask
-  - scikit-image
-  - sphinx
-  - sphinx-js
-  - sphinx_rtd_theme
-  - pyarrow
-  - opencv
-  - hdbscan
-  - xlsxwriter
-  - pip:
-    - pywavelets
-    
-prefix: /home/michelle/miniconda3/envs/astronomaly
-
+  - python=3.8.5
+  - pip=20.2.2
+  - astropy=4.0.1
+  - flask=1.1.2
+  - ipympl=0.5.7
+  - jupyter=1.0.0
+  - matplotlib=3.3.1
+  - numpy=1.19.1
+  - opencv=4.4.0
+  - pandas=1.1.1
+  - pyarrow=1.0.1
+  - pywavelets=1.1.1
+  - scikit-image=0.17.2
+  - scikit-learn=0.23.2
+  - scipy=1.5.2
+  - sphinx=3.2.1
+  - sphinx-js=3.0.1
+  - sphinx_rtd_theme=0.5.0
+  - xlsxwriter=1.3.3
