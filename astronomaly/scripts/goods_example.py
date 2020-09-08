@@ -1,3 +1,4 @@
+# Example of astronomaly applied to a fits image
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import power_spectrum, autoencoder
@@ -10,17 +11,10 @@ from astronomaly.utils import utils
 import os
 import pandas as pd
 
-data_dir = '/home/michelle/BigData/Anomaly/'
-# data_dir = './'
+# Root directory for data
+data_dir = os.path.join(os.path.sep, 'home', 'michelle', 'BigData', 
+                        'Anomaly', '')
 
-which_data = 'meerkat'
-# which_data = 'meerkat_deep2'
-# which_data = 'goods'
-# which_data = 'tgss'
-# which_data = 'decals'
-# which_data = 'galaxy_zoo'
-
-window_size = 64
 image_transform_function = [image_preprocessing.image_transform_sigma_clipping,
                             # image_preprocessing.image_transform_inverse_sinh,
                             image_preprocessing.image_transform_scale]
@@ -28,6 +22,7 @@ image_transform_function = [image_preprocessing.image_transform_sigma_clipping,
 display_transform_function = [image_preprocessing.image_transform_inverse_sinh,
                               image_preprocessing.image_transform_scale]
 
+window_size = 64
 catalogue = None
 band_prefixes = []
 bands_rgb = {}
