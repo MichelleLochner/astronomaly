@@ -288,17 +288,15 @@ class PipelineStage(object):
                 out = self._execute_function(input_instance)
                 if np.any(np.isnan(out)):
                     logging_tools.log("Feature extraction failed for id " + i)
-                if len(output) == 0:
-                    output = np.empty([len(dataset.index), len(out)])
-                output[n] = out
+                output.append(out)
                 new_index.append(i)
             n += 1
 
         new_output = pd.DataFrame(data=output, index=new_index, 
                                   columns=self.labels)
 
-        if self.args_same and not new_output.index.equals(self.previous_output.index): # noqa E501
-            # This part doesn't seem to work ****
+        index_same = new_output.index.equals(self.previous_output.index)
+        if self.args_same and not index_same:
             output = pd.concat((self.previous_output, new_output))
         else:
             output = new_output
