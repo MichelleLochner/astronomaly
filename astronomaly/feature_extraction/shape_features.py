@@ -37,7 +37,7 @@ def find_contours(img, threshold):
     return contours, hierarchy
 
 
-def fit_ellipse(contour, image, return_params=False):
+def fit_ellipse(contour, image, return_params=False, filled=True):
     """
     Fits an ellipse to a contour and returns a binary image representation of
     the ellipse.
@@ -58,10 +58,14 @@ def fit_ellipse(contour, image, return_params=False):
         2d binary image with representation of the ellipse
     """
 
-    thickness = -1
-    y_npix = image.shape[0]
-    x_npix = image.shape[1]
-    ellipse_arr = np.zeros([y_npix, x_npix], dtype=np.float)
+    if filled:
+        thickness = -1
+        y_npix = image.shape[0]
+        x_npix = image.shape[1]
+        ellipse_arr = np.zeros([y_npix, x_npix], dtype=np.float)
+    else:
+        thickness = 1
+        ellipse_arr = image.copy()
 
     # Sets some defaults for when the fitting fails
     default_return_params = [np.nan] * 5 
