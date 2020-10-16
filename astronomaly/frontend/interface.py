@@ -152,7 +152,7 @@ class Controller:
                 clst['color'] = cols
             else:
                 clst['color'] = \
-                    self.anomaly_scores.loc[self.anomaly_scores.index, 
+                    self.anomaly_scores.loc[clst.index, 
                                             color_by_column]
             out = []
             clst.sort_values('color')

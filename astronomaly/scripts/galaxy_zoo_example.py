@@ -5,6 +5,7 @@ from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.visualisation import tsne
+from astronomaly.utils.utils import get_visualisation_sample
 import os
 import pandas as pd
 import numpy as np
@@ -73,14 +74,14 @@ def run_pipeline():
     # The galaxy zoo data takes long to run just because it takes time to read
     # each file in from the file system. This limits is to the first set of 
     # objects
-    fls = os.listdir(image_dir)[:1000]
+    # fls = os.listdir(image_dir)[:1000]
 
     # This creates the object that manages the data
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
         display_transform_function=display_transform_function,
-        list_of_files=fls,
+        # list_of_files=fls,
         additional_metadata=additional_metadata
     )
 
@@ -144,12 +145,18 @@ def run_pipeline():
         alpha=1, output_dir=output_dir)
 
     # We use TSNE for visualisation which is run in the same way as other parts
-    # of the pipeline
+    # of the pipeline.
+    # I give it a few anomalies and then a random sample just so the plot is 
+    features_to_plot = get_visualisation_sample(features, anomalies, 
+                                                anomaly_column='score',
+                                                N_anomalies=20,
+                                                N_total=2000)
+
     pipeline_tsne = tsne.TSNE_Plot(
         force_rerun=False,
         output_dir=output_dir,
-        perplexity=50)
-    t_plot = pipeline_tsne.run(features.loc[anomalies.index])
+        perplexity=100)
+    t_plot = pipeline_tsne.run(features_to_plot)
 
     # The run_pipeline function must return a dictionary with these keywords
     return {'dataset': image_dataset, 
