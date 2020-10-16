@@ -1,13 +1,29 @@
-# astronomaly
+<image src="Astronomaly_logo.png" width="200" align="left"/> 
+
+# Astronomaly
 A flexible framework for anomaly detection in astronomy.
 
+<br>
+<br>
+<br>
+<br>
 Astronomaly is made up of two components: a python backend housed under "astronomaly", which can be used as a standalone library
 or in conjunction with the JavaScript frontend, housed under "webapp".
 
+## Warning
+
+Astronomaly is being actively developed and may contain bugs or instabilities! I strongly recommend getting in touch with me if you're planning to use the code so I can help support you. Also if you're looking for light curve analysis (such as used in https://arxiv.org/abs/2008.04666), this is still being worked into Astronomaly and will be supported in future.
+
 ## Installation
+
+### Setting up the environment
+
+It's recommended to use anaconda to create an environment for Astronomaly. In the main repository directory, type `conda env create -f astronomaly_env.yml` which will automatically install all required packages. 
 
 To install the python backend, use the standard `python setup.py install` or `python setup.py develop` if you plan to make
 changes to the files. 
+
+
 
 ## Running
 
@@ -15,7 +31,7 @@ To run the frontend, navigate to `astronomaly/frontend` and type `python run_ser
 `dataset` - the Dataset object that supplies the required functions for the frontend to plot data <p>
 `features` - DataFrame containing the final set of features used for anomaly detection <p>
 `anomaly_scores` - DataFrame containing the machine learning anomaly scores (in a column called "score") <p>
-`cluster` - t-SNE or similar DataFrame <p>
+`visualisation` - t-SNE or similar DataFrame <p>
 `active_learning` - A PipelineStage object (see below under "Contributing") which can be called to interactively run active learning.
 
 After the pipeline has been run by `run_server.py`, the console will display a url, usually http://127.0.0.1:5000/. Navigate there to see the frontend, no JavaScript development, running or compiling required.

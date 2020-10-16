@@ -1,5 +1,9 @@
 import React from 'react';
 import Button from '@material-ui/core/Button';
+import IconButton from '@material-ui/core/IconButton';
+import Cancel from '@material-ui/icons/Cancel';
+import Tooltip from '@material-ui/core/Tooltip';
+import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography'
 import TextField from '@material-ui/core/TextField'
 import Paper from '@material-ui/core/Paper'
@@ -16,7 +20,7 @@ import Tab from '@material-ui/core/Tab';
 import './App.css';
 import {AlgorithmTab} from './components/AlgorithmTab'
 import {AnomalyTab} from './components/AnomalyTab'
-import {ClusteringTab} from './components/ClusteringTab'
+import {VisualisationTab} from './components/VisualisationTab'
 
 // const DATA_TYPE = 'image';
 // const DATA_TYPE = 'light_curve';
@@ -74,6 +78,11 @@ const theme = createMuiTheme({
   },
 });
 
+/**
+ * Contains the tabs
+ * 
+ * @param {Params} data - blah 
+ */
 function TabContainer({ children, dir }) {
   return (
     <Typography component="div" dir={dir} style={{ padding: 8 * 3 }}>
@@ -82,14 +91,18 @@ function TabContainer({ children, dir }) {
   );
 }
 
-
+/**
+ * The App class
+ */
 class App extends React.Component {
   constructor(props){
     super(props);
     this.handleChange = this.handleChange.bind(this);
     this.getDataType = this.getDataType.bind(this);
-    this.state = {tabNumber: 1,
-                  dataType: ''};
+    this.closeWindow = this.closeWindow.bind(this);
+    this.state = {tabNumber: 0,
+                  dataType: '',
+                  closing: false};
   }
 
 
@@ -113,37 +126,75 @@ class App extends React.Component {
     .catch(console.log);
   }
 
+  closeWindow(){
+    this.setState({closing:true})
+    fetch("close", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify("")
+    })
+    .catch(console.log)   
+  }
   render (){
     // console.log('HELLO');
     // console.log(this.props);
+    if (this.state.closing) {
+      return (
+          <Grid container spacing={3}>
+            <Grid item xs={12}> </Grid>
+            <Grid item xs={12} align="center">
+              <Typography variant="h5">
+                Astronomaly has been shut down. You may now close this window.
+              </Typography>
+            </Grid>
+          </Grid>
+      )
+    }
     this.getDataType();
     const { classes } = this.props;
     return (
       <div className={classes.root}>
         <ThemeProvider theme={theme}>
           <AppBar position="static" color="default">
-            <Tabs 
-              value={this.state.tabNumber}
-              onChange={this.handleChange}
-              indicatorColor="primary"
-              textColor="primary"
-              centered
-            >
-              <Tab label="Algorithm" />
-              <Tab label="Anomaly Scoring"/>
-              <Tab label="Clustering"/>
-            </Tabs>
+            <Grid container>
+              <Grid item xs={10}>
+                <Tabs 
+                  value={this.state.tabNumber}
+                  onChange={this.handleChange}
+                  indicatorColor="primary"
+                  textColor="primary"
+                  centered
+                >
+                  {/* <Tab label="Algorithm" /> */}
+                  <Tab label="Anomaly Scoring"/>
+                  <Tab label="Visualisation"/>
+                </Tabs>
+              </Grid>
+              <Grid item xs={2}>
+                {/* <Button>Close</Button> */}
+                <Tooltip title="Close Astronomaly">
+                  <IconButton id="close" size="medium" onClick={this.closeWindow}>
+                    <Cancel />
+                  </IconButton>
+                </Tooltip>
+              </Grid>
+            </Grid>
           </AppBar>
 
-          {this.state.tabNumber === 0 && <AlgorithmTab />}
-          {this.state.tabNumber === 1 && <AnomalyTab datatype={this.state.dataType} />}
-          {this.state.tabNumber === 2 && <ClusteringTab datatype={this.state.dataType}/>}
+          {/* {this.state.tabNumber === 0 && <AlgorithmTab />} */}
+          {this.state.tabNumber === 0 && <AnomalyTab datatype={this.state.dataType} />}
+          {this.state.tabNumber === 1 && <VisualisationTab datatype={this.state.dataType}/>}
         </ThemeProvider>
       </div>
     );
   }
 }
 
+/**
+ * Main App class
+ */
 export default withStyles(styles)(App);
 
 

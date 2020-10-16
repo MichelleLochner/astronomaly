@@ -1,6 +1,9 @@
 import React from 'react';
 import PinchZoomPan from "react-responsive-pinch-zoom-pan";
 
+/**
+ * Displays the image of a particular object.
+ */
 export class PlotImage extends React.Component{
     constructor(props){
       super(props);
@@ -24,10 +27,12 @@ export class PlotImage extends React.Component{
     render() {
       this.getImage(this.props.id);
       return (
-        <div style={{width:"400px", height:"400px"}}>
-        <PinchZoomPan position="center" maxScale={10} zoomButtons={false}>
-          <img id="img" src=""/>
-        </PinchZoomPan>
+        <div style={{width:"100%", height:"100%",display: 'flex',  justifyContent:'center', alignItems:'center'}}>
+        <div>
+          <PinchZoomPan position="center" maxScale={10} zoomButtons={false}>
+            <img id="img" src=""/>
+          </PinchZoomPan>
+        </div>
         </div>
       )
     }

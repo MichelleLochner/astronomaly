@@ -1,7 +1,7 @@
 import numpy as np
-import pandas as pd
 from skimage.transform import resize
-import xarray
+import cv2
+from astropy.stats import sigma_clipped_stats
 
 
 def image_transform_log(img):
@@ -19,20 +19,74 @@ def image_transform_log(img):
         Transformed image
 
     """
-    offset = 0.01
-    mini = img.min()
-    maxi = img.max()
 
-    if maxi==0 and mini==0:
+    mini = img[img != 0].min()
+    maxi = img.max()
+    offset = (maxi - mini) / 100
+
+    if maxi == 0 and mini == 0:
+        img = img + 0.01
+    else:
+        img = (img - mini) / (maxi - mini) + offset
+
+    return np.log(img)
+
+
+def image_transform_inverse_sinh(img):
+    """
+    Performs inverse hyperbolic sine transform on image
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (assumed float values)
+
+    Returns
+    -------
+    np.ndarray
+        Transformed image
+
+    """
+    if img.max() == 0:
+        return img
+    theta = 100 / img.max()
+
+    return np.arcsinh(theta * img) / theta
+
+
+def image_transform_root(img):
+    """
+    Normalise and then perform square root transform on image
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (assumed float values)
+
+    Returns
+    -------
+    np.ndarray
+        Transformed image
+
+    """
+
+    img[img < 0] = 0
+    mini = img[img != 0].min()
+    maxi = img.max()
+    offset = (maxi - mini) / 10
+
+    if maxi == 0 and mini == 0:
         img = img + offset
     else:
-        img = (img-mini)/(maxi-mini) + offset
-    return np.log(img)
+        img = (img - mini) / (maxi - mini) + offset
+
+    return np.sqrt(img)
 
 
 def image_transform_scale(img):
     """
-    Small function to normalise an image between 0 and 1. Useful for deep learning.
+    Small function to normalise an image between 0 and 1. Useful for deep 
+    learning.
 
     Parameters
     ----------
@@ -45,12 +99,16 @@ def image_transform_scale(img):
         Scaled image
 
     """
-    return (img-img.min())/(img.max()-img.min())
+    if img.min() == img.max():
+        return img
+    return (img - img.min()) / (img.max() - img.min())
 
 
 def image_transform_resize(img, new_shape):
     """
-    Resize an image to new dimensions (e.g. to feed into a deep learning network).
+    Resize an image to new dimensions (e.g. to feed into a deep learning 
+    network).
+
     Parameters
     ----------
     img : np.ndarray
@@ -67,113 +125,111 @@ def image_transform_resize(img, new_shape):
     return resize(img, new_shape, preserve_range=True)
 
 
-# def generate_cutouts(pipeline_dict, window_size=128, window_shift=None, transform_function=None,
-#                     input_key='images', output_key='cutouts'):
-#     """
-#     Cuts up all images into cutouts of the same size. An optional transform
-#     function (or series of functions) can be supplied to provide local transformations to the cutouts. A log transform
-#     is highly recommended for high dynamic range astronomy images to highlight fainter objects.
-#
-#     Parameters
-#     ----------
-#     pipeline_dict : dict
-#         Dictionary containing all relevant data including cutouts, features and anomaly scores
-#     window_size : int, tuple or list, optional
-#         The size of the cutout in pixels. If an integer is provided, the cutouts will be square. Otherwise a list of
-#         [window_size_x, window_size_y] is expected.
-#     window_shift : int, tuple or list, optional
-#         The size of the window shift in pixels. If the shift is less than the window size, a sliding window is used to
-#          create cutouts. This can be particularly useful for (for example) creating a training set for an autoencoder.
-#          If an integer is provided, the shift will be the same in both directions. Otherwise a list of
-#         [window_shift_x, window_shift_y] is expected.
-#     transform_function : function or list, optional
-#         The transformation function or list of functions that will be applied to each cutout. The function should take
-#         an input 2d array (the cutout) and return an output 2d array. If a list is provided, each function is applied
-#         in the order of the list.
-#     input_key : str, optional
-#         The input key of pipeline_dict to run the function on.
-#     output_key : str, optional
-#         The output key of pipeline_dict
-#
-#     Returns
-#     -------
-#     pipeline_dict : dict
-#         Dictionary containing all relevant data including cutouts, features and anomaly scores
-#
-#     """
-#     print('Generating cutouts...')
-#     cutouts = []
-#     x_vals = []
-#     y_vals = []
-#     ra = []
-#     dec = []
-#     peak_flux = []
-#     original_image_names = []
-#
-#     try:
-#         window_size_x = window_size[0]
-#         window_size_y = window_size[1]
-#     except TypeError:
-#         window_size_x = window_size
-#         window_size_y = window_size
-#
-#     #We may in future want to allow sliding windows
-#     if window_shift is not None:
-#         try:
-#             window_shift_x = window_shift[0]
-#             window_shift_y = window_shift[1]
-#         except TypeError:
-#             window_shift_x = window_shift
-#             window_shift_y = window_shift
-#     else:
-#         window_shift_x = window_size_x
-#         window_shift_y = window_size_y
-#
-#
-#     for astro_img in pipeline_dict[input_key]:
-#         img = astro_img.image
-#
-#         # Remember, numpy array index of [row, column] corresponds to [y, x]
-#         for j in range(window_size_x // 2, img.shape[1] - (int)(1.5 * window_size_x), window_shift_x):
-#             for i in range(window_size_y // 2, img.shape[0] - (int)(1.5 * window_size_y), window_shift_y):
-#
-#                 cutout = img[i:i + window_size_y, j:j + window_size_x]
-#                 if not np.any(np.isnan(cutout)):
-#                     y0 = i + window_size_y // 2
-#                     x0 = j + window_size_x // 2
-#                     x_vals.append(x0)
-#                     y_vals.append(y0)
-#                     peak_flux.append(cutout.max())
-#
-#                     ra.append(astro_img.coords[x0, 0])
-#                     dec.append(astro_img.coords[y0, 1])
-#
-#                     original_image_names.append(astro_img.name)
-#
-#                     if transform_function is not None:
-#                         try:
-#                             len(transform_function)
-#                             new_cutout = cutout
-#                             for f in transform_function:
-#                                 new_cutout = f(new_cutout)
-#                             cutout = new_cutout
-#                         except TypeError:
-#                             cutout = transform_function(cutout)
-#
-#                     cutouts.append(cutout)
-#
-#     df = pd.DataFrame(data={'id':np.array(np.arange(len(cutouts)),dtype='str'),
-#                             'original_image':original_image_names,
-#                             'x':x_vals, 'y':y_vals, 'ra':ra, 'dec':dec, 'peak_flux':peak_flux})
-#
-#     pipeline_dict[output_key] = xarray.DataArray(cutouts, coords = {'id':df.id}, dims=['id','dim_1','dim_2'])
-#
-#     if output_key == 'cutouts':
-#         metadata_key = 'metadata'
-#     else:
-#         metadata_key = 'metadata_' + output_key
-#     pipeline_dict[metadata_key] = df
-#
-#     print('Done!')
-#
-#     return pipeline_dict
+def image_transform_crop(img, new_shape=[160, 160]):
+    """
+    Crops an image to new dimensions (assumes you want to keep the centre)
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+    new_shape : tuple
+        Expected new shape for image
+
+    Returns
+    -------
+    np.ndarray
+        Reshaped image
+
+    """
+    delt_0 = (img.shape[0] - new_shape[0]) // 2
+    delt_1 = (img.shape[1] - new_shape[1]) // 2
+    return img[delt_0:img.shape[0] - delt_0, delt_1:img.shape[1] - delt_1]
+
+
+def image_transform_gaussian_window(img, width=2.5):
+    """
+    Applies a Gaussian window of a given width to the image. This has the
+    effect of downweighting possibly interfering objects near the edge of the
+    image. 
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+    width : float, optional
+        The standard deviation of the Gaussian. The Gaussian is evaluated on a
+        grid from -5 to 5 so a width=1 corresponds to a unit Gaussian. The
+        width of the Gaussian will appear to be around 1/5 of the image, which
+        would be fairly aggressive downweighting of outlying sources.
+
+    Returns
+    -------
+    np.ndarray
+        Windowed image
+
+    """
+
+    xvals = np.linspace(-5, 5, img.shape[0])
+    yvals = np.linspace(-5, 5, img.shape[1])
+    X, Y = np.meshgrid(xvals, yvals)
+    Z = 1 / np.sqrt(width) / 2 * np.exp(-(X**2 + Y**2) / 2 / width**2)
+
+    if len(img.shape) == 2:  # Only a single channel image
+        return img * Z
+    else:
+        new_img = np.zeros_like(img)
+        for i in range(img.shape[-1]):
+            new_img[:, :, i] = img[:, :, i] * Z
+        return new_img
+
+
+def image_transform_sigma_clipping(img, sigma=3, central=True):
+    """
+    Applies sigma clipping, fits contours and
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+
+    Returns
+    -------
+    np.ndarray
+
+    """
+    if len(img.shape) > 2:
+        im = img[:, :, 0]
+    else:
+        im = img
+
+    im = np.nan_to_num(im)  # OpenCV can't handle NaNs
+
+    mean, median, std = sigma_clipped_stats(im, sigma=sigma)
+    thresh = std + median
+    img_bin = np.zeros(im.shape, dtype=np.uint8)
+
+    img_bin[im <= thresh] = 0
+    img_bin[im > thresh] = 1
+
+    contours, hierarchy = cv2.findContours(img_bin, 
+                                           cv2.RETR_EXTERNAL, 
+                                           cv2.CHAIN_APPROX_SIMPLE)
+
+    x0 = img.shape[0] // 2
+    y0 = img.shape[1] // 2
+
+    for c in contours:
+        if cv2.pointPolygonTest(c, (x0, y0), False) == 1:
+            break
+
+    contour_mask = np.zeros_like(img, dtype=np.uint8)
+    if len(contours) == 0:
+        # This happens if there's no data in the image so we just return zeros
+        return contour_mask
+    cv2.drawContours(contour_mask, [c], 0, (1, 1, 1), -1)
+
+    new_img = np.zeros_like(img)
+    new_img[contour_mask == 1] = img[contour_mask == 1]
+
+    return new_img
