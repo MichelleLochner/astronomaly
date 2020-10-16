@@ -1,5 +1,5 @@
 version: 2
 
-sphhinx:
+sphinx:
     builder: html
     configuration: astronomaly/python_docs/source/conf.py
