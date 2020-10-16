@@ -9,6 +9,8 @@ A flexible framework for anomaly detection in astronomy.
 <br>
 Astronomaly is made up of two components: a python backend housed under "astronomaly", which can be used as a standalone library
 or in conjunction with the JavaScript frontend, housed under "webapp".
+<br>
+<b>Documentation</b>: https://astronomaly.readthedocs.io/en/latest/
 
 ## Warning
 
