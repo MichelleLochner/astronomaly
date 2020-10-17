@@ -48,11 +48,18 @@ def setup(app):
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',      # auto-documentation
-              'sphinx.ext.viewcode',     # adds links to source code
-              'sphinx.ext.githubpages',  # creates .nojekyll file
-              'sphinx.ext.napoleon'
-              ]     # adds support for google doc style
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'numpydoc'
+]
+
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None)}
 
 numpydoc_show_class_members = False
 autosummary_generate = True
@@ -66,7 +73,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['_build', 'apidocs/astronomaly.rst', 'apidocs/modules.rst']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

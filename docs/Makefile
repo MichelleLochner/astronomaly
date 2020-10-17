@@ -15,7 +15,7 @@ help:
 .PHONY: help Makefile
 
 github:
-	sphinx-apidoc  -o apidocs ../astronomaly ../astronomaly/scripts/*
+	sphinx-apidoc -fMeET -o apidocs ../astronomaly ../astronomaly/scripts/*
 	make html
 
 # Catch-all target: route all unknown targets to Sphinx using the new
