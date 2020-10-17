@@ -1,5 +1,5 @@
 version: 2
 
 sphinx:
-    builder: github
+    builder: html
     configuration: docs/conf.py
