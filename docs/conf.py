@@ -27,18 +27,17 @@ release = '0.1'
 
 
 def run_apidoc(_):
-
-#     cur_dir = os.path.abspath(os.path.dirname(__file__))
-#     output_path = os.path.join(cur_dir, 'apidocs')
-#     module = '../astronomaly'
-#     cmd_path = 'sphinx-apidoc'
-#     if hasattr(sys, 'real_prefix'):  # Check to see if we are in a virtualenv
-#         # If we are, assemble the path manually
-#         cmd_path = os.path.abspath(os.path.join(sys.prefix, 
-#                                                 'bin', 'sphinx-apidoc'))
-#     subprocess.check_call([cmd_path, '-e', '-o', output_path, 
-#                            module, '--force'])
-    subprocess.check_call('sphinx-apidoc  -o apidocs ../astronomaly ../astronomaly/scripts/*')
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    output_path = os.path.join(cur_dir, 'apidocs')
+    module = '../astronomaly'
+    ignore = '../astronomaly/scripts/*'
+    cmd_path = 'sphinx-apidoc'
+    if hasattr(sys, 'real_prefix'):  # Check to see if we are in a virtualenv
+        # If we are, assemble the path manually
+        cmd_path = os.path.abspath(os.path.join(sys.prefix, 
+                                                'bin', 'sphinx-apidoc'))
+    subprocess.check_call([cmd_path, '-e', '-o', output_path, 
+                           module, ignore, '--force'])
 
 
 def setup(app):
