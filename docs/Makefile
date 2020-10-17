@@ -5,7 +5,7 @@
 # from the environment for the first two.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-SOURCEDIR     = source
+SOURCEDIR     = ./
 BUILDDIR      = build
 
 # Put it first so that "make" without argument is like "make help".
@@ -15,7 +15,7 @@ help:
 .PHONY: help Makefile
 
 github:
-	sphinx-apidoc  -o source/apidocs ../../astronomaly ../../astronomaly/scripts/*
+	sphinx-apidoc -fMeET -o apidocs ../astronomaly ../astronomaly/scripts/*
 	make html
 
 # Catch-all target: route all unknown targets to Sphinx using the new

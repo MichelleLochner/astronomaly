@@ -1,0 +1,19 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+pip
+astropy
+flask
+ipympl
+jupyter
+matplotlib
+numpy
+pandas
+pyarrow
+pywavelets
+scikit-image
+scikit-learn
+scipy
+sphinx
+sphinx-js
+sphinx_rtd_theme
+xlsxwriter

@@ -2,4 +2,9 @@ version: 2
 
 sphinx:
     builder: html
-    configuration: astronomaly/python_docs/source/conf.py
+    configuration: docs/conf.py
+
+python:
+    version: 3.8
+    install:
+        - requirements: docs/requirements.txt

@@ -12,7 +12,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
+import subprocess
+sys.path.insert(0, os.path.abspath('../'))
 
 
 # -- Project information -----------------------------------------------------
@@ -25,6 +26,21 @@ author = 'Michelle Lochner'
 release = '0.1'
 
 
+def run_apidoc(_):
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    output_path = os.path.join(cur_dir, 'apidocs')
+    module = '../astronomaly'
+    cmd_path = 'sphinx-apidoc'
+    if hasattr(sys, 'real_prefix'):  # Check to see if we are in a virtualenv
+        # If we are, assemble the path manually
+        cmd_path = os.path.abspath(os.path.join(sys.prefix, 
+                                                'bin', 'sphinx-apidoc'))
+    subprocess.check_call([cmd_path, '-o', output_path, 
+                           module, '--force'])
+
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
 
 
 # -- General configuration ---------------------------------------------------
@@ -32,10 +48,23 @@ release = '0.1'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',      # auto-documentation
-              'sphinx.ext.viewcode',     # adds links to source code
-              'sphinx.ext.githubpages',  # creates .nojekyll file
-              'sphinx.ext.napoleon']     # adds support for google doc style
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax'
+]
+
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None)}
+
+numpydoc_show_class_members = False
+autosummary_generate = True
+autoclass_content = "class"
+autodoc_default_flags = ["members", "no-special-members"]
+autodoc_mock_imports = ["opencv"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -43,7 +72,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['_build', 'apidocs/astronomaly.rst', 'apidocs/modules.rst']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
