@@ -1,6 +1,6 @@
 # This file may be used to create an environment using:
 # $ conda create --name <env> --file <this file>
-python==3.8
+
 pip==20.2.2
 astropy==4.0.1
 flask==1.1.2
