@@ -1,7 +1,7 @@
 ***********
 Astronomaly
 ***********
-.. image:: ../../Astronomaly_logo.png
+.. image:: ../Astronomaly_logo.png
    :width: 300
 
 Astronomaly is a package for active anomaly detection for astronomical data. It
