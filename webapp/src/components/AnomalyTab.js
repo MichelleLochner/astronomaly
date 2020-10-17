@@ -375,6 +375,7 @@ export class AnomalyTab extends React.Component {
     if (this.state.max_id == 0) {
       this.getMaxID();
     }
+    this.changeSortBy(this.state.sortby);
   }
  
 
