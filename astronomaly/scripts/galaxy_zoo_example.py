@@ -1,4 +1,4 @@
-# Replicates the galaxy zoo example in the paper
+# An example with a subset of Galaxy Zoo data
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import shape_features
@@ -8,23 +8,25 @@ from astronomaly.visualisation import tsne
 from astronomaly.utils.utils import get_visualisation_sample
 import os
 import pandas as pd
-import numpy as np
+import zipfile
 
 # Root directory for data
-data_dir = os.path.join(os.path.sep, 'home', 'michelle', 'BigData', 
-                        'Anomaly', '')
+data_dir = os.path.join(os.getcwd(), 'example_data')
 
-# Where the galaxy zoo images are
-image_dir = os.path.join(data_dir, 'GalaxyZoo', 
-                         'galaxy-zoo-the-galaxy-challenge', 
-                         'images_training_rev1', '')
+image_dir = os.path.join(data_dir, 'GalaxyZooSubset', '')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', 'images', 'galaxy_zoo', '')
+    data_dir, 'astronomaly_output', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
+
+if not os.path.exists(image_dir):
+    # Data has not been unzipped yet
+    zip_ref = zipfile.ZipFile(os.path.join(data_dir, 'GalaxyZooSubset.zip'))
+    zip_ref.extractall(data_dir)
+
 
 # These are transform functions that will be applied to images before feature
 # extraction is performed. Functions are called in order.
@@ -37,16 +39,6 @@ image_transform_function = [
 # clipping is applied.
 display_transform_function = [
     image_preprocessing.image_transform_scale]
-
-# For galaxy zoo, we're lucky enough to have some actual human labelled data
-# that we use to illustrate the human-in-the-loop learning instead of having 
-# to label manually
-df = pd.read_csv(os.path.join(data_dir, 'GalaxyZoo', 
-                              'galaxy-zoo-the-galaxy-challenge', 
-                              'training_solutions_rev1.csv'),
-                 index_col=0)
-df.index = df.index.astype(str)
-additional_metadata = df[['Class6.1']]
 
 
 def run_pipeline():
@@ -71,18 +63,12 @@ def run_pipeline():
         run the human-in-the-loop learning when requested
 
     """
-    # The galaxy zoo data takes long to run just because it takes time to read
-    # each file in from the file system. This limits is to the first set of 
-    # objects
-    # fls = os.listdir(image_dir)[:1000]
 
     # This creates the object that manages the data
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
-        display_transform_function=display_transform_function,
-        # list_of_files=fls,
-        additional_metadata=additional_metadata
+        display_transform_function=display_transform_function
     )
 
     # Creates a pipeline object for feature extraction
@@ -111,18 +97,6 @@ def run_pipeline():
         force_rerun=False, output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
 
-    # This is unique to galaxy zoo which has labelled data. We first sort the
-    # data by anomaly score and then "label" the N most anomalous objects
-    anomalies = anomalies.sort_values('score', ascending=False)
-    N_labels = 200
-    # The keyword 'human_label' must be used to tell astronomaly which column
-    # to use for the HITL
-    anomalies['human_label'] = [-1] * len(anomalies)
-    inds = anomalies.index[:N_labels]
-    human_probs = additional_metadata.loc[inds, 'Class6.1']
-    human_scores = np.round(human_probs * 5).astype('int')
-    anomalies.loc[inds, 'human_label'] = human_scores.astype(int)
-
     try:
         # This is used by the frontend to store labels as they are applied so
         # that labels are not forgotten between sessions of using Astronomaly
@@ -146,17 +120,11 @@ def run_pipeline():
 
     # We use TSNE for visualisation which is run in the same way as other parts
     # of the pipeline.
-    # I give it a few anomalies and then a random sample just so the plot is 
-    features_to_plot = get_visualisation_sample(features, anomalies, 
-                                                anomaly_column='score',
-                                                N_anomalies=20,
-                                                N_total=2000)
-
     pipeline_tsne = tsne.TSNE_Plot(
         force_rerun=False,
         output_dir=output_dir,
         perplexity=100)
-    t_plot = pipeline_tsne.run(features_to_plot)
+    t_plot = pipeline_tsne.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
     return {'dataset': image_dataset, 

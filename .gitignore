@@ -21,6 +21,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+example_data/GalaxyZooSubset/
+example_data/astronomaly_output/
 
 *.log
 *.parquet
