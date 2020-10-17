@@ -7,7 +7,6 @@ ipympl
 jupyter
 matplotlib
 numpy
-opencv
 pandas
 pyarrow
 pywavelets

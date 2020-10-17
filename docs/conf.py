@@ -51,7 +51,14 @@ def setup(app):
 extensions = ['sphinx.ext.autodoc',      # auto-documentation
               'sphinx.ext.viewcode',     # adds links to source code
               'sphinx.ext.githubpages',  # creates .nojekyll file
-              'sphinx.ext.napoleon']     # adds support for google doc style
+              'sphinx.ext.napoleon'
+              ]     # adds support for google doc style
+
+numpydoc_show_class_members = False
+autosummary_generate = True
+autoclass_content = "class"
+autodoc_default_flags = ["members", "no-special-members"]
+autodoc_mock_imports = ["opencv"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
