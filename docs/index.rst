@@ -5,7 +5,7 @@ Astronomaly
    :width: 300
 
 Astronomaly is a package for active anomaly detection for astronomical data. It
-includes a python backend and a JavaScript frontent.
+includes a python backend and a JavaScript frontend.
 
 .. toctree::
    :maxdepth: 2
