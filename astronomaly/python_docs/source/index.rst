@@ -13,6 +13,7 @@ Welcome to astronomaly's documentation!
 
    install
    quickstart
+   contributing
    api
 
 
