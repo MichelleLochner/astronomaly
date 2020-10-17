@@ -13,7 +13,7 @@
 import os
 import sys
 import subprocess
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../'))
 
 
 # -- Project information -----------------------------------------------------
@@ -35,7 +35,7 @@ def run_apidoc(_):
         # If we are, assemble the path manually
         cmd_path = os.path.abspath(os.path.join(sys.prefix, 
                                                 'bin', 'sphinx-apidoc'))
-    subprocess.check_call([cmd_path,  '-o', output_path, 
+    subprocess.check_call([cmd_path, '-o', output_path, 
                            module, '--force'])
 
 
