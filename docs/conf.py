@@ -53,8 +53,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'numpydoc'
+    'sphinx.ext.mathjax'
 ]
 
 intersphinx_mapping = {
