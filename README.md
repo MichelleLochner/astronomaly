@@ -32,6 +32,9 @@ After running, you should see output tell you to open your browser at a particul
 
 Explore the web interface!
 
+(Note: if you prefer to use pip, you can use the following but a virtual environment is strongly recommended to avoid conflicting with your native installation:<br>
+`pip install -r requirements.txt`)
+
 
 ## Documentation
 
