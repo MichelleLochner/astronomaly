@@ -23,3 +23,7 @@ return a dictionary with the following keywords:
 After the pipeline has been run by `run_server.py`, the console will display a
 url, usually http://127.0.0.1:5000/. Navigate there using any web browser to see the frontend, no
 JavaScript development, running or compiling required.
+
+Ensure you close Astronomaly properly with the cross on the top right corner so
+the server is shut down correctly, otherwise you may find if you run
+Astronomaly again it will detect the port as being unavailable.
