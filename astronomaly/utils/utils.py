@@ -19,8 +19,15 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
         The image corresponding to this catalogue (to extract pixel information
         and naming information)
     """
-    dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
-    catalogue = dat.to_pandas()
+    if 'csv' in catalogue_file:
+        catalogue = pd.read_csv(catalogue_file, skiprows=5)
+        cols = list(catalogue.columns)
+        for i in range(len(cols)):
+            cols[i] = cols[i].strip()
+        catalogue.columns = cols
+    else:
+        dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
+        catalogue = dat.to_pandas()
 
     hdul = astropy.io.fits.open(image_file)
     original_image = image_file.split(os.path.sep)[-1]
@@ -38,6 +45,8 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
     new_catalogue['ra'] = catalogue.RA
     new_catalogue['dec'] = catalogue.DEC
 
+    new_catalogue.drop_duplicates(subset='objid', inplace=True)
+    new_catalogue.to_csv('deep2_offset_catalogue.tsv', sep='\t')
     return new_catalogue
 
 

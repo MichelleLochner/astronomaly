@@ -5,7 +5,6 @@ from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.visualisation import tsne
-from astronomaly.utils.utils import get_visualisation_sample
 import os
 import pandas as pd
 import zipfile
