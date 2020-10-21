@@ -159,6 +159,17 @@ class AstroImage:
             image = images[0]  # Was just the one image
         return image
 
+    def get_image_shape(self):
+        """
+        Efficiently returns the shape of the image.
+
+        Returns
+        -------
+        tuple
+            Image shape
+        """
+        return (self.metadata['NAXIS1'], self.metadata['NAXIS2'])
+
     def clean_up(self):
         """
         Closes all open fits files so they don't remain in memory.
@@ -417,15 +428,15 @@ class ImageDataset(Dataset):
                splitting the image into cutouts governed by the window_size..')
         for image_name in list(self.images.keys()):
             astro_img = self.images[image_name]
-            img = astro_img.image
+            img_shape = astro_img.get_image_shape()
 
             # Remember, numpy array index of [row, column] 
             # corresponds to [y, x]
             xvals = np.arange(self.window_size_x // 2, 
-                              img.shape[1] - self.window_size_x // 2, 
+                              img_shape[1] - self.window_size_x // 2, 
                               self.window_shift_x)
             yvals = np.arange(self.window_size_y // 2, 
-                              img.shape[0] - self.window_size_y // 2,
+                              img_shape[0] - self.window_size_y // 2,
                               self.window_shift_y)
             X, Y = np.meshgrid(xvals, yvals)
 
