@@ -46,7 +46,8 @@ https://astronomaly.readthedocs.io/en/latest/
 
 ## Citation
 
-Please cite Lochner and Bassett (in prep) if you use Astronomaly.
+Please cite Lochner and Bassett (in prep) if you use Astronomaly.<br>
+Thank you to Sara Webb for designing the logo!
 
 
 
