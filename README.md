@@ -22,6 +22,9 @@ Clone or download the Astronomaly repository:<br>
 Navigate to the Astronomaly folder. If you use conda, create a new environment:<br>
 `conda env create -f astronomaly_env.yml` 
 
+Don't forget to activate the environment:<br>
+`activate astronomaly`
+
 Install the code:<br>
 `python setup.py install`
 
