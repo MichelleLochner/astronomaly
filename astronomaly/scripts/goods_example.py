@@ -11,26 +11,46 @@ import os
 import pandas as pd
 
 
-# Root directory for data
-data_dir = os.path.join(os.path.sep, 'home', 'michelle', 'BigData', 
-                        'Anomaly', '')
+def image_transform_stack(img):
+    if len(img.shape) > 2:
+        ret_img = img.sum(axis=2)
+    else:
+        ret_img = img
+    return ret_img
 
-image_dir = os.path.join(data_dir, 'GOODS_S/', 'combined/')
+
+# Root directory for data
+data_dir = os.path.join(os.getcwd(), 'example_data', )
+image_dir = os.path.join(data_dir, 'GOODS', '')
+
+# Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', 'images', 'goods', '')
-window_size = 128
+    data_dir, 'astronomaly_output', 'GOODS', '')
+
+# Pre-converted tractor file
 catalogue = pd.read_csv(
-    os.path.join(image_dir, 'h_goods_sz_r2.0z_cat.csv'))
-band_prefixes = ['iz-', 'v-', 'b-']
-bands_rgb = {'r': 'iz-', 'g': 'v-', 'b': 'b-'}
+    os.path.join(image_dir, 'h_sb_sect23_v2.0_drz_cat.csv'))
+
+
+band_prefixes = []
+bands_rgb = {}
+
 plot_cmap = 'bone'
+window_size = 128
 feature_method = 'ellipse'
 dim_reduction = ''
 
 if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
-if len(os.listdir(image_dir)) == 0:
+fls = os.listdir(image_dir)
+found_fits = False
+for f in fls:
+    if 'fits' in f or 'FITS' in f:
+        found_fits = True
+        break
+
+if not found_fits:
     # No data to run on!
     print('No data found to run on, downloading some GOODS-S data...')
     os.system(
@@ -42,7 +62,8 @@ if len(os.listdir(image_dir)) == 0:
     print('GOODS-S data downloaded.')
 
 
-image_transform_function = [image_preprocessing.image_transform_sigma_clipping,
+image_transform_function = [image_transform_stack,
+                            image_preprocessing.image_transform_sigma_clipping,
                             image_preprocessing.image_transform_scale]
 
 display_transform_function = [image_preprocessing.image_transform_scale]
