@@ -538,7 +538,14 @@ class ImageDataset(Dataset):
         invalid_y = y_start < 0 or y_end > this_image.metadata['NAXIS1']
         invalid_x = x_start < 0 or x_end > this_image.metadata['NAXIS2']
         if invalid_y or invalid_x:
-            cutout = np.ones((self.window_size_y, self.window_size_x)) * np.nan
+            naxis3_present = 'NAXIS3' in this_image.metadata.keys()
+            if naxis3_present and this_image.metadata['NAXIS3'] > 1:
+                shp = [self.window_size_y, 
+                       self.window_size_x, 
+                       this_image.metadata['NAXIS3']]
+            else:
+                shp = [self.window_size_y, self.window_size_x]
+            cutout = np.ones((shp)) * np.nan
         else:
             cutout = this_image.get_image_data(y_start, y_end, x_start, x_end)
         if self.metadata.loc[idx, 'peak_flux'] == -1:
@@ -547,7 +554,6 @@ class ImageDataset(Dataset):
             else:
                 flx = np.max(cutout)
             self.metadata.loc[idx, 'peak_flux'] = flx
-
         cutout = apply_transform(cutout, self.transform_function)
         return cutout
 
@@ -757,6 +763,7 @@ class ImageThumbnailsDataset(Dataset):
         filename = self.metadata.loc[idx, 'filename']
         cutout = cv2.imread(filename)
         cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
+        print(cutout.shape)
         cutout = apply_transform(cutout, self.display_transform_function)
 
         min_edge = min(cutout.shape[:2])

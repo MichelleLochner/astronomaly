@@ -23,6 +23,8 @@ share/python-wheels/
 MANIFEST
 example_data/GalaxyZooSubset/
 example_data/astronomaly_output/
+*fits
+*FITS
 
 *.log
 *.parquet
