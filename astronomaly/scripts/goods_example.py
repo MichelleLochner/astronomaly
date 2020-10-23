@@ -11,14 +11,6 @@ import os
 import pandas as pd
 
 
-def image_transform_stack(img):
-    if len(img.shape) > 2:
-        ret_img = img.sum(axis=2)
-    else:
-        ret_img = img
-    return ret_img
-
-
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data', )
 image_dir = os.path.join(data_dir, 'GOODS', '')
@@ -62,8 +54,7 @@ if not found_fits:
     print('GOODS-S data downloaded.')
 
 
-image_transform_function = [image_transform_stack,
-                            image_preprocessing.image_transform_sigma_clipping,
+image_transform_function = [image_preprocessing.image_transform_sigma_clipping,
                             image_preprocessing.image_transform_scale]
 
 display_transform_function = [image_preprocessing.image_transform_scale]
