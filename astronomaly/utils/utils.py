@@ -6,6 +6,48 @@ import numpy as np
 import xlsxwriter
 
 
+def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
+    """
+    Converts a tractor fits file to a pandas dataframe to be given
+    directly to an ImageDataset object.
+
+    Parameters
+    ----------
+    catalogue_files : string
+        tractor catalogue in fits table format 
+    image_file:
+        The image corresponding to this catalogue (to extract pixel information
+        and naming information)
+    """
+
+    catalogue = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
+
+    dataframe = {}
+    for name in catalogue.colnames:
+        data = catalogue[name].tolist()
+        dataframe[name] = data
+    
+    old_catalogue = pd.DataFrame(dataframe)
+    hdul = astropy.io.fits.open(image_file)
+
+    if len(image_name) == 0:
+        original_image = image_file.split(os.path.sep)[-1]
+    else:
+        original_image = image_name
+    
+    new_catalogue = pd.DataFrame()
+    new_catalogue['objid'] = old_catalogue['objid']
+    new_catalogue['original_image'] = [original_image] * len(new_catalogue)
+    new_catalogue['flux_g'] = old_catalogue['flux_g']
+    new_catalogue['flux_r'] = old_catalogue['flux_r']
+    new_catalogue['flux_z'] = old_catalogue['flux_z']
+    new_catalogue['x'] = old_catalogue['bx'].astype('int')
+    new_catalogue['y'] = old_catalogue['by'].astype('int')
+    new_catalogue['ra'] = old_catalogue['ra']
+    new_catalogue['dec'] = old_catalogue['dec']
+    
+    return new_catalogue
+
 def convert_pybdsf_catalogue(catalogue_file, image_file):
     """
     Converts a pybdsf fits file to a pandas dataframe to be given
