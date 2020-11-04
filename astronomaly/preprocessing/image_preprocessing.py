@@ -233,3 +233,27 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
     new_img[contour_mask == 1] = img[contour_mask == 1]
 
     return new_img
+
+def image_transform_greyscale(img):
+    """
+    Simple function that combines the rgb bands into a single image.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+
+    Returns
+    -------
+    np.ndarray
+        Greyscale image
+
+    """
+    #print(np.shape(img))
+    if len(img.shape) > 2:
+        img = np.float32(img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        img = img
+
+    return img
