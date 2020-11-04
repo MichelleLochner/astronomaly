@@ -286,9 +286,11 @@ class PipelineStage(object):
                         logging_tools.log(nan_msg, level='WARNING')
                         logged_nan_msg = True
                 out = self._execute_function(input_instance)
-                if np.any(np.isnan(out)):
+
+                if np.any(np.isnan(out[0])):
                     logging_tools.log("Feature extraction failed for id " + i)
-                output.append(out)
+                    out[0] = np.zeros((24),dtype = int)
+                output.append(out[0])
                 new_index.append(i)
             n += 1
 
@@ -305,7 +307,10 @@ class PipelineStage(object):
             self.save(output, self.output_file)
         print('Done! Time taken: ', (time.time() - t1), 's')
 
-        return output
+        contours = out[1]
+        ellipses = out[2]
+
+        return output, contours, ellipses
 
     def _execute_function(self, data):
         """

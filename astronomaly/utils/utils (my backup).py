@@ -6,15 +6,15 @@ import numpy as np
 import xlsxwriter
 
 
-def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
+def convert_tractor_catalogue(catalogue_file, image_file):
     """
-    Converts a tractor fits file to a pandas dataframe to be given
+    Converts a pybdsf fits file to a pandas dataframe to be given
     directly to an ImageDataset object.
 
     Parameters
     ----------
     catalogue_files : string
-        tractor catalogue in fits table format 
+        Pybdsf catalogue in fits table format 
     image_file:
         The image corresponding to this catalogue (to extract pixel information
         and naming information)
@@ -28,15 +28,12 @@ def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
         dataframe[name] = data
     
     old_catalogue = pd.DataFrame(dataframe)
-    hdul = astropy.io.fits.open(image_file)
 
-    if len(image_name) == 0:
-        original_image = image_file.split(os.path.sep)[-1]
-    else:
-        original_image = image_name
+    hdul = astropy.io.fits.open(image_file)
+    original_image = image_file.split(os.path.sep)[-1]
     
-    #w = astropy.wcs.WCS(hdul[0].header, naxis=2)
-    #x, y = w.wcs_world2pix(old_catalogue['ra'], old_catalogue['dec'], 1)
+    w = astropy.wcs.WCS(hdul[0].header, naxis=2)
+    x, y = w.wcs_world2pix(old_catalogue['ra'], old_catalogue['dec'], 1)
     
     new_catalogue = pd.DataFrame()
     new_catalogue['objid'] = old_catalogue['objid']
@@ -44,8 +41,8 @@ def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
     new_catalogue['flux_g'] = old_catalogue['flux_g']
     new_catalogue['flux_r'] = old_catalogue['flux_r']
     new_catalogue['flux_z'] = old_catalogue['flux_z']
-    new_catalogue['x'] = old_catalogue['bx'].astype('int')
-    new_catalogue['y'] = old_catalogue['by'].astype('int')
+    new_catalogue['x'] = x
+    new_catalogue['y'] = y
     new_catalogue['ra'] = old_catalogue['ra']
     new_catalogue['dec'] = old_catalogue['dec']
     

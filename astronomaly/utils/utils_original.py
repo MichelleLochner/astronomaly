@@ -6,49 +6,47 @@ import numpy as np
 import xlsxwriter
 
 
-def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
+def convert_pybdsf_catalogue(catalogue_file, image_file):
     """
-    Converts a tractor fits file to a pandas dataframe to be given
+    Converts a pybdsf fits file to a pandas dataframe to be given
     directly to an ImageDataset object.
 
     Parameters
     ----------
     catalogue_files : string
-        tractor catalogue in fits table format 
+        Pybdsf catalogue in fits table format 
     image_file:
         The image corresponding to this catalogue (to extract pixel information
         and naming information)
     """
-
-    catalogue = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
-
-    dataframe = {}
-    for name in catalogue.colnames:
-        data = catalogue[name].tolist()
-        dataframe[name] = data
-    
-    old_catalogue = pd.DataFrame(dataframe)
-    hdul = astropy.io.fits.open(image_file)
-
-    if len(image_name) == 0:
-        original_image = image_file.split(os.path.sep)[-1]
+    if 'csv' in catalogue_file:
+        catalogue = pd.read_csv(catalogue_file, skiprows=5)
+        cols = list(catalogue.columns)
+        for i in range(len(cols)):
+            cols[i] = cols[i].strip()
+        catalogue.columns = cols
     else:
-        original_image = image_name
-    
-    #w = astropy.wcs.WCS(hdul[0].header, naxis=2)
-    #x, y = w.wcs_world2pix(old_catalogue['ra'], old_catalogue['dec'], 1)
-    
+        dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
+        catalogue = dat.to_pandas()
+
+    hdul = astropy.io.fits.open(image_file)
+    original_image = image_file.split(os.path.sep)[-1]
+
+    w = astropy.wcs.WCS(hdul[0].header, naxis=2)
+
+    x, y = w.wcs_world2pix(catalogue.RA, catalogue.DEC, 1)
+
     new_catalogue = pd.DataFrame()
-    new_catalogue['objid'] = old_catalogue['objid']
+    new_catalogue['objid'] = catalogue['Source_id']
     new_catalogue['original_image'] = [original_image] * len(new_catalogue)
-    new_catalogue['flux_g'] = old_catalogue['flux_g']
-    new_catalogue['flux_r'] = old_catalogue['flux_r']
-    new_catalogue['flux_z'] = old_catalogue['flux_z']
-    new_catalogue['x'] = old_catalogue['bx'].astype('int')
-    new_catalogue['y'] = old_catalogue['by'].astype('int')
-    new_catalogue['ra'] = old_catalogue['ra']
-    new_catalogue['dec'] = old_catalogue['dec']
-    
+    new_catalogue['peak_flux'] = catalogue['Peak_flux']
+    new_catalogue['x'] = x
+    new_catalogue['y'] = y
+    new_catalogue['ra'] = catalogue.RA
+    new_catalogue['dec'] = catalogue.DEC
+
+    new_catalogue.drop_duplicates(subset='objid', inplace=True)
+    new_catalogue.to_csv('deep2_offset_catalogue.tsv', sep='\t')
     return new_catalogue
 
 
@@ -140,6 +138,42 @@ def create_catalogue_spreadsheet(image_dataset, scores,
 
             row += 1
     workbook.close()
+
+
+def get_visualisation_sample(features, anomalies, anomaly_column='score',
+                             N_anomalies=20, N_total=2000):
+    """
+    Convenience function to downsample a set of data for a visualisation plot
+    (such as t-SNE or UMAP). You can choose how many anomalies to highlight
+    against a backdrop of randomly selected samples.
+
+    Parameters
+    ----------
+    features : pd.DataFrame
+        Input feature set
+    anomalies : pd.DataFrame
+        Contains the anomaly score to rank the objects by.
+    anomaly_column : string, optional
+        The column used to rank the anomalies by (always assumes higher is more
+        anomalous), by default 'score'
+    N_anomalies : int, optional
+        Number of most anomalous objects to plot, by default 20
+    N_total : int, optional
+        Total number to plot (not recommended to be much more than 2000 for
+        t-SNE), by default 2000
+    """
+    if N_total > len(features):
+        N_total = len(features)
+    if N_anomalies > len(features):
+        N_anomalies = 0
+    N_random = N_total - N_anomalies
+
+    index = anomalies.sort_values(anomaly_column, ascending=False).index
+    inds = index[:N_anomalies]
+    other_inds = index[N_anomalies:]
+    inds = list(inds) + list(np.random.choice(other_inds, 
+                             size=N_random, replace=False))
+    return features.loc[inds]
 
 
 class ImageCycler:
