@@ -6,7 +6,9 @@ import numpy as np
 import xlsxwriter
 
 
-def convert_pybdsf_catalogue(catalogue_file, image_file):
+def convert_pybdsf_catalogue(catalogue_file, image_file, 
+                             remove_point_sources=False,
+                             merge_islands=False):
     """
     Converts a pybdsf fits file to a pandas dataframe to be given
     directly to an ImageDataset object.
@@ -18,6 +20,11 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
     image_file:
         The image corresponding to this catalogue (to extract pixel information
         and naming information)
+    remove_point_sources: bool, optional
+        If true will remove all sources with an S_Code of 'S'
+    merge_islands: bool, optional
+        If true, will locate all sources belonging to a particular island and
+        merge them, maintaining only the brightest source
     """
     if 'csv' in catalogue_file:
         catalogue = pd.read_csv(catalogue_file, skiprows=5)
@@ -29,12 +36,23 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
         dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
         catalogue = dat.to_pandas()
 
+    if remove_point_sources:
+        catalogue = catalogue[catalogue['S_Code'] != 'S']
+
+    if merge_islands:
+        inds = []
+        for isl in np.unique(catalogue.Isl_id):
+            msk = catalogue.Isl_id == isl
+            ind = catalogue[msk].index[catalogue[msk]['Peak_flux'].argmax()]
+            inds.append(ind)
+        catalogue = catalogue.loc[inds]
+
     hdul = astropy.io.fits.open(image_file)
     original_image = image_file.split(os.path.sep)[-1]
 
     w = astropy.wcs.WCS(hdul[0].header, naxis=2)
 
-    x, y = w.wcs_world2pix(catalogue.RA, catalogue.DEC, 1)
+    x, y = w.wcs_world2pix(np.array(catalogue.RA), np.array(catalogue.DEC), 1)
 
     new_catalogue = pd.DataFrame()
     new_catalogue['objid'] = catalogue['Source_id']
@@ -46,7 +64,6 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
     new_catalogue['dec'] = catalogue.DEC
 
     new_catalogue.drop_duplicates(subset='objid', inplace=True)
-    new_catalogue.to_csv('deep2_offset_catalogue.tsv', sep='\t')
     return new_catalogue
 
 
