@@ -31,13 +31,16 @@ display_transform_function = [#image_preprocessing.image_transform_inverse_sinh,
                               image_preprocessing.image_transform_scale
                               ]
 
-    
+
 image_dir = os.path.join(data_dir,'0260m062', 'Input', 'Images')
 output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
+#image_dir = os.path.join(data_dir,'0260m062', 'Input', 'Images')
+#output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
-catalogue = pd.read_csv(#os.path.join(data_dir,'Input','Catalogue','large_catalogue.csv'))
-        '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
+
+catalogue = pd.read_csv(os.path.join(data_dir,'0260m062','Input','Catalogue','test_catalogue_0260m062_500.csv'))
+        #'/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
 band_prefixes = ['z-', 'r-', 'g-']

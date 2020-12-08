@@ -289,7 +289,8 @@ class PipelineStage(object):
 
                 if np.any(np.isnan(out[0])):
                     logging_tools.log("Feature extraction failed for id " + i)
-                    out[0] = np.zeros((24),dtype = int)
+                    continue
+                    #out[0] = np.zeros((24),dtype = int)
                 output.append(out[0])
                 new_index.append(i)
             n += 1

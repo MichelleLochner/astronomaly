@@ -3,7 +3,6 @@ import cv2
 from astronomaly.base.base_pipeline import PipelineStage
 from astronomaly.base import logging_tools
 
-
 def find_contours(img, threshold):
     """
     Finds the contours of an image that meet a threshold
@@ -75,9 +74,14 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
         ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(contour)
         ellipse_params = x0, y0, maj_axis, min_axis, theta
 
-        if np.any(np.isnan(ellipse_params)):
+        if np.any(np.isnan(ellipse_params)) or y0 < 0 or x0 < 0:
             raised_error = True
             logging_tools.log('fit_ellipse failed with unknown error:')
+
+        #if y0 < 0:
+        #    raised_error = True
+        #    logging_tools.log('fit_ellipse failed with unknown error:')
+
 
     except cv2.error as e:
         logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
@@ -94,6 +98,9 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
     maj_axis = int(np.round(maj_axis))
     min_axis = int(np.round(min_axis))
     theta = int(np.round(theta))
+
+    #print(ellipse_params, 'PARAMS')
+    #print(x0,y0,'x0 y0')
 
     cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2), 
                 theta, 0, 360, (1, 1, 1), thickness)
@@ -283,11 +290,13 @@ class EllipseFitFeatures(PipelineStage):
         y_cent = this_image.shape[1] // 2
 
         feats = []
-        threshold = []
+        ##threshold = []
         all_contours = []
         stop = False
 
-        scale = [i for i in np.arange(100, 201, 1)]
+
+        upper_limit = 300
+        scale = [i for i in np.arange(100, upper_limit + 1, 1)]
         # Start with the closest in contour (highest percentile)
         percentiles = np.sort(self.percentiles)[::-1] 
 
@@ -299,6 +308,7 @@ class EllipseFitFeatures(PipelineStage):
             failure_message = ""
 
         for a in scale:
+            #print('Upscaled to : ', a,'%')
             drawn_contours = []
             all_ellipses = []
             lst = []
@@ -348,13 +358,15 @@ class EllipseFitFeatures(PipelineStage):
 
                     c = contours[ind]
 
-                    params = get_ellipse_leastsq(c, resize)
+                    #params = get_ellipse_leastsq(c, resize)
 
                     if len(c) < 5:
-                        long_enough = False
+                        ##long_enough = False
                         #print('Loop broken due to insufficient points')
                         #print()
                         break
+
+                    params = get_ellipse_leastsq(c, resize)
 
                     ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
 
@@ -427,6 +439,8 @@ class EllipseFitFeatures(PipelineStage):
                             theta_diff -= 90
                         theta.append(theta_diff)
 
+                        TESTER = np.hstack((residuals, dist_to_centre, aspect, theta))
+
                     if len(lst) == len(percentiles):
                         #print('All necessary contours found')
                         stop = True
@@ -434,8 +448,25 @@ class EllipseFitFeatures(PipelineStage):
             if stop:
                 break
 
+            if a == upper_limit:
+                print('FAIL')
+                TESTER = [np.nan] * 4 * len(self.percentiles) 
 
-        return np.hstack((residuals, dist_to_centre, aspect, theta)), drawn_contours, all_ellipses
+
+            #print(a, upper_limit)
+
+            #if len(feats) == 0:
+            #    print('FAIL')
+            #    TESTER = [np.nan] * 4 * len(self.percentiles) 
+
+            #if len(feats) == 0:
+            #    print('FAILED FOR ALL SCALES')
+            #    TESTER = [np.nan] * 4 * len(self.percentiles) 
+                #return [np.nan] * 4 * len(self.percentiles), drawn_contours, all_ellipses
+
+
+        #print((TESTER))
+        return TESTER, drawn_contours, all_ellipses
 
 
 class HuMomentsFeatures(PipelineStage):
