@@ -133,7 +133,7 @@ def run_pipeline():
         alpha=1, output_dir=output_dir)
 
     pipeline_tsne = tsne.TSNE_Plot(
-        force_rerun=False,
+        force_rerun=True,
         output_dir=output_dir,
         perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])

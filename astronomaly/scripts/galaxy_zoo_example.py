@@ -73,7 +73,7 @@ def run_pipeline():
     # Creates a pipeline object for feature extraction
     pipeline_ellipse = shape_features.EllipseFitFeatures(
         percentiles=[90, 80, 70, 60, 50, 0],
-        output_dir=output_dir, channel=0, force_rerun=False, 
+        output_dir=output_dir, channel=0, force_rerun=True, 
         central_contour=False)
 
     # Actually runs the feature extraction
@@ -81,19 +81,19 @@ def run_pipeline():
 
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set
-    pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
+    pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
 
     # The actual anomaly detection is called in the same way by creating an
     # Iforest pipeline object then running it
     pipeline_iforest = isolation_forest.IforestAlgorithm(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=True, output_dir=output_dir)
     anomalies = pipeline_iforest.run(features)
 
     # We convert the scores onto a range of 0-5
     pipeline_score_converter = human_loop_learning.ScoreConverter(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=True, output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
 
     try:
@@ -120,7 +120,7 @@ def run_pipeline():
     # We use TSNE for visualisation which is run in the same way as other parts
     # of the pipeline.
     pipeline_tsne = tsne.TSNE_Plot(
-        force_rerun=False,
+        force_rerun=True,
         output_dir=output_dir,
         perplexity=100)
     t_plot = pipeline_tsne.run(features)

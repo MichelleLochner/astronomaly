@@ -106,28 +106,28 @@ def run_pipeline():
     elif feature_method == 'ellipse':
         pipeline_ellipse = shape_features.EllipseFitFeatures(
             percentiles=[90, 80, 70, 60, 50, 0],
-            output_dir=output_dir, channel=0, force_rerun=False
+            output_dir=output_dir, channel=0, force_rerun=True
         )
         features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
 
     if dim_reduction == 'pca':
-        pipeline_pca = pca.PCA_Decomposer(force_rerun=False, 
+        pipeline_pca = pca.PCA_Decomposer(force_rerun=True, 
                                           output_dir=output_dir,
                                           threshold=0.95)
         features = pipeline_pca.run(features_original)
 
-    pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
+    pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
 
     pipeline_iforest = isolation_forest.IforestAlgorithm(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=True, output_dir=output_dir)
     anomalies = pipeline_iforest.run(features)
 
     pipeline_score_converter = human_loop_learning.ScoreConverter(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=True, output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
     anomalies = anomalies.sort_values('score', ascending=False)
 
