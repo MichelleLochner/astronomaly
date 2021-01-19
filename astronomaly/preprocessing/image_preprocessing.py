@@ -280,3 +280,47 @@ def image_transform_cv2_resize(img):
 
 
     return cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+
+def image_band_addition(img):
+    """
+    Small function that stacks the different channels together to form
+    a new, single band image.
+    
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+        
+    Returns
+    -------
+    np.ndarray
+        Stacked image
+    """
+    one = img[:,:,0] # g-band - blue b
+    two = img[:,:,1] # r-band - green g
+    three = img[:,:,2] # z-band - red r
+    
+    img = np.add(one,two,three)
+    return img
+
+def image_band_reorder(img):
+    """
+    Small function that rearranges the different channels together to form
+    a new image. Made specifically for the cutout.fits files
+    
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+        
+    Returns
+    -------
+    np.ndarray
+        Stacked image
+    """
+    one = img[0,:,:] # g-band - blue b
+    two = img[1,:,:] # r-band - green g
+    three = img[2,:,:] # z-band - red r
+    
+    img = np.dstack((one,two,three))
+    return img

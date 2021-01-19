@@ -10,16 +10,15 @@ from astronomaly.utils import utils
 import os
 import pandas as pd
 
-coadd_id = '0260'
 
-data_dir = '/home/verlon/Desktop/Files/Data/Coadd_'+str(coadd_id)+'/'
+data_dir = '/home/verlon/Desktop/Files/Data/tractor_s 10000 brightest/'
 
 which_data = 'decals'
-
 list_of_files = []
 window_size = 32
 
-image_transform_function = [image_preprocessing.image_transform_scale,
+image_transform_function = [#image_preprocessing.image_band_reorder,
+                            image_preprocessing.image_transform_scale,
                             image_preprocessing.image_transform_greyscale,
                             #image_preprocessing.image_band_addition,
                             image_preprocessing.image_transform_sigma_clipping,
@@ -33,14 +32,14 @@ display_transform_function = [#image_preprocessing.image_transform_inverse_sinh,
                               ]
 
 
-image_dir = os.path.join(data_dir,'0260m062','Input', 'Images')
-output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
+image_dir = os.path.join(data_dir,'Cutouts')
+output_dir = os.path.join(data_dir,'Cutouts', 'Output', '')
 
 #image_dir = os.path.join(data_dir,'0260m062', 'Input', 'Images')
 #output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
 
-catalogue = pd.read_csv(os.path.join(data_dir,'0260m062','Input','Catalogue','test_catalogue_0260m062_500.csv'))
+catalogue = pd.read_csv(os.path.join(data_dir,'Top 10000 tractor_s - adjusted.csv'))
     #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
@@ -79,7 +78,7 @@ def run_pipeline():
 
     """
     
-    image_dataset = image_reader.ImageDataset(
+    image_dataset = image_reader.ImageFitsDataset(
         directory=image_dir,
         list_of_files=list_of_files,
         window_size=window_size, output_dir=output_dir, plot_square=False,
@@ -96,20 +95,21 @@ def run_pipeline():
 
     pipeline_ellipse = shape_features.EllipseFitFeatures(
             percentiles=[90, 80, 70, 60, 50,0],
-            output_dir=output_dir, channel=0, force_rerun=True
+            output_dir=output_dir, channel=0, force_rerun=False
         )
 
     features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
+    #features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
     print (features)
 
-    pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
+    pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
 
     pipeline_iforest = isolation_forest.IforestAlgorithm(
-        force_rerun=True, output_dir=output_dir)
+        force_rerun=False, output_dir=output_dir)
     anomalies = pipeline_iforest.run(features)
 
     pipeline_score_converter = human_loop_learning.ScoreConverter(
@@ -134,16 +134,17 @@ def run_pipeline():
         alpha=1, output_dir=output_dir)
 
     pipeline_tsne = tsne.TSNE_Plot(
-        force_rerun=True,
+        force_rerun=False,
         output_dir=output_dir,
         perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])
     # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
 
+
     return {'dataset': image_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
-            'cluster': t_plot, 
+            'visualisation': t_plot, 
             'active_learning': pipeline_active_learning}
 
 

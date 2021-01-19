@@ -287,18 +287,13 @@ class PipelineStage(object):
                         logged_nan_msg = True
                 out = self._execute_function(input_instance)
 
-                #print((out[0]), i)
+                #print(np.shape(out))
 
                 if np.any(np.isnan(out[0])):
+                    logging_tools.log("Feature extraction failed for id " + i)
                     continue
-                    #new = np.zeros((24,),dtype = str)
-                    #out[0] == new
-                    #logging_tools.log("Feature extraction failed for id " + i)
-                    #continue
-
-                #print(type(out[0]), i)
+                    #out[0] = np.zeros((24),dtype = int)
                 output.append(out[0])
-                #print(np.shape(output))
                 new_index.append(i)
             n += 1
 
@@ -317,10 +312,10 @@ class PipelineStage(object):
 
         #print(np.shape(out))
 
-        contours = out[1]
-        ellipses = out[2]
+        #contours = out[1]
+        #ellipses = out[2]
 
-        return output, contours, ellipses
+        return output#, contours, ellipses
 
     def _execute_function(self, data):
         """

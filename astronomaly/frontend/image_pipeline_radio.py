@@ -10,46 +10,38 @@ from astronomaly.utils import utils
 import os
 import pandas as pd
 
-coadd_id = '0260'
+fits_data = '/home/verlon/Desktop/Files/Data/Radio/Input/z-radio_image.fits'
+fits_folder = '/home/verlon/Desktop/Files/Data/Radio/'
 
-data_dir = '/home/verlon/Desktop/Files/Data/Coadd_'+str(coadd_id)+'/'
+catalogue = pd.read_csv('/home/verlon/Desktop/Files/Data/DEEP2MRT.csv')
+catalogue.rename(columns={' y': 'y'},inplace=True)
 
-which_data = 'decals'
+data_dir = '/home/verlon/Desktop/Files/Data/Radio/'
 
-list_of_files = []
-window_size = 32
-
-image_transform_function = [image_preprocessing.image_transform_scale,
-                            image_preprocessing.image_transform_greyscale,
-                            #image_preprocessing.image_band_addition,
-                            image_preprocessing.image_transform_sigma_clipping,
-                            # image_preprocessing.image_transform_inverse_sinh,
-                            image_preprocessing.image_transform_scale,
-                            #image_preprocessing.image_transform_cv2_resize,
-                            ]
-
-display_transform_function = [#image_preprocessing.image_transform_inverse_sinh,
-                              image_preprocessing.image_transform_scale
-                              ]
-
-
-image_dir = os.path.join(data_dir,'0260m062','Input', 'Images')
-output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
-
-#image_dir = os.path.join(data_dir,'0260m062', 'Input', 'Images')
-#output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
-
-
-catalogue = pd.read_csv(os.path.join(data_dir,'0260m062','Input','Catalogue','test_catalogue_0260m062_500.csv'))
-    #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
-    #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
-    #    image_name = 'legacysurvey-0260m062-image.fits.fz')
-band_prefixes = ['z-', 'r-', 'g-']
-bands_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
-plot_cmap = 'hot'
+image_dir = os.path.join(data_dir,'Input')
+output_dir = os.path.join(data_dir,'Output', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
+
+image_transform_function = [image_preprocessing.image_transform_scale,
+                            #image_preprocessing.image_transform_greyscale,
+                            image_preprocessing.image_transform_sigma_clipping,
+                            image_preprocessing.image_transform_scale,
+                            ]
+
+which_data = 'decals'
+list_of_files = []
+window_size = 40
+
+display_transform_function = [image_preprocessing.image_transform_scale
+]
+
+
+
+band_prefixes = ['z-', 'r-', 'g-']
+bands_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
+plot_cmap = 'hot'
 
 feature_method = 'ellipse'
 dim_reduction = ''

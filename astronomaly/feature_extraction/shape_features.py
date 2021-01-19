@@ -449,7 +449,7 @@ class EllipseFitFeatures(PipelineStage):
                 break
 
             if a == upper_limit:
-                print('FAIL')
+                #print('FAIL')
                 TESTER = [np.nan] * 4 * len(self.percentiles) 
 
 

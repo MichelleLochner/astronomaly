@@ -92,7 +92,7 @@ class AstroImage:
 
         try:
             for f in filenames:     
-                hdul = fits.open(f, memmap=False)
+                hdul = fits.open(f, memmap=True)
                 self.hdul_list.append(hdul)         
 
         except FileNotFoundError:
@@ -421,7 +421,7 @@ class ImageDataset(Dataset):
                           'sources')
 
         self.index = self.metadata.index.values
-        print(type(self.index[0]))
+        print(self.index)
 
     def create_catalogue(self):
         """
@@ -510,8 +510,6 @@ class ImageDataset(Dataset):
         self.metadata = pd.DataFrame(met, index=the_index)
         self.metadata['x'] = self.metadata['x'].astype('int')
         self.metadata['y'] = self.metadata['y'].astype('int')
-
-
 
     def get_sample(self, idx):
         """
@@ -786,158 +784,3 @@ class ImageThumbnailsDataset(Dataset):
             cutout = resize(cutout, new_shape, anti_aliasing=False)
 
         return convert_array_to_image(cutout)
-
-
-class ImageFitsDataset(Dataset):
-    def __init__(self, fits_index=None, display_image_size=128,
-                transform_function=None, display_transform_function=None,
-                plot_square=False, catalogue=None, directory=None,
-                plot_cmap='hot', **kwargs):
-        """
-        Read in a set of images that have already been cut into thumbnails. 
-        This would be uncommon with astronomical data but is needed to read a 
-        dataset like galaxy zoo. Inherits from Dataset class.
-
-        Parameters
-        ----------
-        filename : str
-            If a single file (of any time) is to be read from, the path can be
-            given using this kwarg. 
-        directory : str
-            A directory can be given instead of an explicit list of files. The
-            child class will load all appropriate files in this directory.
-        list_of_files : list
-            Instead of the above, a list of files to be loaded can be
-            explicitly given.
-        output_dir : str
-            The directory to save the log file and all outputs to. Defaults to
-        display_image_size : The size of the image to be displayed on the
-            web page. If the image is smaller than this, it will be
-            interpolated up to the higher number of pixels. If larger, it will
-            be downsampled.
-        transform_function : function or list, optional
-            The transformation function or list of functions that will be 
-            applied to each cutout. The function should take an input 2d array 
-            (the cutout) and return an output 2d array. If a list is provided, 
-            each function is applied in the order of the list.
-        catalogue : pandas.DataFrame or similar
-            A catalogue of the positions of sources around which cutouts will
-            be extracted. Note that a cutout of size "window_size" will be
-            extracted around these positions and must be the same for all
-            sources. 
-        """
-
-        super().__init__(#fits_index=fits_index, window_size=window_size, 
-                         #window_shift=window_shift, 
-                         display_image_size=display_image_size,
-                         #band_prefixes=band_prefixes, bands_rgb=bands_rgb,
-                         transform_function=transform_function, 
-                         display_transform_function=display_transform_function,
-                         plot_square=plot_square, catalogue=catalogue, 
-                         plot_cmap=plot_cmap, 
-                         **kwargs)
-
-        self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
-                                 'FITS', 'FITS.fz', 'FITS.gz']
-        self.data_type = 'image'
-        self.directory = directory
-        self.plot_cmap = plot_cmap
-
-        self.transform_function = transform_function
-        if display_transform_function is None:
-            self.display_transform_function = self.transform_function
-        else:
-            self.display_transform_function = display_transform_function
-        self.display_image_size = display_image_size
-
-        if catalogue is not None:
-            if 'catalogue_id' in catalogue.columns:
-                catalogue['filename'] = catalogue['original_image']
-                catalogue.set_index('catalogue_id')
-            self.metadata = catalogue
-        else:
-            inds = []
-            file_paths = []
-            for f in self.files:
-                extension = f.split('.')[-1]
-                if extension in self.known_file_types:
-                    inds.append(
-                        f.split(os.path.sep)[-1][:-(len(extension) + 1)])
-                    file_paths.append(f)
-            self.metadata = pd.DataFrame(index=inds, 
-                                         data={'filename': file_paths})
-
-        self.index = self.metadata.index.values
-        print(type(self.index))
-
-
-    def get_sample(self, idx):
-        """
-        Returns the data for a single sample in the dataset as indexed by idx.
-
-        Parameters
-        ----------
-        idx : string
-            Index of sample
-
-        Returns
-        -------
-        nd.array
-            Array of image cutout
-        """
-
-        filename = self.metadata.loc[idx, 'filename']
-
-        file_path = os.path.join(self.directory, filename)
-
-        hdul = fits.getdata(file_path, memmap=True)
-
-        return apply_transform(hdul, self.transform_function)
-
-    def get_display_data(self, idx):
-        """
-        Returns a single instance of the dataset in a form that is ready to be
-        displayed by the web front end.
-
-        Parameters
-        ----------
-        idx : str
-            Index (should be a string to avoid ambiguity)
-
-        Returns
-        -------
-        png image object
-            Object ready to be passed directly to the frontend
-        """
-
-        filename = self.metadata.loc[idx, 'filename']
-
-        file_path = os.path.join(self.directory, filename)
-
-        hdul = fits.getdata(file_path, memmap=True)
-
-        transform = apply_transform(hdul, self.display_transform_function)
-
-        image = convert_array_to_image(transform)
-
-        return image
-
-        #cutout = cv2.imread(filename)
-        #cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
-        #print(cutout.shape)
-        #cutout = apply_transform(cutout, self.display_transform_function)
-
-        #min_edge = min(cutout.shape[:2])
-        #max_edge = max(cutout.shape[:2])
-        #if max_edge != self.display_image_size:
-        #    new_max = self.display_image_size
-        #    new_min = int(min_edge * new_max / max_edge)
-        #    if cutout.shape[0] <= cutout.shape[1]:
-        #        new_shape = [new_min, new_max]
-        #    else:
-        #        new_shape = [new_max, new_min]
-        #    if len(cutout.shape) > 2:
-        #        new_shape.append(cutout.shape[-1])
-        #    cutout = resize(cutout, new_shape, anti_aliasing=False)
-
-        #return convert_array_to_image(cutout)
