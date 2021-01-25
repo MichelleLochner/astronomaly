@@ -43,12 +43,44 @@ class LightCurveDataset(Dataset):
         self.upper_mag = upper_mag
 
     @staticmethod
-    def read_lc_from_file(flpath):
-        """
-        Reads the light curve from file returning a dataframe
-        """
-        light_curve = pd.read_csv(flpath, delim_whitespace=True)
-        return light_curve
+    def read_lc_from_file(flpath,lc_columns,fl_columns,header_nrows):
+
+
+        # Possible file extensions
+        extn = ['.csv','.dat','.txt']
+
+        for ext in extn:
+
+            
+            # ==========CSV_files=============
+            if ext in flpath and ext == extn[0]:
+
+                # Reading in the data
+                light_curve=pd.read_csv(flpath,skiprows=header_nrows,names=fl_columns)
+                # Selecting columns with lc data
+                light_curve = light_curve.loc[:,lc_columns]            
+                # Renaming the columns into standard names for astronomaly
+                light_curve.columns = ['time','mag','magerr']
+                
+                return light_curve
+
+            # ==========.Dat_file=============
+            else:
+                
+                # Reading in the data
+                light_curve = pd.read_table(flpath,skiprows=header_nrows,names=fl_columns,delim_whitespace=True)
+                # Selecting columns with lc data
+                light_curve = light_curve.loc[:,lc_columns]
+                # Renaming the columns into standard names for astronomaly
+                light_curve.columns = ['time','mag1','mag2']
+                
+                return light_curve
+
+
+
+       
+        # light_curve = pd.read_csv(flpath, delim_whitespace=True)
+        # return light_curve
 
     def get_display_data(self, idx):
         """
