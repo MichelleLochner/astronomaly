@@ -883,6 +883,7 @@ class ImageFitsDataset(Dataset):
             cols.append('objid')
 
         #### For Information Purposes ####
+
         #if 'allmask_g' in self.catalogue.columns:
         #    catalogue['allmask'] = catalogue[['allmask_g','allmask_r','allmask_z']].max(axis=1)
         #    cols.append('allmask')
@@ -896,6 +897,7 @@ class ImageFitsDataset(Dataset):
         ###################################
 
         #### 'brickid' no longer within catalogues ####
+        
         #if 'brickid' in self.catalogue.columns:
         #    cols.append('brickid')
 
@@ -981,9 +983,9 @@ class ImageFitsDataset(Dataset):
         data = fits.getdata(file_path, memmap=True)
 
         if len(np.shape(data)) > 2:
-                one = data[0,:,:] # g-band - blue b
-                two = data[1,:,:] # r-band - green g
-                three = data[2,:,:] # z-band - red r
+                one = data[0,:,:]
+                two = data[1,:,:]
+                three = data[2,:,:]
                 data = np.dstack((three,two,one))
                 transformed_image = apply_transform(data, self.display_transform_function)
         
