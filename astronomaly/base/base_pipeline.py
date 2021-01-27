@@ -171,13 +171,23 @@ class PipelineStage(object):
         checksum : str
             The checksum
         """
-        try:
-            hash_per_row = hash_pandas_object(data)
-            total_hash = hash_pandas_object(pd.DataFrame(
-                [hash_per_row.values]))
-        except TypeError:
-            total_hash = hash_pandas_object(pd.DataFrame(data))
-        return int(total_hash.values[0])
+        if (type(data)) is tuple:
+            for dat in data:
+                if type(dat) is list:
+                    pass
+                else:
+                    hash_per_row = hash_pandas_object(dat)
+                    total_hash = hash_pandas_object(pd.DataFrame(
+                    [hash_per_row.values]))
+            return int(total_hash.values[0])
+        if (type(data)) is not tuple:
+            try:
+                hash_per_row = hash_pandas_object(data)
+                total_hash = hash_pandas_object(pd.DataFrame(
+                    [hash_per_row.values]))
+            except TypeError:
+                total_hash = hash_pandas_object(pd.DataFrame(data))
+            return int(total_hash.values[0])
 
     def run(self, data):
         """
@@ -215,7 +225,11 @@ class PipelineStage(object):
             print('Running', self.class_name, '...')
             t1 = time.time()
             if self.drop_nans:
-                output = self._execute_function(data.dropna())
+                if type(data) is tuple:
+                    data = data[0]
+                    output = self._execute_function(data.dropna())
+                else:
+                    output = self._execute_function(data.dropna())
             else:
                 output = self._execute_function(data)
             self.save(output, self.output_file)
@@ -287,18 +301,9 @@ class PipelineStage(object):
                         logged_nan_msg = True
                 out = self._execute_function(input_instance)
 
-                #print((out[0]), i)
-
-                if np.any(np.isnan(out[0])):
-                    continue
-                    #new = np.zeros((24,),dtype = str)
-                    #out[0] == new
-                    #logging_tools.log("Feature extraction failed for id " + i)
-                    #continue
-
-                #print(type(out[0]), i)
-                output.append(out[0])
-                #print(np.shape(output))
+                if np.any(np.isnan(out)):
+                    logging_tools.log("Feature extraction failed for id " + i)
+                output.append(out)
                 new_index.append(i)
             n += 1
 
@@ -315,12 +320,7 @@ class PipelineStage(object):
             self.save(output, self.output_file)
         print('Done! Time taken: ', (time.time() - t1), 's')
 
-        #print(np.shape(out))
-
-        contours = out[1]
-        ellipses = out[2]
-
-        return output, contours, ellipses
+        return output
 
     def _execute_function(self, data):
         """

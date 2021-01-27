@@ -36,6 +36,7 @@ if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
 fls = os.listdir(image_dir)
+print(fls)
 found_fits = False
 for f in fls:
     if 'fits' in f or 'FITS' in f:

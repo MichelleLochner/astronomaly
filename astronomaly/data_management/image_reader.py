@@ -41,6 +41,32 @@ def convert_array_to_image(arr, plot_cmap='hot'):
         plt.close(fig)
     return output
 
+def convert_array_from_fits_to_image(arr):
+    """
+    Function to convert an array to a png image ready to be served on a web
+    page.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Input image
+
+    Returns
+    -------
+    png image object
+        Object ready to be passed directly to the frontend
+    """
+    with mpl.rc_context({'backend': 'Agg'}):
+        fig = plt.figure(figsize=(1, 1), dpi=4 * arr.shape[1])
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        plt.imshow(arr)
+        output = io.BytesIO()
+        FigureCanvas(fig).print_png(output)
+        plt.close(fig)
+    return output
+
 
 def apply_transform(cutout, transform_function):
     """
@@ -421,7 +447,7 @@ class ImageDataset(Dataset):
                           'sources')
 
         self.index = self.metadata.index.values
-        print(type(self.index[0]))
+        print(type(self.index))
 
     def create_catalogue(self):
         """
@@ -789,14 +815,15 @@ class ImageThumbnailsDataset(Dataset):
 
 
 class ImageFitsDataset(Dataset):
-    def __init__(self, fits_index=None, display_image_size=128,
-                transform_function=None, display_transform_function=None,
-                plot_square=False, catalogue=None, directory=None,
-                plot_cmap='hot', **kwargs):
+    def __init__(self, fits_index=None,
+                 display_image_size=128,
+                 transform_function=None, display_transform_function=None,
+                 catalogue=None, directory=None,
+                 **kwargs):
         """
-        Read in a set of images that have already been cut into thumbnails. 
-        This would be uncommon with astronomical data but is needed to read a 
-        dataset like galaxy zoo. Inherits from Dataset class.
+        Read in a set of fits cutouts that are based on a single source. This
+        form is uncommon but is used when downloading directly from the DECALS
+        SkyViewer. Inherits from Dataset class.
 
         Parameters
         ----------
@@ -811,6 +838,7 @@ class ImageFitsDataset(Dataset):
             explicitly given.
         output_dir : str
             The directory to save the log file and all outputs to. Defaults to
+            './'
         display_image_size : The size of the image to be displayed on the
             web page. If the image is smaller than this, it will be
             interpolated up to the higher number of pixels. If larger, it will
@@ -827,49 +855,86 @@ class ImageFitsDataset(Dataset):
             sources. 
         """
 
-        super().__init__(#fits_index=fits_index, window_size=window_size, 
-                         #window_shift=window_shift, 
-                         display_image_size=display_image_size,
-                         #band_prefixes=band_prefixes, bands_rgb=bands_rgb,
+        super().__init__(display_image_size=128,
                          transform_function=transform_function, 
                          display_transform_function=display_transform_function,
-                         plot_square=plot_square, catalogue=catalogue, 
-                         plot_cmap=plot_cmap, 
+                         catalogue=catalogue,
                          **kwargs)
 
+        self.data_type = 'image'
         self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
                                  'FITS', 'FITS.fz', 'FITS.gz']
-        self.data_type = 'image'
-        self.directory = directory
-        self.plot_cmap = plot_cmap
 
+        self.display_image_size = display_image_size
         self.transform_function = transform_function
+        self.directory = directory
+        self.catalogue = catalogue
+        
         if display_transform_function is None:
             self.display_transform_function = self.transform_function
         else:
             self.display_transform_function = display_transform_function
-        self.display_image_size = display_image_size
 
-        if catalogue is not None:
-            if 'catalogue_id' in catalogue.columns:
-                catalogue['filename'] = catalogue['original_image']
-                catalogue.set_index('catalogue_id')
-            self.metadata = catalogue
-        else:
-            inds = []
-            file_paths = []
-            for f in self.files:
-                extension = f.split('.')[-1]
-                if extension in self.known_file_types:
-                    inds.append(
-                        f.split(os.path.sep)[-1][:-(len(extension) + 1)])
-                    file_paths.append(f)
-            self.metadata = pd.DataFrame(index=inds, 
-                                         data={'filename': file_paths})
+        catalogue['name'] = catalogue['objid'].astype(str) + '-' + catalogue['brickid'].astype(str)
+        catalogue['peak_flux'] = catalogue[['flux_g', 'flux_r', 'flux_z']].max(axis=1)
 
+        cols = []
+        if 'objid' in self.catalogue.columns:
+            cols.append('objid')
+
+        #### For Information Purposes ####
+        #if 'allmask_g' in self.catalogue.columns:
+        #    catalogue['allmask'] = catalogue[['allmask_g','allmask_r','allmask_z']].max(axis=1)
+        #    cols.append('allmask')
+        #if 'anymask_g' in self.catalogue.columns:
+        #    catalogue['anymask'] = catalogue[['anymask_g','anymask_r','anymask_z']].max(axis=1)
+        #    cols.append('anymask')
+        #if 'fracmasked_g' in self.catalogue.columns:
+        #    catalogue['fracmasked'] = catalogue[['fracmasked_g','fracmasked_r','fracmasked_z']].max(axis=1)
+        #    cols.append('fracmasked')
+
+        ###################################
+
+        #### 'brickid' no longer within catalogues ####
+        #if 'brickid' in self.catalogue.columns:
+        #    cols.append('brickid')
+
+        if 'brickname' in self.catalogue.columns:
+            cols.append('brickname')
+        if 'ra' in self.catalogue.columns:
+            cols.append('ra')
+        if 'dec' in self.catalogue.columns:
+            cols.append('dec')
+        if 'flux_g' in self.catalogue.columns:
+            cols.append('peak_flux')
+        if 'flux_g' in self.catalogue.columns:
+            cols.append('flux_g')
+        if 'flux_r' in self.catalogue.columns:
+            cols.append('flux_r')
+        if 'flux_z' in self.catalogue.columns:
+            cols.append('flux_z')
+        if 'type' in self.catalogue.columns:
+            cols.append('type')
+        if 'original_image' in self.catalogue.columns:
+            catalogue['original_image'] = catalogue['original_image'].astype(str)
+            cols.append('original_image')
+
+        new_index = np.array(self.catalogue['name'].values, dtype='str')
+
+        met = {}
+        for c in cols:
+            met[c] = self.catalogue[c].values
+
+        self.metadata = pd.DataFrame(met, index = new_index)
+
+        duplicates = []
+        for i in range(len(self.metadata.index.values)):
+            if self.metadata.index.values[i] in duplicates:
+                self.metadata.index.values[i] = self.metadata.index.values[i] + '-1'
+            else:
+                duplicates.append(self.metadata.index.values[i])
+        
         self.index = self.metadata.index.values
-        print(type(self.index))
-
 
     def get_sample(self, idx):
         """
@@ -886,13 +951,12 @@ class ImageFitsDataset(Dataset):
             Array of image cutout
         """
 
-        filename = self.metadata.loc[idx, 'filename']
-
+        filename = self.metadata.loc[idx, 'original_image']
         file_path = os.path.join(self.directory, filename)
 
-        hdul = fits.getdata(file_path, memmap=True)
+        data = fits.getdata(file_path, memmap=True)
 
-        return apply_transform(hdul, self.transform_function)
+        return apply_transform(data, self.transform_function)
 
     def get_display_data(self, idx):
         """
@@ -910,34 +974,26 @@ class ImageFitsDataset(Dataset):
             Object ready to be passed directly to the frontend
         """
 
-        filename = self.metadata.loc[idx, 'filename']
+        filename = self.metadata.loc[idx, 'original_image']
 
         file_path = os.path.join(self.directory, filename)
 
-        hdul = fits.getdata(file_path, memmap=True)
+        data = fits.getdata(file_path, memmap=True)
 
-        transform = apply_transform(hdul, self.display_transform_function)
+        if len(np.shape(data)) > 2:
+                one = data[0,:,:] # g-band - blue b
+                two = data[1,:,:] # r-band - green g
+                three = data[2,:,:] # z-band - red r
+                data = np.dstack((three,two,one))
+                transformed_image = apply_transform(data, self.display_transform_function)
+        
+        else:
+            transformed_image = apply_transform(data, self.display_transform_function)
 
-        image = convert_array_to_image(transform)
+        #Resized to the web interface size
+        resized_image = resize(transformed_image, [128,128])
+
+        image = convert_array_from_fits_to_image(resized_image)
 
         return image
 
-        #cutout = cv2.imread(filename)
-        #cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
-        #print(cutout.shape)
-        #cutout = apply_transform(cutout, self.display_transform_function)
-
-        #min_edge = min(cutout.shape[:2])
-        #max_edge = max(cutout.shape[:2])
-        #if max_edge != self.display_image_size:
-        #    new_max = self.display_image_size
-        #    new_min = int(min_edge * new_max / max_edge)
-        #    if cutout.shape[0] <= cutout.shape[1]:
-        #        new_shape = [new_min, new_max]
-        #    else:
-        #        new_shape = [new_max, new_min]
-        #    if len(cutout.shape) > 2:
-        #        new_shape.append(cutout.shape[-1])
-        #    cutout = resize(cutout, new_shape, anti_aliasing=False)
-
-        #return convert_array_to_image(cutout)

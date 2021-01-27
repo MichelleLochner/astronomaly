@@ -74,6 +74,7 @@ class Controller:
         """
         Simply calls the underlying Dataset's function to return display data.
         """
+
         try:
             return self.dataset.get_display_data(idx)
         except KeyError:
@@ -108,6 +109,7 @@ class Controller:
         label : int
             Human-assigned label
         """
+
         ml_df = self.anomaly_scores
         if 'human_label' not in ml_df.columns:
             ml_df['human_label'] = [-1] * len(ml_df)
@@ -117,7 +119,7 @@ class Controller:
         self.active_learning.save(
             ml_df, os.path.join(self.active_learning.output_dir, 
                                 'ml_scores.csv'), file_format='csv')
-
+                                    
     def run_active_learning(self):
         """
         Runs the selected active learning algorithm.

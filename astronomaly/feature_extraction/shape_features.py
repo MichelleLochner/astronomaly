@@ -290,7 +290,6 @@ class EllipseFitFeatures(PipelineStage):
         y_cent = this_image.shape[1] // 2
 
         feats = []
-        ##threshold = []
         all_contours = []
         stop = False
 
@@ -308,7 +307,6 @@ class EllipseFitFeatures(PipelineStage):
             failure_message = ""
 
         for a in scale:
-            #print('Upscaled to : ', a,'%')
             drawn_contours = []
             all_ellipses = []
             lst = []
@@ -358,12 +356,7 @@ class EllipseFitFeatures(PipelineStage):
 
                     c = contours[ind]
 
-                    #params = get_ellipse_leastsq(c, resize)
-
                     if len(c) < 5:
-                        ##long_enough = False
-                        #print('Loop broken due to insufficient points')
-                        #print()
                         break
 
                     params = get_ellipse_leastsq(c, resize)
@@ -438,35 +431,16 @@ class EllipseFitFeatures(PipelineStage):
                         if theta_diff > 90:
                             theta_diff -= 90
                         theta.append(theta_diff)
-
-                        TESTER = np.hstack((residuals, dist_to_centre, aspect, theta))
+                        features = np.hstack((residuals, dist_to_centre, aspect, theta))
 
                     if len(lst) == len(percentiles):
-                        #print('All necessary contours found')
                         stop = True
-
             if stop:
                 break
-
             if a == upper_limit:
-                #print('FAIL')
-                TESTER = [np.nan] * 4 * len(self.percentiles) 
+                features = [np.nan] * 4 * len(self.percentiles) 
 
-
-            #print(a, upper_limit)
-
-            #if len(feats) == 0:
-            #    print('FAIL')
-            #    TESTER = [np.nan] * 4 * len(self.percentiles) 
-
-            #if len(feats) == 0:
-            #    print('FAILED FOR ALL SCALES')
-            #    TESTER = [np.nan] * 4 * len(self.percentiles) 
-                #return [np.nan] * 4 * len(self.percentiles), drawn_contours, all_ellipses
-
-
-        #print((TESTER))
-        return TESTER, drawn_contours, all_ellipses
+        return features
 
 
 class HuMomentsFeatures(PipelineStage):

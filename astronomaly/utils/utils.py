@@ -52,6 +52,50 @@ def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
     return new_catalogue
 
 
+def convert_pybdsf_catalogue(catalogue_file, image_file):
+    """
+    Converts a pybdsf fits file to a pandas dataframe to be given
+    directly to an ImageDataset object.
+
+    Parameters
+    ----------
+    catalogue_files : string
+        Pybdsf catalogue in fits table format 
+    image_file:
+        The image corresponding to this catalogue (to extract pixel information
+        and naming information)
+    """
+    if 'csv' in catalogue_file:
+        catalogue = pd.read_csv(catalogue_file, skiprows=5)
+        cols = list(catalogue.columns)
+        for i in range(len(cols)):
+            cols[i] = cols[i].strip()
+        catalogue.columns = cols
+    else:
+        dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
+        catalogue = dat.to_pandas()
+
+    hdul = astropy.io.fits.open(image_file)
+    original_image = image_file.split(os.path.sep)[-1]
+
+    w = astropy.wcs.WCS(hdul[0].header, naxis=2)
+
+    x, y = w.wcs_world2pix(catalogue.RA, catalogue.DEC, 1)
+
+    new_catalogue = pd.DataFrame()
+    new_catalogue['objid'] = catalogue['Source_id']
+    new_catalogue['original_image'] = [original_image] * len(new_catalogue)
+    new_catalogue['peak_flux'] = catalogue['Peak_flux']
+    new_catalogue['x'] = x
+    new_catalogue['y'] = y
+    new_catalogue['ra'] = catalogue.RA
+    new_catalogue['dec'] = catalogue.DEC
+
+    new_catalogue.drop_duplicates(subset='objid', inplace=True)
+    new_catalogue.to_csv('deep2_offset_catalogue.tsv', sep='\t')
+    return new_catalogue
+
+
 def create_catalogue_spreadsheet(image_dataset, scores,
                                  filename='anomaly_catalogue.xlsx',
                                  ignore_nearby_sources=True,
@@ -79,7 +123,7 @@ def create_catalogue_spreadsheet(image_dataset, scores,
         0.016 degrees
     """
 
-    workbook = xlsxwriter.Workbook(filename)
+    workbook = xlsxwriter.Workbook(filename, {'nan_inf_to_errors': True})
     worksheet = workbook.add_worksheet()
 
     # Widen the first column to make the text clearer.

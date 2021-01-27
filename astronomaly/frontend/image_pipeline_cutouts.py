@@ -11,13 +11,13 @@ import os
 import pandas as pd
 
 
-data_dir = '/home/verlon/Desktop/Files/Data/tractor_s 10000 brightest/'
+data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Sample - flux limited'
 
 which_data = 'decals'
 list_of_files = []
 window_size = 32
 
-image_transform_function = [#image_preprocessing.image_band_reorder,
+image_transform_function = [image_preprocessing.image_band_reorder,
                             image_preprocessing.image_transform_scale,
                             image_preprocessing.image_transform_greyscale,
                             #image_preprocessing.image_band_addition,
@@ -33,13 +33,13 @@ display_transform_function = [#image_preprocessing.image_transform_inverse_sinh,
 
 
 image_dir = os.path.join(data_dir,'Cutouts')
-output_dir = os.path.join(data_dir,'Cutouts', 'Output', '')
+output_dir = os.path.join(data_dir, 'Output', '')
 
 #image_dir = os.path.join(data_dir,'0260m062', 'Input', 'Images')
 #output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
 
-catalogue = pd.read_csv(os.path.join(data_dir,'Top 10000 tractor_s - adjusted.csv'))
+catalogue = pd.read_csv(os.path.join(data_dir,'Sample 10 000 flux limited - adjusted.csv'))
     #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
@@ -95,25 +95,25 @@ def run_pipeline():
 
     pipeline_ellipse = shape_features.EllipseFitFeatures(
             percentiles=[90, 80, 70, 60, 50,0],
-            output_dir=output_dir, channel=0, force_rerun=False
+            output_dir=output_dir, channel=0, force_rerun=True
         )
 
-    features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
-    #features_original = pipeline_ellipse.run_on_dataset(image_dataset)
+    #features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
+    features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
     print (features)
 
-    pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
+    pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
 
     pipeline_iforest = isolation_forest.IforestAlgorithm(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=True, output_dir=output_dir)
     anomalies = pipeline_iforest.run(features)
 
     pipeline_score_converter = human_loop_learning.ScoreConverter(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=True, output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
     anomalies = anomalies.sort_values('score', ascending=False)
 
@@ -134,11 +134,17 @@ def run_pipeline():
         alpha=1, output_dir=output_dir)
 
     pipeline_tsne = tsne.TSNE_Plot(
-        force_rerun=False,
+        force_rerun=True,
         output_dir=output_dir,
         perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])
     # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
+
+    flname = os.path.join(output_dir, 'anomaly_catalogue_all.xlsx')
+    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:200],
+                                       filename=flname,
+                                       ignore_nearby_sources=True,
+                                       source_radius=0.016)
 
 
     return {'dataset': image_dataset, 
