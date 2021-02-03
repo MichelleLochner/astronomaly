@@ -3,11 +3,6 @@ import os
 from astronomaly.base.base_dataset import Dataset
 
 
-import pandas as pd 
-import os
-from astronomaly.base.base_dataset import Dataset
-
-
 class LightCurveDataset(Dataset):
     def __init__(self, time_col, brightness,brightness_err,filters, **kwargs):
         """
