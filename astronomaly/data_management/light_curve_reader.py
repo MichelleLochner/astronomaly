@@ -242,7 +242,7 @@ class LightCurveDataset(Dataset):
         return pd.DataFrame.from_dict(standard_data)
             # return light_curve
 
-    def get_display_data(self, idx):
+    def get_display_data(self, idx,flpath,data_dict,header_nrows,delim_whitespace):
         """
         Returns a single instance of the dataset in a form that is ready to be
         displayed by the web front end.
@@ -265,30 +265,39 @@ class LightCurveDataset(Dataset):
         data_col = ['time','mag','flux','mag1','mag2',
                     'flux1','flux2','filters']
 
-        err_col = ['time','mag_error','flux_error']
+        err_col = ['mag_error','flux_error']
 
         out_dict = {}
 
         metadata = self.metadata
-        flpath = metadata[idx]['filepath'].iloc[0]
+#         flpath = metadata[idx]['filepath'].iloc[0]
 
         try:
 
             
             # Reading in the light curve data
             light_curve = self.read_lc_from_file(flpath,data_dict,header_nrows,delim_whitespace)
+            light_curve = light_curve[light_curve['ID']==idx]
             
             # Data and error index 
             data_indx = [cl for cl in data_col if cl in light_curve.columns.values.tolist()] 
             err_indx = [cl for cl in err_col if cl in light_curve.columns.values.tolist()]
 
+            
             # Getting both the data and error columns as per index
             out_dict['data'] = light_curve[data_indx].values.tolist()
-            lc_errs = light_curve[err_indx]
-            out_dict['errors'] = lc_errs.values.tolist()
+            
+            
+            # Returns true if we have error columns
+            if err_col[0] in light_curve.columns.values.tolist() or err_col[1] in light_curve.columns.values.tolist():
+                lc_errs = light_curve[err_indx]
+                out_dict['errors'] = lc_errs.values.tolist()
+                
+             
 
-        except (pd.errors.ParserError, pd.errors.EmptyDataError, 
-                FileNotFoundError) as e:
+                
+
+        except (pd.errors.ParserError, pd.errors.EmptyDataError, FileNotFoundError) as e:
             print('Error parsing file', flpath)
             print('Error message:')
             print(e)
