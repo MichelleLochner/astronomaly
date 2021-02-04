@@ -239,7 +239,7 @@ class LightCurveDataset(Dataset):
             
             
         
-        return pd.DataFrame.from_dict(standard_data), delim_whitespace=True)
+        return pd.DataFrame.from_dict(standard_data)
             # return light_curve
 
     def get_display_data(self, idx):
