@@ -69,7 +69,7 @@ def apply_transform(cutout, transform_function):
 
 
 class AstroImage:
-    def __init__(self, filenames, file_type='fits', fits_index=0, name=''):
+    def __init__(self, filenames, file_type='fits', fits_index=None, name=''):
         """
         Lightweight wrapper for an astronomy image from a fits file
 
@@ -138,14 +138,15 @@ class AstroImage:
                             dat = dat[0][0]
                         image = dat[rs:re, cs:ce]
                         break
-                self.metadata = dict(hdul[self.fits_index].header)
-                if self.wcs is None:
-                    self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
             else:
                 dat = hdul[self.fits_index].data
                 if len(dat.shape) > 2:
                     dat = dat[0][0]
                 image = dat[rs:re, cs:ce]
+
+            self.metadata = dict(hdul[self.fits_index].header)
+            if self.wcs is None:
+                self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
 
             if len(image.shape) > 2 and image.shape[-1] > 3:
                 image = image[:, :, 0]
