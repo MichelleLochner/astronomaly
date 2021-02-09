@@ -58,28 +58,20 @@ class LightCurveDataset(Dataset):
         self.data_dict = data_dict
         self.header_nrows = header_nrows
         self.delim_whitespace = delim_whitespace
+        self.flpath = flpath
      
+        
+#         ========================================================================================
+                                   
+                                    # Reading the light curve data 
+        
+#         ========================================================================================
 
-        
-        
 
-#     @staticmethod
-    def read_lc_from_file(self,flpath):
-
-        
-        '''Function to read the lc from the data
-        
-        Input:
-        flpath: the location of the file
-        
-    
-                
-        Output:
-       standardized pandas dataframe with lc data'''
         
         
         # Reading-in the data
-        data = pd.read_csv(flpath,skiprows=self.header_nrows,delim_whitespace=self.delim_whitespace,header=None)
+        data = pd.read_csv(self.filename,skiprows=self.header_nrows,delim_whitespace=self.delim_whitespace,header=None)
         
         
         # ==================Magnitudes==================================
@@ -236,14 +228,14 @@ class LightCurveDataset(Dataset):
                     
                     standard_data = {'ID':ID,'time':time,'flux':flux}
             
-            
-        
-        return pd.DataFrame.from_dict(standard_data)
+        ids = np.unique(standard_data['ID'])   
+        self.metadata = pd.DataFrame({'ID': ids}, index=ids)
+        self.light_curve = pd.DataFrame.from_dict(standard_data)
     
     
     
 
-    def get_display_data(self, idx,flpath):
+    def get_display_data(self, idx):
         """
         Returns a single instance of the dataset in a form that is ready to be
         displayed by the web front end.
@@ -258,9 +250,7 @@ class LightCurveDataset(Dataset):
         dict
             json-compatible dictionary of the light curve data
         """
-        # print(id)
-        # ***** Need to extend this to deal with other bands
-#         time_col = 'time'
+
 
         # All the standard columns are included here
         data_col = ['time','mag','flux','mag1','mag2','flux1','flux2','filters']
@@ -269,17 +259,13 @@ class LightCurveDataset(Dataset):
 
         out_dict = {}
 
-        metadata = self.metadata
 
-        ##### need to understand this line of code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # flpath = metadata[idx]['filepath'].iloc[0]
 
         try:
 
             
             # Reading in the light curve data
-            light_curve = self.read_lc_from_file(flpath)
-            light_curve = light_curve[light_curve['ID']==idx]
+            light_curve = self.light_curve[self.light_curve['ID']==idx]
             
             # Data and error index 
             data_indx = [cl for cl in data_col if cl in light_curve.columns.values.tolist()] 
@@ -308,30 +294,21 @@ class LightCurveDataset(Dataset):
         return out_dict
     
 
-    def get_sample(self,idx,flpath):
+    def get_sample(self,idx):
         
         
         # All the standard columns for feature extraction 
         data_col = ['time','mag','flux','mag1','mag2','flux1','flux2','mag_error','flux_error']
 
-
-    
-        metadata = self.metadata
-
-        ##### need to understand this line of code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-        # flpath = metadata[idx]['filepath'].iloc[0]
-
-        # empty pandas dataframe to update as per data_col
+      
         out_data = pd.DataFrame({})
         try:
 
             
-            # Reading in the light curve data
-            light_curve = self.read_lc_from_file(flpath)
+
             
             # Choosing light curve values for a specific ID
-            light_curve = light_curve[light_curve['ID']==idx]
+            light_curve = self.light_curve[self.light_curve['ID']==idx]
             
             
             sample_data = []
@@ -355,5 +332,3 @@ class LightCurveDataset(Dataset):
             print('Error message:')
             print(e)
             out_dict = {'data': [], 'errors': []}
-
-    
