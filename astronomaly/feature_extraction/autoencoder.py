@@ -30,7 +30,7 @@ class Autoencoder:
                 self.encoder = Model(inputs=inputs, outputs=outputs)
             except OSError:
                 print('Model file ', model_file, 
-                      'is invalid. Weights not loaded.')
+                      'is invalid. Weights not loaded. New model created.')
                 self.autoencoder = None
         else:
             self.autoencoder = None
@@ -54,7 +54,9 @@ class Autoencoder:
         if len(images.shape) == 2:
             images = images.reshape([-1, images.shape[0], images.shape[1], 1])
         if len(images.shape) == 3:
-            images = images.reshape([-1, images.shape[1], images.shape[2], 1])
+            images = images.reshape([-1, 
+                                     images.shape[0], images.shape[1], 
+                                     images.shape[2]])
 
         return images
 
@@ -219,13 +221,21 @@ class AutoencoderFeatures(PipelineStage):
 
         if self.autoenc.autoencoder is None:
 
+            cutouts = []
+            # Here I'm explicitly assuming the entire training set can be read
+            # into memory
+            print("Loading training data...")
+            for i in training_dataset.index[:200]:
+                cutouts.append(training_dataset.get_sample(i))
+            print("Done!")
+
+            img_shape = cutouts[0].shape
+
             print('Compiling autoencoder model...')
-            self.autoenc.compile_autoencoder_model((
-                training_dataset.window_size_x, 
-                training_dataset.window_size_y))
+            self.autoenc.compile_autoencoder_model(img_shape)
             print('Done!')
             print('Training autoencoder...')
-            self.autoenc.fit(training_dataset.cutouts, epochs=10)
+            self.autoenc.fit(cutouts, epochs=10)
             print('Done!')
 
             if self.save_output:
