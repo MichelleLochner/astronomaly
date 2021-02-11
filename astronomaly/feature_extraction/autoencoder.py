@@ -225,9 +225,9 @@ class AutoencoderFeatures(PipelineStage):
             # Here I'm explicitly assuming the entire training set can be read
             # into memory
             print("Loading training data...")
-            for i in training_dataset.index[:200]:
+            for i in training_dataset.index:
                 cutouts.append(training_dataset.get_sample(i))
-            print("Done!")
+            print("%d objects loaded." % len(cutouts))
 
             img_shape = cutouts[0].shape
 
