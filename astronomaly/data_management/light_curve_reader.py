@@ -1,6 +1,7 @@
 import pandas as pd 
 import os
-from astronomaly.base.base_dataset import Dataset
+import numpy as np
+# from astronomaly.base.base_dataset import Dataset
 
 
 class LightCurveDataset(Dataset):
@@ -58,7 +59,6 @@ class LightCurveDataset(Dataset):
         self.data_dict = data_dict
         self.header_nrows = header_nrows
         self.delim_whitespace = delim_whitespace
-        self.flpath = flpath
      
         
 #         ========================================================================================
@@ -67,71 +67,83 @@ class LightCurveDataset(Dataset):
         
 #         ========================================================================================
 
-
         
         
         # Reading-in the data
-        data = pd.read_csv(self.filename,skiprows=self.header_nrows,delim_whitespace=self.delim_whitespace,header=None)
         
+        
+        
+        # ===================Case for multiple files of light curve data================================
+        try:
+
+            data=pd.concat([pd.read_csv(self.files[0],skiprows=self.header_nrows,
+                               delim_whitespace=self.delim_whitespace,header=None),
+                               
+                               pd.read_csv(self.files[1],skiprows=self.header_nrows,
+                                           delim_whitespace=self.delim_whitespace,header=None)])
+            
+            
+
+            for fl in range(2,len(self.files)):
+
+                data=pd.concat([data, pd.read_csv(self.files[fl],skiprows=self.header_nrows,
+                               delim_whitespace=self.delim_whitespace,header=None)])
+                
+        
+        # ===================Case for single file of light curve data==================================
+        except IndexError:
+            
+            
+            data = pd.read_csv(self.files[0],skiprows=self.header_nrows,
+                               delim_whitespace=self.delim_whitespace,header=None)
+
+            
+
+        
+
         
         # ==================Magnitudes==================================
         # ==============================================================
-        ID = data.iloc[:,self.data_dict['id']]
+        Id = data.iloc[:,self.data_dict['id']]
+        time = data.iloc[:,self.data_dict['time']]
+        
+        standard_data = {'ID':Id,'time':time}
+        
         if 'mag' in self.data_dict.keys(): 
             
             
             # ============MUtliple Mag columns=========================
             
             # The case of multiple brightness columns        
-            if type(self.data_dict['mag']) == list:
+            try:
                 
-                # Separatting the columns as per input dictionary
-                time = data.iloc[:,self.data_dict['time']]; mag1 = data.iloc[:,self.data_dict['mag'][0]];
-                mag2 = data.iloc[:,self.data_dict['mag'][1]]
                 
-                # Case where there are brightness error columns
-                if 'mag_err' in self.data_dict.keys():                
-                    
-                    mag_error = data.iloc[:,self.data_dict['mag_err']]
-                    # Creating a new dictionary for the columns above separate data
-                    standard_data = {'ID':ID,'time':time,'mag1':mag1,'mag2':mag2,'mag_error':mag_error}
-                    
-                # Case were there are no error columns
-                else:
-                    
-                    standard_data = {'ID':ID,'time':time,'mag1':mag1,'mag2':mag2}
-                            
-            
-            
-                    
-            # ============Column with Mag_filters and errors==========================
-            
-            # Including filters in dataframe
-            elif 'filters'in self.data_dict.keys() and 'mag_err' in self.data_dict.keys():
-                
-                # Separatting the columns as per input dictionary
-                time = data.iloc[:,self.data_dict['time']]; mag = data.iloc[:,self.data_dict['mag']];
-                mag_error = data.iloc[:,self.data_dict['mag_err']]
-
-                filters = data.iloc[:,self.data_dict['filters']]
-                standard_data = {'ID':ID,'time':time,'mag':mag,'mag_error':mag_error,'filters':filters}
-                
-            elif 'filters' in self.data_dict.keys():
-                
-                # Separatting the columns as per input dictionary
-                time = data.iloc[:,self.data_dict['time']]; mag = data.iloc[:,self.data_dict['mag']];
         
+                for i in range(len(self.data_dict['mag'])):
+                    
+                    
+                    # Separatting the columns as per input dictionary
+    #             
 
-                filters = data.iloc[:,self.data_dict['filters']]
-                standard_data = {'ID':ID,'time':time,'mag':mag,'filters':filters}
-                
-                
-                
+                    # Case where there are brightness error columns
+                    if 'mag_err' in self.data_dict.keys():                
+
+                        # Creating a new dictionary for the columns above separate data
+                        standard_data.update({'mag'+str(i+1):data.iloc[:,self.data_dict['mag'][i]],
+                                              'mag_error'+str(i+1):data.iloc[:,self.data_dict['mag_err'][i]]})
+
+                    # Case were there are no error columns
+                    else:
+
+                        standard_data.update({'mag'+str(i+1):data.iloc[:,self.data_dict['mag'][i]]})
+                    
+                    
+            
                 
             #=================Single Mag Column with and with errors============================
             
             # Case of single brightness columns    
-            else:    
+            except TypeError:    
                 
                 
                 # Separatting the columns as per input dictionary
@@ -142,11 +154,38 @@ class LightCurveDataset(Dataset):
                     
                     mag_error = data.iloc[:,self.data_dict['mag_err']]
                     # Creating a new dictionary for the columns above separate data
-                    standard_data = {'ID':ID,'time':time,'mag':mag,'mag_error':mag_error}
+                    standard_data.update({'mag':mag,'mag_error':mag_error})
                     
                 else:
                     
-                    standard_data = {'ID':ID,'time':time,'mag':mag}
+                    standard_data.update({'mag':mag})
+                            
+            
+            
+                    
+            # ============Column with Mag_filters and errors==========================
+            
+            # Including filters in dataframe
+            if 'filters'in self.data_dict.keys() and 'mag_err' in self.data_dict.keys():
+                
+                # Separatting the columns as per input dictionary
+                time = data.iloc[:,self.data_dict['time']]; mag = data.iloc[:,self.data_dict['mag']];
+                mag_error = data.iloc[:,self.data_dict['mag_err']]
+
+                filters = data.iloc[:,self.data_dict['filters']]
+                standard_data.update({'mag':mag,'mag_error':mag_error,'filters':filters})
+                
+            elif 'filters' in self.data_dict.keys():
+                
+                # Separatting the columns as per input dictionary
+                time = data.iloc[:,self.data_dict['time']]; mag = data.iloc[:,self.data_dict['mag']];
+        
+
+                filters = data.iloc[:,self.data_dict['filters']]
+                standard_data.update({'mag':mag,'filters':filters})
+                
+                
+                
                     
                     
     #-----------------------------------------------------------------------------------------------------------------                
@@ -163,38 +202,60 @@ class LightCurveDataset(Dataset):
                     # ============MUtliple Mag columns=========================
             
             # The case of multiple brightness columns        
-            if type(self.data_dict['flux']) == list:
+            try:
+                
+                
+        
+                for i in range(len(self.data_dict['flux'])):
+                    
+                    
+                    # Separatting the columns as per input dictionary
+    #             
+
+                    # Case where there are brightness error columns
+                    if 'flux_err' in self.data_dict.keys():                
+
+                        # Creating a new dictionary for the columns above separate data
+                        standard_data.update({'flux'+str(i+1):data.iloc[:,self.data_dict['flux'][i]],
+                                              'flux_error'+str(i+1):data.iloc[:,self.data_dict['flux_err'][i]]})
+                    # Case were there are no error columns
+                    else:
+
+                        standard_data.update({'flux'+str(i+1):data.iloc[:,self.data_dict['flux'][i]]})
+                    
+                    
+                    
+            except TypeError:    
+                
                 
                 # Separatting the columns as per input dictionary
-                time = data.iloc[:,self.data_dict['time']]; flux1 = data.iloc[:,self.data_dict['flux'][0]];
-                flux2 = data.iloc[:,self.data_dict['flux'][1]]
-                
-                # Case where there are brightness error columns
-                if 'flux_err' in self.data_dict.keys():                
-                    
-                    flux_error = self.data.iloc[:,self.data_dict['flux_err']]
+                time = data.iloc[:,self.data_dict['time']]; flux = data.iloc[:,self.data_dict['flux']]; 
+
+                if 'flux_err' in self.data_dict.keys():
+
+
+                    flux_error = data.iloc[:,self.data_dict['flux_err']]
                     # Creating a new dictionary for the columns above separate data
-                    standard_data = {'ID':ID,'time':time,'flux1':flux1,'flux2':flux2,'flux_error':flux_error}
-                    
-                # Case were there are no error columns
+                    standard_data.update({'flux':flux,'flux_error':flux_error})
+
                 else:
-                    
-                    standard_data = {'ID':ID,'time':time,'flux1':flux1,'flux2':flux2}
-                            
-            
+
+                    standard_data.update({'flux':flux})
+
+
             
                     
             # ============Column with Mag_filters and errors==========================
             
             # Including filters in dataframe
-            elif 'filters'in self.data_dict.keys() and 'flux_err' in self.data_dict.keys():
+            if 'filters'in self.data_dict.keys() and 'flux_err' in self.data_dict.keys():
                 
                 # Separatting the columns as per input dictionary
                 time = data.iloc[:,self.data_dict['time']]; flux = data.iloc[:,self.data_dict['flux']];
                 flux_error = data.iloc[:,self.data_dict['flux_err']]
 
                 filters = data.iloc[:,self.data_dict['filters']]
-                standard_data = {'ID':ID,'time':time,'flux':flux,'flux_error':flux_error,'filters':filters}
+                standard_data.update({'flux':flux,'flux_error':flux_error,'filters':filters})
                 
             elif 'filters' in self.data_dict.keys():
                 
@@ -203,7 +264,7 @@ class LightCurveDataset(Dataset):
         
 
                 filters = data.iloc[:,self.data_dict['filters']]
-                standard_data = {'ID':ID,'time':time,'flux':flux,'filters':filters}
+                standard_data.update({'flux':flux,'filters':filters})
                 
                 
                 
@@ -211,30 +272,12 @@ class LightCurveDataset(Dataset):
             #=================Single Mag Column with and with errors============================
             
             # Case of single brightness columns    
-            else:    
-                
-                
-                # Separatting the columns as per input dictionary
-                time = data.iloc[:,self.data_dict['time']]; flux = data.iloc[:,self.data_dict['flux']]; 
-                
-                if 'flux_err' in self.data_dict.keys():
-                    
-                    
-                    flux_error = data.iloc[:,self.data_dict['flux_err']]
-                    # Creating a new dictionary for the columns above separate data
-                    standard_data = {'ID':ID,'time':time,'flux':flux,'flux_error':flux_error}
-                    
-                else:
-                    
-                    standard_data = {'ID':ID,'time':time,'flux':flux}
+          
             
         ids = np.unique(standard_data['ID'])   
         self.metadata = pd.DataFrame({'ID': ids}, index=ids)
-        self.light_curve = pd.DataFrame.from_dict(standard_data)
+        self.light_curves_data = pd.DataFrame.from_dict(standard_data)
     
-    
-    
-
     def get_display_data(self, idx):
         """
         Returns a single instance of the dataset in a form that is ready to be
@@ -250,7 +293,9 @@ class LightCurveDataset(Dataset):
         dict
             json-compatible dictionary of the light curve data
         """
-
+        # print(id)
+        # ***** Need to extend this to deal with other bands
+#         time_col = 'time'
 
         # All the standard columns are included here
         data_col = ['time','mag','flux','mag1','mag2','flux1','flux2','filters']
@@ -259,13 +304,17 @@ class LightCurveDataset(Dataset):
 
         out_dict = {}
 
+#         metadata = self.metadata
 
+        ##### need to understand this line of code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # flpath = metadata[idx]['filepath'].iloc[0]
 
         try:
 
             
             # Reading in the light curve data
-            light_curve = self.light_curve[self.light_curve['ID']==idx]
+#             light_curve = self.read_lc_from_file(flpath)
+            light_curve = self.light_curves_data[self.light_curves_data['ID']==idx]
             
             # Data and error index 
             data_indx = [cl for cl in data_col if cl in light_curve.columns.values.tolist()] 
@@ -300,15 +349,24 @@ class LightCurveDataset(Dataset):
         # All the standard columns for feature extraction 
         data_col = ['time','mag','flux','mag1','mag2','flux1','flux2','mag_error','flux_error']
 
-      
+
+    
+        metadata = self.metadata
+
+        ##### need to understand this line of code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        # flpath = metadata[idx]['filepath'].iloc[0]
+
+        # empty pandas dataframe to update as per data_col
         out_data = pd.DataFrame({})
         try:
 
             
-
+            # Reading in the light curve data
+#             light_curve = self.read_lc_from_file(flpath)
             
             # Choosing light curve values for a specific ID
-            light_curve = self.light_curve[self.light_curve['ID']==idx]
+            light_curve = self.light_curves_data[self.light_curves_data['ID']==idx]
             
             
             sample_data = []
