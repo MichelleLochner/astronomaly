@@ -299,52 +299,47 @@ class LightCurveDataset(Dataset):
         dict
             json-compatible dictionary of the light curve data
         """
-        # print(id)
-        # ***** Need to extend this to deal with other bands
-#         time_col = 'time'
+ 
+
 
         # All the standard columns are included here
-        data_col = ['time','mag','flux','mag1','mag2','flux1','flux2','filters']
+        data_col = ['mag','flux','mag1','mag2','flux1','flux2','filters']
 
         err_col = ['mag_error','flux_error']
 
         out_dict = {}
 
-#         metadata = self.metadata
-
-        ##### need to understand this line of code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # flpath = metadata[idx]['filepath'].iloc[0]
-
-        try:
 
             
-            # Reading in the light curve data
-#             light_curve = self.read_lc_from_file(flpath)
-            light_curve = self.light_curves_data[self.light_curves_data['ID']==idx]
-            
-            # Data and error index 
-            data_indx = [cl for cl in data_col if cl in light_curve.columns.values.tolist()] 
-            err_indx = [cl for cl in err_col if cl in light_curve.columns.values.tolist()]
+        # Reading in the light curve data
+
+        light_curve = self.light_curves_data[self.light_curves_data['ID']==idx]
+
+        # Data and error index 
+        mag_indx = [cl for cl in data_col if cl in light_curve.columns.values.tolist()] 
+        err_indx = [cl for cl in err_col if cl in light_curve.columns.values.tolist()]
+
+
+
+
+        # Returns true if we have error columns
+        if err_col[0] in light_curve.columns.values.tolist() or err_col[1] in light_curve.columns.values.tolist():
+
+
+            light_curve['err_lower'] = light_curve[mag_indx].values - light_curve[err_indx].values
+            light_curve['err_upper'] = light_curve[mag_indx].values + light_curve[err_indx].values
+            lc_errs = light_curve[['time', 'err_lower', 'err_upper']]
+
+
+
+        
+        # inserting the time column to data and adding 'data'
+        # and 'errors' to out_dict
+        mag_indx.insert(0,'time')
+        out_dict['data'] = light_curve[mag_indx].values.tolist()
+        out_dict['errors'] = lc_errs.values.tolist()
 
             
-            # Getting both the data and error columns as per index
-            out_dict['data'] = light_curve[data_indx].values.tolist()
-            
-            
-            # Returns true if we have error columns
-            if err_col[0] in light_curve.columns.values.tolist() or err_col[1] in light_curve.columns.values.tolist():
-                lc_errs = light_curve[err_indx]
-                out_dict['errors'] = lc_errs.values.tolist()
-                
-             
-
-                
-
-        except (pd.errors.ParserError, pd.errors.EmptyDataError, FileNotFoundError) as e:
-            print('Error parsing file', flpath)
-            print('Error message:')
-            print(e)
-            out_dict = {'data': [], 'errors': []}
 
         return out_dict
     
@@ -355,22 +350,14 @@ class LightCurveDataset(Dataset):
         # All the standard columns for feature extraction 
         data_col = ['time','mag','flux','mag1','mag2','flux1','flux2','mag_error','flux_error']
 
-
-    
-        metadata = self.metadata
-
-        ##### need to understand this line of code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-        # flpath = metadata[idx]['filepath'].iloc[0]
+        
 
         # empty pandas dataframe to update as per data_col
         out_data = pd.DataFrame({})
         try:
 
             
-            # Reading in the light curve data
-#             light_curve = self.read_lc_from_file(flpath)
-            
+   
             # Choosing light curve values for a specific ID
             light_curve = self.light_curves_data[self.light_curves_data['ID']==idx]
             
@@ -385,14 +372,13 @@ class LightCurveDataset(Dataset):
                     sample_data.append(out_data[cl])
             
                 
-            return sample_data
-                
-             
-
-                
-
+            
         except (pd.errors.ParserError, pd.errors.EmptyDataError, FileNotFoundError) as e:
             print('Error parsing file', flpath)
             print('Error message:')
             print(e)
             out_dict = {'data': [], 'errors': []}
+            
+            
+            
+        return sample_data
