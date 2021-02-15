@@ -6,7 +6,7 @@ import numpy as np
 
 class LightCurveDataset(Dataset):
     def __init__(self,data_dict,header_nrows=1,delim_whitespace =False,**kwargs):
-        """
+             """
         Reads in light curve data from file(s).
 
         Parameters
@@ -29,7 +29,12 @@ class LightCurveDataset(Dataset):
                 following specific keys: ('time','mag','mag_err','flux','flux_err','filters')
                 
                 e.g {'time':1,'mag':2}, were 1 and 2 are column index correpoding to 
-                'time' and 'mag' in the input data 
+                'time' and 'mag' in the input data .
+                
+                The user can also provide a list of indices for the 'mag' and 'flux' columns. This is the
+                case were the brightness is recorded in more than one column.
+                
+                e.g {'time':1,'mag':[2,3]} 2 and 3 corresponds to columns with brightness records
         
         header_nrows: int
                 The number of rows the header covers in the dataset, by 
@@ -41,7 +46,8 @@ class LightCurveDataset(Dataset):
                 
 
         """
-
+            
+            
         super().__init__(data_dict,header_nrows=1,delim_whitespace =False,**kwargs)
 
 
