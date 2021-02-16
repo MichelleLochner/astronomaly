@@ -345,40 +345,13 @@ class LightCurveDataset(Dataset):
     
 
     def get_sample(self,idx):
-        
-        
-        # All the standard columns for feature extraction 
-        data_col = ['time','mag','flux','mag1','mag2','flux1','flux2','mag_error','flux_error']
 
         
-
-        # empty pandas dataframe to update as per data_col
-        out_data = pd.DataFrame({})
-        try:
-
-            
-   
-            # Choosing light curve values for a specific ID
-            light_curve = self.light_curves_data[self.light_curves_data['ID']==idx]
-            
-            
-            sample_data = []
-            # Getting the columns that correspond to lc columns 
-            for cl in data_col:
-                
-                if cl in light_curve.columns.values.tolist():
-
-                    out_data[cl] = light_curve[cl].values.tolist()
-                    sample_data.append(out_data[cl])
-            
-                
-            
-        except (pd.errors.ParserError, pd.errors.EmptyDataError, FileNotFoundError) as e:
-            print('Error parsing file', flpath)
-            print('Error message:')
-            print(e)
-            out_dict = {'data': [], 'errors': []}
+        # Choosing light curve values for a specific ID
+        light_curve_sample = self.light_curves_data[self.light_curves_data['ID']==idx]
+        
+        return light_curve_sample
+           
             
             
             
-        return sample_data
