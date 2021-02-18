@@ -14,6 +14,8 @@ coadd_id = '0267'
 
 data_dir = '/home/verlon/Desktop/Files/Data/Coadd_'+str(coadd_id)+'/'
 
+#data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/DEC - DECALS/'
+
 which_data = 'decals'
 
 list_of_files = []
@@ -142,10 +144,11 @@ def run_pipeline():
     # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
 
     flname = os.path.join(output_dir, 'anomaly_catalogue_all.xlsx')
-    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:200],
+    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:1000],
                                        filename=flname,
                                        ignore_nearby_sources=True,
                                        source_radius=0.016)
+
 
     return {'dataset': image_dataset, 
             'features': features, 

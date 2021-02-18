@@ -818,7 +818,7 @@ class ImageFitsDataset(Dataset):
     def __init__(self, fits_index=None,
                  display_image_size=128,
                  transform_function=None, display_transform_function=None,
-                 catalogue=None, directory=None,
+                 catalogue=None, directory=None, output_dir=None,
                  **kwargs):
         """
         Read in a set of fits cutouts that are based on a single source. This
@@ -869,6 +869,7 @@ class ImageFitsDataset(Dataset):
         self.transform_function = transform_function
         self.directory = directory
         self.catalogue = catalogue
+        self.output_dir = output_dir
         
         if display_transform_function is None:
             self.display_transform_function = self.transform_function
@@ -884,15 +885,15 @@ class ImageFitsDataset(Dataset):
 
         #### For Information Purposes ####
 
-        #if 'allmask_g' in self.catalogue.columns:
-        #    catalogue['allmask'] = catalogue[['allmask_g','allmask_r','allmask_z']].max(axis=1)
-        #    cols.append('allmask')
-        #if 'anymask_g' in self.catalogue.columns:
-        #    catalogue['anymask'] = catalogue[['anymask_g','anymask_r','anymask_z']].max(axis=1)
-        #    cols.append('anymask')
-        #if 'fracmasked_g' in self.catalogue.columns:
-        #    catalogue['fracmasked'] = catalogue[['fracmasked_g','fracmasked_r','fracmasked_z']].max(axis=1)
-        #    cols.append('fracmasked')
+        if 'allmask_g' in self.catalogue.columns:
+            catalogue['allmask'] = catalogue[['allmask_g','allmask_r','allmask_z']].max(axis=1)
+            cols.append('allmask')
+        if 'anymask_g' in self.catalogue.columns:
+            catalogue['anymask'] = catalogue[['anymask_g','anymask_r','anymask_z']].max(axis=1)
+            cols.append('anymask')
+        if 'fracmasked_g' in self.catalogue.columns:
+            catalogue['fracmasked'] = catalogue[['fracmasked_g','fracmasked_r','fracmasked_z']].max(axis=1)
+            cols.append('fracmasked')
 
         ###################################
 
@@ -983,11 +984,11 @@ class ImageFitsDataset(Dataset):
         data = fits.getdata(file_path, memmap=True)
 
         if len(np.shape(data)) > 2:
-                one = data[0,:,:]
-                two = data[1,:,:]
-                three = data[2,:,:]
-                data = np.dstack((three,two,one))
-                transformed_image = apply_transform(data, self.display_transform_function)
+            one = data[0,:,:]
+            two = data[1,:,:]
+            three = data[2,:,:]
+            data = np.dstack((three,two,one))
+            transformed_image = apply_transform(data, self.display_transform_function)
         
         else:
             transformed_image = apply_transform(data, self.display_transform_function)
@@ -995,7 +996,47 @@ class ImageFitsDataset(Dataset):
         #Resized to the web interface size
         resized_image = resize(transformed_image, [128,128])
 
-        image = convert_array_from_fits_to_image(resized_image)
+        return convert_array_from_fits_to_image(resized_image)
 
-        return image
+    def fits_to_png(self, scores):
+        """
+        Simple function that outputs png files from the input fits files
 
+        Parameters
+        ----------
+        Scores : string
+            Score of sample
+
+        Returns
+        -------
+        png 
+        image saved in output directory
+        """
+
+        for i in range(len(scores)):
+            idx = scores.index[i]
+
+            filename = self.metadata.loc[idx, 'original_image']
+            flux = self.metadata.loc[idx, 'peak_flux']
+            #dec = self.metadata.loc[idx, 'dec']
+            file_path = os.path.join(self.directory, filename)
+
+            output_path = os.path.join(self.output_dir, 'PNG','Anomaly Score')
+
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+
+            data = fits.getdata(file_path, memmap=True)
+
+            if len(np.shape(data)) > 2:
+                one = data[0,:,:]
+                two = data[1,:,:]
+                three = data[2,:,:]
+                data = np.dstack((three,two,one))
+                transformed_image = apply_transform(data, self.display_transform_function)
+            else:
+                transformed_image = apply_transform(data, self.display_transform_function)
+
+            #resized = resize(transformed_image, [128,128])
+
+            plt.imsave(output_path+'/AS:'+'%.6s' % scores.score[i]+'_NAME:'+str(idx)+'_FLUX:'+'%.4s' % flux+'.png', transformed_image)

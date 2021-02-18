@@ -10,8 +10,8 @@ from astronomaly.utils import utils
 import os
 import pandas as pd
 
-
-data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Sample - flux limited'
+#data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/GT'
+data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Test Set 15000'
 
 which_data = 'decals'
 list_of_files = []
@@ -38,8 +38,8 @@ output_dir = os.path.join(data_dir, 'Output', '')
 #image_dir = os.path.join(data_dir,'0260m062', 'Input', 'Images')
 #output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
-
-catalogue = pd.read_csv(os.path.join(data_dir,'Sample 10 000 flux limited - adjusted.csv'))
+#catalogue = pd.read_csv(os.path.join(data_dir,'Ground Truth.csv'))
+catalogue = pd.read_csv(os.path.join(data_dir,'Test Set 15000.csv'))
     #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
@@ -146,6 +146,7 @@ def run_pipeline():
                                        ignore_nearby_sources=True,
                                        source_radius=0.016)
 
+    image_dataset.fits_to_png(anomalies)
 
     return {'dataset': image_dataset, 
             'features': features, 

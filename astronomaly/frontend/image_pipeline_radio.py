@@ -10,13 +10,13 @@ from astronomaly.utils import utils
 import os
 import pandas as pd
 
-fits_data = '/home/verlon/Desktop/Files/Data/Radio/Input/z-radio_image.fits'
-fits_folder = '/home/verlon/Desktop/Files/Data/Radio/'
+fits_data = '/home/verlon/Desktop/Files/Data/RADIO/Input/z-radio_image.fits'
+fits_folder = '/home/verlon/Desktop/Files/Data/RADIO/'
 
-catalogue = pd.read_csv('/home/verlon/Desktop/Files/Data/DEEP2MRT.csv')
+catalogue = pd.read_csv('/home/verlon/Desktop/Files/Data/RADIO/DEEP2MRT.csv')
 catalogue.rename(columns={' y': 'y'},inplace=True)
 
-data_dir = '/home/verlon/Desktop/Files/Data/Radio/'
+data_dir = '/home/verlon/Desktop/Files/Data/RADIO/'
 
 image_dir = os.path.join(data_dir,'Input')
 output_dir = os.path.join(data_dir,'Output', '')
@@ -91,7 +91,8 @@ def run_pipeline():
             output_dir=output_dir, channel=0, force_rerun=True
         )
 
-    features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
+    #features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
+    features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
     print (features)

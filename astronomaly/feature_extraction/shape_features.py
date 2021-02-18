@@ -33,6 +33,22 @@ def find_contours(img, threshold):
                                            cv2.RETR_EXTERNAL, 
                                            cv2.CHAIN_APPROX_SIMPLE)
 
+
+
+    #leftmost = tuple(contours[0][contours[0][:,:,0].argmin()][0])
+    #rightmost = tuple(contours[0][contours[0][:,:,0].argmax()][0])
+    #topmost = tuple(contours[0][contours[0][:,:,1].argmin()][0])
+    #bottommost = tuple(contours[0][contours[0][:,:,1].argmax()][0])
+    #k = cv2.isContourConvex(contours[0])
+    #print(leftmost)
+    #print(rightmost)
+    #print(topmost)
+    #print(bottommost)
+    #print(np.shape(img)[0])
+
+    #if leftmost[0] or leftmost[1] == np.shape(img)[0] or 0:
+    #    print('FAIL')
+
     return contours, hierarchy
 
 
