@@ -1,7 +1,7 @@
 import pandas as pd 
 import os
 import numpy as np
-# from astronomaly.base.base_dataset import Dataset
+from astronomaly.base.base_dataset import Dataset
 
 
 class LightCurveDataset(Dataset):
