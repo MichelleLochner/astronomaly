@@ -5,7 +5,7 @@ from astronomaly.base.base_dataset import Dataset
 
 
 class LightCurveDataset(Dataset):
-    def __init__(self,files,data_dict,header_nrows=1,delim_whitespace =False,**kwargs):
+    def __init__(self,data_dict,header_nrows=1,delim_whitespace =False,**kwargs):
         """
         Reads in light curve data from file(s).
 
