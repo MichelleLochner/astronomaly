@@ -33,22 +33,6 @@ def find_contours(img, threshold):
                                            cv2.RETR_EXTERNAL, 
                                            cv2.CHAIN_APPROX_SIMPLE)
 
-
-
-    #leftmost = tuple(contours[0][contours[0][:,:,0].argmin()][0])
-    #rightmost = tuple(contours[0][contours[0][:,:,0].argmax()][0])
-    #topmost = tuple(contours[0][contours[0][:,:,1].argmin()][0])
-    #bottommost = tuple(contours[0][contours[0][:,:,1].argmax()][0])
-    #k = cv2.isContourConvex(contours[0])
-    #print(leftmost)
-    #print(rightmost)
-    #print(topmost)
-    #print(bottommost)
-    #print(np.shape(img)[0])
-
-    #if leftmost[0] or leftmost[1] == np.shape(img)[0] or 0:
-    #    print('FAIL')
-
     return contours, hierarchy
 
 
@@ -246,8 +230,49 @@ def get_hu_moments(img):
     return hu_feats
 
 
+def check_extending_ellipses(img, threshold):
+    """
+    Checks and flags images when the contour extends beyond the image size.
+    Used to check whether the image size (window size) must be increased.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (must be 2d, no channel information)
+    threshold : 
+        Threshold values for drawing the outermost contour.
+    Returns
+    -------
+    boolean
+        Value that flags whether the ellipse extending beyond the image or not.
+    """
+
+    width = img.shape[0]
+    height = img.shape[1]
+
+    blank_canvas = np.zeros((width*2,height*2), dtype=np.float)
+
+    contours, hierarchy = find_contours(img, threshold)
+    
+    ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(np.float32(contours[0]))
+
+    x0 = int(np.round(x0)) *2
+    y0 = int(np.round(y0)) *2
+    maj_axis = int(np.round(maj_axis))
+    min_axis = int(np.round(min_axis))
+    theta = int(np.round(theta))
+    
+    ellipse = cv2.ellipse(blank_canvas, (x0, y0), (maj_axis // 2, min_axis // 2), theta, 0, 360, (1, 1, 1), 1)
+    ellipse[int(width*0.5):int(width*1.5), int(height*0.5):int(height*1.5)] = 0
+    
+    if ellipse.any() != 0:
+        return True
+    else:
+        return False
+
+
 class EllipseFitFeatures(PipelineStage):
-    def __init__(self, percentiles=[90, 70, 50, 0], channel=None, **kwargs):
+    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,extending_ellipse = False, **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features. Warning: it's strongly recommended to
@@ -262,7 +287,7 @@ class EllipseFitFeatures(PipelineStage):
             What percentiles to use as thresholds for the ellipses
         """
 
-        super().__init__(percentiles=percentiles, channel=channel, **kwargs)
+        super().__init__(percentiles=percentiles, channel=channel,extending_ellipse = extending_ellipse, **kwargs)
 
         self.percentiles = percentiles
         self.labels = []
@@ -271,6 +296,8 @@ class EllipseFitFeatures(PipelineStage):
             for n in percentiles:
                 self.labels.append(f % n)
         self.channel = channel
+        self.extending_ellipse = extending_ellipse
+
 
     def _execute_function(self, image):
         """
@@ -311,7 +338,7 @@ class EllipseFitFeatures(PipelineStage):
 
 
         upper_limit = 300
-        scale = [i for i in np.arange(100, upper_limit + 1, 1)]
+        scale = [i for i in np.arange(100, upper_limit + 1, 2)]
         # Start with the closest in contour (highest percentile)
         percentiles = np.sort(self.percentiles)[::-1] 
 
@@ -334,7 +361,7 @@ class EllipseFitFeatures(PipelineStage):
                 height = int(image.shape[0] * a / 100)
                 dim = (width, height)
                 resize = cv2.resize(this_image, dim, interpolation=cv2.INTER_AREA)
-                resize_original = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+                #resize_original = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
                 if failed:
                     contours = []
@@ -344,6 +371,16 @@ class EllipseFitFeatures(PipelineStage):
 
                     x_contours = np.zeros(len(contours))
                     y_contours = np.zeros(len(contours))
+
+
+                #####################
+                    #print(thresh)
+                    #print(np.shape(resize))
+                    #print(percentiles[-1]) ###outer contour
+
+                    #outer_thresh = np.percentile(resize[resize > 0], percentiles[-1])
+                    #print(outer_thresh)
+
 
                 # First attempt to find the central point of the inner most contour
                 if len(contours) != 0:
@@ -377,8 +414,28 @@ class EllipseFitFeatures(PipelineStage):
 
                     params = get_ellipse_leastsq(c, resize)
 
-                    ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
 
+
+                    #print(self.extending_ellipse)
+                    if self.extending_ellipse and p == percentiles[-1]:
+                        #print("thresh ", thresh)
+                        check = check_extending_ellipses(resize, thresh)
+
+
+
+                    
+
+                        if check:
+                            print('Ellipse Extends')
+                        else:
+                            print('Ellipse Fits')
+
+
+                        
+
+
+                    #ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
+                    ellipse_arr = fit_ellipse(c, resize, return_params=False, filled=False)
                     # Params return in this order:
                     # residual, x0, y0, maj_axis, min_axis, theta
                     if np.any(np.isnan(params)):
@@ -397,6 +454,7 @@ class EllipseFitFeatures(PipelineStage):
                         new_params = params[:3] + [aspect] + [params[-1]]
                         feats.append(new_params)
 
+
                     all_ellipses.append(ellipse_arr)
                     all_contours.append(c)
 
@@ -410,6 +468,13 @@ class EllipseFitFeatures(PipelineStage):
                 if failed:
                     feats.append([np.nan] * 5)
                     logging_tools.log(failure_message)
+
+                ###############3
+                
+
+
+
+
 
                 # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each 
                 # sigma
@@ -449,12 +514,34 @@ class EllipseFitFeatures(PipelineStage):
                         theta.append(theta_diff)
                         features = np.hstack((residuals, dist_to_centre, aspect, theta))
 
+
+                    #if extending_ellipse:
+                    #    print('Fail')
+                    #else:
+                    #    print('Pass')
+
+                    #print(np.shape(features))
+
+                #if extending_ellipse:
+                #    print('Fail')
+                #else:
+                #    print('Pass')
+
+
+                    
+
+
+
                     if len(lst) == len(percentiles):
                         stop = True
+
+
+
             if stop:
                 break
             if a == upper_limit:
                 features = [np.nan] * 4 * len(self.percentiles) 
+
 
         return features
 

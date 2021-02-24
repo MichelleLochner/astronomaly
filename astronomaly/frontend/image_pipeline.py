@@ -42,7 +42,7 @@ output_dir = os.path.join(data_dir, 'Output', '')
 #output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
 
-catalogue = pd.read_csv(os.path.join(data_dir,'Input','Catalogue','large_catalogue.csv'))
+catalogue = pd.read_csv(os.path.join(data_dir,'Input','Catalogue','large_catalogue 21.csv'))
     #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
