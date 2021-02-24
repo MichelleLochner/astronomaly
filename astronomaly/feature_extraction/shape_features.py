@@ -272,7 +272,7 @@ def check_extending_ellipses(img, threshold):
 
 
 class EllipseFitFeatures(PipelineStage):
-    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,extending_ellispe=False, **kwargs):
+    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,extending_ellispe=True, **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features. Warning: it's strongly recommended to
