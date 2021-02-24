@@ -50,6 +50,8 @@ band_prefixes = ['z-', 'r-', 'g-']
 bands_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
 plot_cmap = 'hot'
 
+extending_ellipse = True
+
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
@@ -90,7 +92,7 @@ def run_pipeline():
         plot_cmap=plot_cmap,
         catalogue=catalogue,
         band_prefixes=band_prefixes,
-        bands_rgb=bands_rgb
+        bands_rgb=bands_rgb,
         ) # noqa
         #print(image_dataset.get_sample(image_dataset.index[0]))
         #print(image_dataset.images)
@@ -98,7 +100,8 @@ def run_pipeline():
 
     pipeline_ellipse = shape_features.EllipseFitFeatures(
             percentiles=[90, 80, 70, 60, 50,0],
-            output_dir=output_dir, channel=0, force_rerun=True
+            output_dir=output_dir, channel=0,extending_ellipse=extending_ellipse,
+            force_rerun=True
         )
 
     #features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
