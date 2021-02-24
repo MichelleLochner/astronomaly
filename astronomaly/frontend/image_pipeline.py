@@ -100,7 +100,7 @@ def run_pipeline():
 
     pipeline_ellipse = shape_features.EllipseFitFeatures(
             percentiles=[90, 80, 70, 60, 50,0],
-            output_dir=output_dir, channel=0,extending_ellipse=extending_ellipse,
+            output_dir=output_dir, channel=0, extending_ellipse=extending_ellipse,
             force_rerun=True
         )
 

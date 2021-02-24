@@ -272,7 +272,7 @@ def check_extending_ellipses(img, threshold):
 
 
 class EllipseFitFeatures(PipelineStage):
-    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,extending_ellispe=False **kwargs):
+    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,extending_ellispe=False, **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features. Warning: it's strongly recommended to
@@ -287,7 +287,7 @@ class EllipseFitFeatures(PipelineStage):
             What percentiles to use as thresholds for the ellipses
         """
 
-        super().__init__(percentiles=percentiles, channel=channel,extending_ellipse=extending_ellipse **kwargs)
+        super().__init__(percentiles=percentiles, channel=channel, **kwargs)
 
         self.percentiles = percentiles
         self.labels = []
@@ -296,7 +296,7 @@ class EllipseFitFeatures(PipelineStage):
             for n in percentiles:
                 self.labels.append(f % n)
         self.channel = channel
-        self.extending_ellipse = extending_ellipse
+        self.extending_ellipse = extending_ellispe
 
 
     def _execute_function(self, image):
@@ -414,7 +414,7 @@ class EllipseFitFeatures(PipelineStage):
 
                     params = get_ellipse_leastsq(c, resize)
 
-                    print(self.extending_ellipse)
+                    #print(self.extending_ellipse)
                     if self.extending_ellipse and p == percentiles[-1]:
                         check = check_extending_ellipses(resize, thresh)
 
