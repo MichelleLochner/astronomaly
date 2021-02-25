@@ -272,7 +272,7 @@ def check_extending_ellipses(img, threshold):
 
 
 class EllipseFitFeatures(PipelineStage):
-    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,extending_ellipse=False, **kwargs):
+    def __init__(self, percentiles=[90, 70, 50, 0], channel=None, extending_ellipse=False, **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features. Warning: it's strongly recommended to
@@ -283,8 +283,11 @@ class EllipseFitFeatures(PipelineStage):
         ----------
         channel : int
             Specify which channel to use for multiband images
-        percentiles: array-like
+        percentiles : array-like
             What percentiles to use as thresholds for the ellipses
+        extending_ellipse : boolean
+            Activates the check that determins whether or not the outermost ellipse 
+            extends beyond the image
         """
 
         super().__init__(percentiles=percentiles, channel=channel, extending_ellipse=extending_ellipse, **kwargs)

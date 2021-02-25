@@ -1018,7 +1018,6 @@ class ImageFitsDataset(Dataset):
 
             filename = self.metadata.loc[idx, 'original_image']
             flux = self.metadata.loc[idx, 'peak_flux']
-            #dec = self.metadata.loc[idx, 'dec']
             file_path = os.path.join(self.directory, filename)
 
             output_path = os.path.join(self.output_dir, 'PNG','Anomaly Score')
@@ -1036,7 +1035,5 @@ class ImageFitsDataset(Dataset):
                 transformed_image = apply_transform(data, self.display_transform_function)
             else:
                 transformed_image = apply_transform(data, self.display_transform_function)
-
-            #resized = resize(transformed_image, [128,128])
 
             plt.imsave(output_path+'/AS:'+'%.6s' % scores.score[i]+'_NAME:'+str(idx)+'_FLUX:'+'%.4s' % flux+'.png', transformed_image)
