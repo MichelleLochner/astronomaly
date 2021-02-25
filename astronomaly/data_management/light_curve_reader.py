@@ -38,7 +38,7 @@ class LightCurveDataset(Dataset):
                 Should be True if the data is not separated by a comma, by
                 default False"""
 
-        super().__init__(data_dict,header_nrows=header_nrows,delim_whitespace=delim_whitespace,**kwargs)
+        super().__init__(data_dict=data_dict,header_nrows=header_nrows,delim_whitespace=delim_whitespace,**kwargs)
        
         self.data_type = 'light_curve'
         self.metadata = pd.DataFrame(data=[])
