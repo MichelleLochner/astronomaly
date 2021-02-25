@@ -339,7 +339,7 @@ class EllipseFitFeatures(PipelineStage):
         stop = False
 
         upper_limit = 300
-        scale = [i for i in np.arange(100, upper_limit + 1, 2)]
+        scale = [i for i in np.arange(100, upper_limit + 1, 1)]
         # Start with the closest in contour (highest percentile)
         percentiles = np.sort(self.percentiles)[::-1] 
 
@@ -362,7 +362,6 @@ class EllipseFitFeatures(PipelineStage):
                 height = int(image.shape[0] * a / 100)
                 dim = (width, height)
                 resize = cv2.resize(this_image, dim, interpolation=cv2.INTER_AREA)
-                #resize_original = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
                 if failed:
                     contours = []
@@ -416,6 +415,7 @@ class EllipseFitFeatures(PipelineStage):
 
                     #ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
                     ellipse_arr = fit_ellipse(c, resize, return_params=False, filled=False)
+
                     # Params return in this order:
                     # residual, x0, y0, maj_axis, min_axis, theta
                     if np.any(np.isnan(params)):
