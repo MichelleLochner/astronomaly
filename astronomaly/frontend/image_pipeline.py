@@ -9,6 +9,7 @@ from astronomaly.visualisation import tsne
 from astronomaly.utils import utils
 import os
 import pandas as pd
+import numpy as np
 
 coadd_id = '0267'
 
@@ -54,7 +55,7 @@ if not os.path.exists(output_dir):
 
 feature_method = 'ellipse'
 dim_reduction = ''
-extending_ellipse = True
+extending_ellipse = False
 
 def run_pipeline():
     """
@@ -100,12 +101,18 @@ def run_pipeline():
             output_dir=output_dir, channel=0, extending_ellipse = extending_ellipse,
             force_rerun=True
         )
-
+    #drop column based on warning flag. Put it in utils.
+    
     #features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
+
     features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
-    print (features)
+
+    print(features)
+    if extending_ellipse:
+        features.drop(['Warning_Open_Ellipse'], 1, inplace=True)
+    print(features)
 
     pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
                                             output_dir=output_dir)

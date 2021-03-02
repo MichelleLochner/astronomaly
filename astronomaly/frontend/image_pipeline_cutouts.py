@@ -39,7 +39,7 @@ output_dir = os.path.join(data_dir, 'Output', '')
 #output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
 #catalogue = pd.read_csv(os.path.join(data_dir,'Ground Truth.csv'))
-catalogue = pd.read_csv(os.path.join(data_dir,'Test Set 15000.csv'))
+catalogue = pd.read_csv(os.path.join(data_dir,'Test Set 15000 (copy).csv'))
     #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
@@ -52,7 +52,7 @@ if not os.path.exists(output_dir):
 
 feature_method = 'ellipse'
 dim_reduction = ''
-
+extending_ellipse = False
 
 def run_pipeline():
     """
@@ -95,14 +95,20 @@ def run_pipeline():
 
     pipeline_ellipse = shape_features.EllipseFitFeatures(
             percentiles=[90, 80, 70, 60, 50,0],
-            output_dir=output_dir, channel=0, force_rerun=True
+            output_dir=output_dir, channel=0,
+            extending_ellipse = extending_ellipse,
+            force_rerun=True
         )
 
     #features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
     features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
-    print (features)
+
+    print(features)
+    if extending_ellipse:
+        features.drop(['Warning_Open_Ellipse'], 1, inplace=True)
+    print(features)
 
     pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
                                             output_dir=output_dir)
