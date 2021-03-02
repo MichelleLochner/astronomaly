@@ -230,7 +230,7 @@ def get_hu_moments(img):
     return hu_feats
 
 
-def check_extending_ellipses(img, threshold):
+def check_extending_ellipses(img, threshold, return_params=False):
     """
     Checks and flags images when the contour extends beyond the image size.
     Used to check whether the image size (window size) must be increased.
@@ -241,6 +241,9 @@ def check_extending_ellipses(img, threshold):
         Input image (must be 2d, no channel information)
     threshold : 
         Threshold values for drawing the outermost contour.
+    return_params : bool
+        If true also returns the parameters of the fitted ellipse
+
     Returns
     -------
     boolean
@@ -254,7 +257,27 @@ def check_extending_ellipses(img, threshold):
 
     contours, hierarchy = find_contours(img, threshold)
     
-    ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(np.float32(contours[0]))
+    # Sets some defaults for when the fitting fails
+    default_return_params = [np.nan] * 5 
+    raised_error = False
+
+    try:
+        ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(np.float32(contours[0]))
+        ellipse_params = x0, y0, maj_axis, min_axis, theta
+
+        if np.any(np.isnan(ellipse_params)) or y0 < 0 or x0 < 0:
+            raised_error = True
+            logging_tools.log('fit_ellipse failed with unknown error:')
+
+    except cv2.error as e:
+        logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
+        raised_error = True
+
+    if raised_error:
+        if return_params:
+            return False
+        else:
+            return False
 
     x0 = int(np.round(x0)) *2
     y0 = int(np.round(y0)) *2
@@ -301,6 +324,11 @@ class EllipseFitFeatures(PipelineStage):
         self.channel = channel
         self.extending_ellipse = extending_ellipse
 
+        print(extending_ellipse)
+
+        if extending_ellipse:
+            self.labels.append('Warning_Open_Ellipse')
+
     def _execute_function(self, image):
         """
         Does the work in actually extracting the ellipse fitted features
@@ -334,12 +362,14 @@ class EllipseFitFeatures(PipelineStage):
         x_cent = this_image.shape[0] // 2
         y_cent = this_image.shape[1] // 2
 
-        feats = []
+        warning_open_ellipses = []
         all_contours = []
+        feats = []
         stop = False
 
         upper_limit = 300
         scale = [i for i in np.arange(100, upper_limit + 1, 1)]
+
         # Start with the closest in contour (highest percentile)
         percentiles = np.sort(self.percentiles)[::-1] 
 
@@ -407,11 +437,10 @@ class EllipseFitFeatures(PipelineStage):
                     # Check whether or not the outermost ellipse extends beyond the image
                     if self.extending_ellipse and p == percentiles[-1]:
                         check = check_extending_ellipses(resize, thresh)
-
                         if check:
-                            print('Ellipse Extends')
+                            warning_open_ellipses.append(1)
                         else:
-                            print('Ellipse Fits')
+                            warning_open_ellipses.append(0)
 
                     #ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
                     ellipse_arr = fit_ellipse(c, resize, return_params=False, filled=False)
@@ -493,6 +522,8 @@ class EllipseFitFeatures(PipelineStage):
                 break
             if a == upper_limit:
                 features = [np.nan] * 4 * len(self.percentiles) 
+
+        features = np.append(features,warning_open_ellipses)
 
         return features
 

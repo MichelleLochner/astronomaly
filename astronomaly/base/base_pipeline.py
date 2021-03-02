@@ -171,23 +171,13 @@ class PipelineStage(object):
         checksum : str
             The checksum
         """
-        if (type(data)) is tuple:
-            for dat in data:
-                if type(dat) is list:
-                    pass
-                else:
-                    hash_per_row = hash_pandas_object(dat)
-                    total_hash = hash_pandas_object(pd.DataFrame(
-                    [hash_per_row.values]))
-            return int(total_hash.values[0])
-        if (type(data)) is not tuple:
-            try:
-                hash_per_row = hash_pandas_object(data)
-                total_hash = hash_pandas_object(pd.DataFrame(
-                    [hash_per_row.values]))
-            except TypeError:
-                total_hash = hash_pandas_object(pd.DataFrame(data))
-            return int(total_hash.values[0])
+        try:
+            hash_per_row = hash_pandas_object(data)
+            total_hash = hash_pandas_object(pd.DataFrame(
+                [hash_per_row.values]))
+        except TypeError:
+            total_hash = hash_pandas_object(pd.DataFrame(data))
+        return int(total_hash.values[0])
 
     def run(self, data):
         """
@@ -225,11 +215,7 @@ class PipelineStage(object):
             print('Running', self.class_name, '...')
             t1 = time.time()
             if self.drop_nans:
-                if type(data) is tuple:
-                    data = data[0]
-                    output = self._execute_function(data.dropna())
-                else:
-                    output = self._execute_function(data.dropna())
+                output = self._execute_function(data.dropna())
             else:
                 output = self._execute_function(data)
             self.save(output, self.output_file)
@@ -300,7 +286,6 @@ class PipelineStage(object):
                         logging_tools.log(nan_msg, level='WARNING')
                         logged_nan_msg = True
                 out = self._execute_function(input_instance)
-
                 if np.any(np.isnan(out)):
                     logging_tools.log("Feature extraction failed for id " + i)
                 output.append(out)
