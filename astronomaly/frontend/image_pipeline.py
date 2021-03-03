@@ -55,7 +55,7 @@ if not os.path.exists(output_dir):
 
 feature_method = 'ellipse'
 dim_reduction = ''
-extending_ellipse = False
+extending_ellipse = True
 
 def run_pipeline():
     """
@@ -95,23 +95,22 @@ def run_pipeline():
         #print(image_dataset.get_sample(image_dataset.index[0]))
         #print(image_dataset.images)
 
-
     pipeline_ellipse = shape_features.EllipseFitFeatures(
             percentiles=[90, 80, 70, 60, 50,0],
-            output_dir=output_dir, channel=0, extending_ellipse = extending_ellipse,
+            output_dir=output_dir, channel=0,
+            extending_ellipse = extending_ellipse,
             force_rerun=True
         )
-    #drop column based on warning flag. Put it in utils.
-    
-    #features_original, contours, ellipses = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features_original = pipeline_ellipse.run_on_dataset(image_dataset)
 
     features = features_original.copy()
 
-    print(features)
     if extending_ellipse:
-        features.drop(['Warning_Open_Ellipse'], 1, inplace=True)
+        filname = os.path.join(output_dir, 'ellipse_catalogue.csv')
+        utils.create_ellipse_check_catalogue(image_dataset, features, filename=filname)
+
+    features.drop(['Warning_Open_Ellipse'], 1, inplace=True)
     print(features)
 
     pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
@@ -123,7 +122,7 @@ def run_pipeline():
     anomalies = pipeline_iforest.run(features)
 
     pipeline_score_converter = human_loop_learning.ScoreConverter(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=True, output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
     anomalies = anomalies.sort_values('score', ascending=False)
 

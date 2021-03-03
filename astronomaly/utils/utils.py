@@ -35,9 +35,6 @@ def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
     else:
         original_image = image_name
     
-    #w = astropy.wcs.WCS(hdul[0].header, naxis=2)
-    #x, y = w.wcs_world2pix(old_catalogue['ra'], old_catalogue['dec'], 1)
-    
     new_catalogue = pd.DataFrame()
     new_catalogue['objid'] = old_catalogue['objid']
     new_catalogue['original_image'] = [original_image] * len(new_catalogue)
@@ -184,6 +181,36 @@ def create_catalogue_spreadsheet(image_dataset, scores,
 
             row += 1
     workbook.close()
+
+
+def create_ellipse_check_catalogue(image_dataset, features, 
+                                   filename='ellipse_catalogue.csv'):
+
+    """
+    Creates a catalogue of the most anomalous sources in the form of an excel
+    spreadsheet that includes cutout images.
+
+    Parameters
+    ----------
+    image_dataset : astronomaly.data_management.image_reader.ImageDataset
+        The image dataset
+    features : pd.DataFrame
+        Dataframe containing the extracted features about the sources. Used to
+        obtain the ellipse warning column.
+    filename : str, optional
+        Filename for spreadsheet, by default 'ellipse_catalogue.csv'
+    """
+
+    dat = features.copy()
+    met = image_dataset.metadata
+
+    dat.drop(dat.columns[0:24], axis = 1, inplace = True) 
+
+    ellipse_warning = dat.loc[dat['Warning_Open_Ellipse'] == 1]
+
+    data = pd.merge(ellipse_warning, met, left_index=True, right_index=True)
+
+    data.to_csv(filename)
 
 
 class ImageCycler:

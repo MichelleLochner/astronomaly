@@ -939,6 +939,7 @@ class ImageFitsDataset(Dataset):
         
         self.index = self.metadata.index.values
 
+
     def get_sample(self, idx):
         """
         Returns the data for a single sample in the dataset as indexed by idx.
@@ -961,6 +962,7 @@ class ImageFitsDataset(Dataset):
 
         return apply_transform(data, self.transform_function)
 
+
     def get_display_data(self, idx):
         """
         Returns a single instance of the dataset in a form that is ready to be
@@ -973,7 +975,7 @@ class ImageFitsDataset(Dataset):
 
         Returns
         -------
-        png image object
+        png : image object
             Object ready to be passed directly to the frontend
         """
 
@@ -998,6 +1000,7 @@ class ImageFitsDataset(Dataset):
 
         return convert_array_from_fits_to_image(resized_image)
 
+
     def fits_to_png(self, scores):
         """
         Simple function that outputs png files from the input fits files
@@ -1009,8 +1012,8 @@ class ImageFitsDataset(Dataset):
 
         Returns
         -------
-        png 
-        image saved in output directory
+        png : image object
+            Images are created and saved in the output folder
         """
 
         for i in range(len(scores)):
