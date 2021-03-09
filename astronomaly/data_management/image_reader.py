@@ -899,9 +899,8 @@ class ImageFitsDataset(Dataset):
 
         #### 'brickid' no longer within catalogues ####
         
-        #if 'brickid' in self.catalogue.columns:
-        #    cols.append('brickid')
-
+        if 'brickid' in self.catalogue.columns:
+            cols.append('brickid')
         if 'brickname' in self.catalogue.columns:
             cols.append('brickname')
         if 'ra' in self.catalogue.columns:

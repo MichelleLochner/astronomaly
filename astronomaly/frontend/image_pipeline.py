@@ -14,6 +14,7 @@ import numpy as np
 coadd_id = '0267'
 
 data_dir = '/home/verlon/Desktop/Files/Data/Coadd_'+str(coadd_id)+'/'
+#data_dir = '/home/verlon/Desktop/Files/Data/Coadd_0260/0260m062/'
 
 which_data = 'decals'
 
@@ -41,10 +42,11 @@ output_dir = os.path.join(data_dir, 'Output', '')
 #output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
 
-catalogue = pd.read_csv(os.path.join(data_dir,'Input','Catalogue','large_catalogue 21.csv'))
+catalogue = pd.read_csv(os.path.join(data_dir,'Input','Catalogue','large_catalogue.csv'))
     #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
+#catalogue = pd.read_csv(os.path.join(data_dir, 'Input','test_catalogue.csv'))
 
 band_prefixes = ['z-', 'r-', 'g-']
 bands_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
@@ -150,7 +152,7 @@ def run_pipeline():
     # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
 
     flname = os.path.join(output_dir, 'anomaly_catalogue_all.xlsx')
-    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:200],
+    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:2000],
                                        filename=flname,
                                        ignore_nearby_sources=True,
                                        source_radius=0.016)
