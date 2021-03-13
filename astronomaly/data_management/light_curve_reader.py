@@ -25,16 +25,16 @@ class LightCurveDataset(Dataset):
             './'
         data_dict: Dictionary
                 It a dictionary with index of the column names corresponding to the
-                following specific keys: ('time','mag','mag_err','flux','flux_err','filters')
-                e.g {'time':1,'mag':2}, were 1 and 2 are column index correpoding to
+                following specific keys: ('id','time','mag','mag_err','flux','flux_err','filters')
+                e.g {'time':1,'mag':2}, where 1 and 2 are column index correpoding to
                 'time' and 'mag' in the input data .
                 The user can also provide a list of indices for the 'mag' and 'flux' columns. This is the
-                case were the brightness is recorded in more than one column.
+                case where the brightness is recorded in more than one column.
                 e.g {'time':1,'mag':[2,3]} 2 and 3 corresponds to columns with brightness records
         header_nrows: int
                 The number of rows the header covers in the dataset, by
                 default 1
-            delim_whitespace: bool
+        delim_whitespace: bool
                 Should be True if the data is not separated by a comma, by
                 default False"""
 
