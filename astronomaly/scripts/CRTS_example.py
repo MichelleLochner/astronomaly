@@ -66,8 +66,8 @@ def run_pipeline():
 
     # Creates a pipeline object for feature extraction
     pipeline_feets = feets_features.Feets_Features(
-        exclude_features='Period_fit')
-
+        exclude_features=['Period_fit'])
+    
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)
 
