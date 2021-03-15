@@ -279,7 +279,7 @@ class PipelineStage(object):
                     print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
 
-                if self.drop_nans and np.any(np.isnan(input_instance)):
+                if self.drop_nans and np.any(pd.isnull(input_instance)):
                     input_instance = np.nan_to_num(input_instance)
                     if not logged_nan_msg:
                         print(nan_msg)
