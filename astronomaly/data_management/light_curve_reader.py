@@ -115,6 +115,7 @@ class LightCurveDataset(Dataset):
         ids = np.unique(standard_data['ID'])
         self.metadata = pd.DataFrame({'ID': ids}, index=ids)
         self.light_curves_data = pd.DataFrame.from_dict(standard_data)
+        self.index = ids
 
     def get_display_data(self, idx):
         """

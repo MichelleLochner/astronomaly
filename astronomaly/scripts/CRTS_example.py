@@ -118,7 +118,7 @@ def run_pipeline():
     t_plot = pipeline_tsne.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
-    return {'dataset': lc_dataset, 
+    return {'dataset': lc_dataset.light_curves_data, 
             'features': features, 
             'anomaly_scores': anomalies,
             'visualisation': t_plot, 
