@@ -62,7 +62,7 @@ def run_pipeline():
         data_dict = {'id':0,'time':4,'mag':2,'mag_err':3}
     )
 
-    lc_dataset = lc_dataset.light_curves_data
+    # lc_dataset = lc_dataset.light_curves_data
 
     # Creates a pipeline object for feature extraction
     pipeline_feets = feets_features.Feets_Features(
