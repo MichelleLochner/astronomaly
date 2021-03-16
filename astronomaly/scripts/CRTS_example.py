@@ -1,8 +1,5 @@
-# An example with a subset of Galaxy Zoo data
-from astronomaly.data_management import image_reader
+# An example for the CRTS data
 from astronomaly.data_management import light_curve_reader
-from astronomaly.preprocessing import image_preprocessing
-from astronomaly.feature_extraction import shape_features
 from astronomaly.feature_extraction import feets_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
@@ -22,14 +19,6 @@ output_dir = os.path.join(
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-
-
-# These are transform functions that will be applied to images before feature
-# extraction is performed. Functions are called in order.
-
-# You can apply a different set of transforms to the images that get displayed
-# in the frontend. In this case, I want to see the original images before sigma
-# clipping is applied.
 display_transform_function = []
 
 
@@ -61,8 +50,6 @@ def run_pipeline():
         filename=lc_path, 
         data_dict = {'id':0,'time':4,'mag':2,'mag_err':3}
     )
-
-    # lc_dataset = lc_dataset.light_curves_data
 
     # Creates a pipeline object for feature extraction
     pipeline_feets = feets_features.Feets_Features(
@@ -118,7 +105,7 @@ def run_pipeline():
     t_plot = pipeline_tsne.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
-    return {'dataset': lc_dataset.light_curves_data, 
+    return {'dataset': lc_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
             'visualisation': t_plot, 

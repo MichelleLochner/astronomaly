@@ -14,24 +14,24 @@ class Feets_Features(PipelineStage):
     
     
     def __init__(self,exclude_features, **kwargs):
+    
+        super().__init__(exclude_features=exclude_features, **kwargs)
         
         self.exclude_features = exclude_features
         self.labels = None
-        
-        super().__init__(exclude_features=exclude_features, **kwargs)
-         
+             
     def _set_labels(self,feature_labels):
         
         # All available features
         self.labels = feature_labels     
         
-    def _excute_function(self,lc_data):
+    def _execute_function(self,lc_data):
         
         '''Takes light curve data for a single object and computes the features based on 
         the available columns.
         
         Input: 
-            lc_data: Light curves of a single object
+            lc_data: Light curve of a single object
             
         Output:
             An array of the calculated features or an array of nan values incase there is
@@ -40,7 +40,7 @@ class Feets_Features(PipelineStage):
         # Sorting the columns for the feature extractor
         standard_lc_columns = ['time','mag','mag_error'] # This needs to be extended to be more general
         current_lc_columns = [cl for cl in standard_lc_columns if cl in lc_data.columns]
-        available_columns = ['time']
+        available_columns = ['time'] # list to store column names supported by feets
         
         # Renaming the columns for feets
         for cl in current_lc_columns:
