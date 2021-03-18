@@ -52,7 +52,7 @@ class LightCurveDataset(Dataset):
 
         # The case where there is one file
         data = pd.read_csv(self.files[0],skiprows=self.header_nrows,
-                            delim_whitespace=self.delim_whitespace,header=None)
+                           delim_whitespace=self.delim_whitespace, header=None)
             
         # The case for multiple files of light curve data
         if len(self.files) > 1:

@@ -2,8 +2,9 @@ import numpy as np
 import feets
 from astronomaly.base.base_pipeline import PipelineStage
 
+
 class Feets_Features(PipelineStage):
-    
+
     '''Computes the features using feets package
 
     Parameters:
@@ -13,7 +14,7 @@ class Feets_Features(PipelineStage):
         A 1D array with the extracted feature'''
     
     
-    def __init__(self,exclude_features, **kwargs):
+    def __init__(self, exclude_features, **kwargs):
     
         super().__init__(exclude_features=exclude_features, **kwargs)
         
