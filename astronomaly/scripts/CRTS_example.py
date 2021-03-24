@@ -6,7 +6,7 @@ from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.visualisation import tsne
 import os
 import pandas as pd
-import zipfile
+
 
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data')
@@ -33,7 +33,7 @@ def run_pipeline():
     Returns
     -------
     pipeline_dict : dictionary
-        Dictionary containing all relevant data. Keys must include: 
+        Dictionary containing all relevant data. Keys must include:
         'dataset' - an astronomaly Dataset object
         'features' - pd.DataFrame containing the features
         'anomaly_scores' - pd.DataFrame with a column 'score' with the anomaly
@@ -47,14 +47,14 @@ def run_pipeline():
 
     # This creates the object that manages the data
     lc_dataset = light_curve_reader.LightCurveDataset(
-        filename=lc_path, 
-        data_dict = {'id':0,'time':4,'mag':2,'mag_err':3}
+        filename=lc_path,
+        data_dict={'id': 0, 'time': 4, 'mag': 2, 'mag_err': 3}
     )
 
     # Creates a pipeline object for feature extraction
     pipeline_feets = feets_features.Feets_Features(
         exclude_features=['Period_fit'])
-    
+
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)
 
@@ -80,7 +80,7 @@ def run_pipeline():
         # that labels are not forgotten between sessions of using Astronomaly
         if 'human_label' not in anomalies.columns:
             df = pd.read_csv(
-                os.path.join(output_dir, 'ml_scores.csv'), 
+                os.path.join(output_dir, 'ml_scores.csv'),
                 index_col=0,
                 dtype={'human_label': 'int'})
             df.index = df.index.astype('str')
@@ -92,7 +92,7 @@ def run_pipeline():
         pass
 
     # This is the active learning object that will be run on demand by the
-    # frontend 
+    # frontend
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, output_dir=output_dir)
 
@@ -105,8 +105,8 @@ def run_pipeline():
     t_plot = pipeline_tsne.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
-    return {'dataset': lc_dataset, 
-            'features': features, 
+    return {'dataset': lc_dataset,
+            'features': features,
             'anomaly_scores': anomalies,
-            'visualisation': t_plot, 
+            'visualisation': t_plot,
             'active_learning': pipeline_active_learning}
