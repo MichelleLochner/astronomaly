@@ -39,10 +39,14 @@ class Feets_Features(PipelineStage):
             incase there is an error during the feature extraction process'''
 
         # Sorting the columns for the feature extractor
-        standard_lc_columns = ['time', 'mag', 'mag_error']  # This needs to be extended to be more general
-        current_lc_columns = [cl for cl in standard_lc_columns if cl in lc_data.columns]
-        available_columns = ['time']  # list to store column names supported by
-                                      # feets
+
+        # This needs to be extended to be more general
+        standard_lc_columns = ['time', 'mag', 'mag_error']
+        current_lc_columns = [cl for cl in standard_lc_columns
+                              if cl in lc_data.columns]
+
+        # list to store column names supported by  feets
+        available_columns = ['time']
 
         # Renaming the columns for feets
         for cl in current_lc_columns:
@@ -56,23 +60,18 @@ class Feets_Features(PipelineStage):
                 available_columns.append('error')
 
         # Getting the length of features to be calculated
-        if len(current_lc_columns) == 3:
+        fs = feets.FeatureSpace(data=available_columns,
+                                exclude=self.exclude_features)
 
-            len_labels = 63 - len(self.exclude_features)
-
-        if len(current_lc_columns) == 2:
-
-            len_labels = 57 - len(self.exclude_features)
+        len_labels = len(fs.features_)
 
         # Computing the features
         if len(lc_data) >= 20:
-            fs = feets.FeatureSpace(data=available_columns,
-                                    exclude=self.exclude_features)
 
             # Getting the light curve columns for the extractor
             lc_columns = []
-            for cols in current_lc_columns:
-                lc_columns.append(lc_data[cols])
+            for col in current_lc_columns:
+                lc_columns.append(lc_data[col])
             features, values = fs.extract(*lc_columns)
 
             # Updating the labels
