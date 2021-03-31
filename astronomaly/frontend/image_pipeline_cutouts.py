@@ -11,7 +11,8 @@ import os
 import pandas as pd
 
 #data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/GT'
-data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Test Set 15000'
+#data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Test Set 15000'
+data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Lenses'
 
 which_data = 'decals'
 list_of_files = []
@@ -31,6 +32,8 @@ display_transform_function = [#image_preprocessing.image_transform_inverse_sinh,
                               image_preprocessing.image_transform_scale
                               ]
 
+                              
+
 
 image_dir = os.path.join(data_dir,'Cutouts')
 output_dir = os.path.join(data_dir, 'Output', '')
@@ -39,7 +42,10 @@ output_dir = os.path.join(data_dir, 'Output', '')
 #output_dir = os.path.join(data_dir,'0260m062', 'Output', '')
 
 #catalogue = pd.read_csv(os.path.join(data_dir,'Ground Truth.csv'))
-catalogue = pd.read_csv(os.path.join(data_dir,'Test Set 15000 (copy).csv'))
+
+catalogue = pd.read_csv(os.path.join(data_dir,'All_Lenses_Sorted.csv'))
+#catalogue = pd.read_csv(os.path.join(data_dir,'Output','ellipse_catalogue.csv'))
+
     #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
     #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
     #    image_name = 'legacysurvey-0260m062-image.fits.fz')
@@ -100,6 +106,7 @@ def run_pipeline():
         )
 
     features_original = pipeline_ellipse.run_on_dataset(image_dataset)
+    print(features_original)
 
     features = features_original.copy()
 
@@ -107,7 +114,7 @@ def run_pipeline():
         filname = os.path.join(output_dir, 'ellipse_catalogue.csv')
         utils.create_ellipse_check_catalogue(image_dataset, features, filename=filname)
 
-    features.drop(['Warning_Open_Ellipse'], 1, inplace=True)
+    features.drop(['Warning_Open_Ellipse','Recommended_Window_Size'], 1, inplace=True)
     print(features)
 
     pipeline_scaler = scaling.FeatureScaler(force_rerun=True,
@@ -147,7 +154,7 @@ def run_pipeline():
     # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
 
     flname = os.path.join(output_dir, 'anomaly_catalogue_all.xlsx')
-    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:1000],
+    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:5000],
                                        filename=flname,
                                        ignore_nearby_sources=True,
                                        source_radius=0.016)

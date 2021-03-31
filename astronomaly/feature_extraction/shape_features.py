@@ -82,7 +82,6 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
         #    raised_error = True
         #    logging_tools.log('fit_ellipse failed with unknown error:')
 
-
     except cv2.error as e:
         logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
         raised_error = True
@@ -253,7 +252,10 @@ def check_extending_ellipses(img, threshold, return_params=False):
     width = img.shape[0]
     height = img.shape[1]
 
-    blank_canvas = np.zeros((width*2,height*2), dtype=np.float)
+    new_width = width * 3
+    new_height = height * 3 
+
+    blank_canvas = np.zeros((new_width,new_height), dtype=np.float)
 
     contours, hierarchy = find_contours(img, threshold)
     
@@ -274,24 +276,26 @@ def check_extending_ellipses(img, threshold, return_params=False):
         raised_error = True
 
     if raised_error:
-        if return_params:
-            return False
-        else:
-            return False
+        contour_extends = False
+        return contour_extends
 
-    x0 = int(np.round(x0)) *2
-    y0 = int(np.round(y0)) *2
+    x0_new = int(np.round(x0)) + (int(width))
+    y0_new = int(np.round(y0)) + (int(height))
     maj_axis = int(np.round(maj_axis))
     min_axis = int(np.round(min_axis))
     theta = int(np.round(theta))
     
-    ellipse = cv2.ellipse(blank_canvas, (x0, y0), (maj_axis // 2, min_axis // 2), theta, 0, 360, (1, 1, 1), 1)
-    ellipse[int(width*0.5):int(width*1.5), int(height*0.5):int(height*1.5)] = 0
-    
+    ellipse = cv2.ellipse(blank_canvas, (x0_new, y0_new), (maj_axis // 2, min_axis // 2), theta, 0, 360, (1, 1, 1), 1)
+    ellipse[int(width*1):int(width*2), int(height*1):int(height*2)] = 0
+
     if ellipse.any() != 0:
-        return True
+        dif = np.sqrt( (x0 - width/2)**2 + (y0 - height/2)**2 )
+        new_window = int((max(min_axis, maj_axis) + dif) * 1.25)
+        contour_extends = True
+        return contour_extends, new_window
     else:
-        return False
+        contour_extends = False
+        return contour_extends    
 
 
 class EllipseFitFeatures(PipelineStage):
@@ -328,6 +332,7 @@ class EllipseFitFeatures(PipelineStage):
 
         if extending_ellipse:
             self.labels.append('Warning_Open_Ellipse')
+            self.labels.append('Recommended_Window_Size')
 
     def _execute_function(self, image):
         """
@@ -363,6 +368,7 @@ class EllipseFitFeatures(PipelineStage):
         y_cent = this_image.shape[1] // 2
 
         warning_open_ellipses = []
+        new_window = []
         all_contours = []
         feats = []
         stop = False
@@ -438,10 +444,12 @@ class EllipseFitFeatures(PipelineStage):
                     if self.extending_ellipse and p == percentiles[-1]:
                         check = check_extending_ellipses(resize, thresh)
                         if check:
+                            new_window.append(int(check[1]))
                             warning_open_ellipses.append(1)
                         else:
+                            new_window.append(image.shape[0])
                             warning_open_ellipses.append(0)
-
+                        
                     #ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
                     ellipse_arr = fit_ellipse(c, resize, return_params=False, filled=False)
 
@@ -524,6 +532,7 @@ class EllipseFitFeatures(PipelineStage):
                 features = [np.nan] * 4 * len(self.percentiles) 
 
         features = np.append(features,warning_open_ellipses)
+        features = np.append(features,new_window)
 
         return features
 

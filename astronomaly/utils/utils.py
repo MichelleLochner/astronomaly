@@ -202,9 +202,10 @@ def create_ellipse_check_catalogue(image_dataset, features,
     """
 
     dat = features.copy()
+
     met = image_dataset.metadata
 
-    dat.drop(dat.columns[0:24], axis = 1, inplace = True) 
+    dat.drop(dat.columns[0:24], axis = 1, inplace = True)
 
     ellipse_warning = dat.loc[dat['Warning_Open_Ellipse'] == 1]
 
