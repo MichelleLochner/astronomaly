@@ -28,7 +28,9 @@ class LightCurveDataset(Dataset):
                 the following specific keys:
                 ('id','time','mag','mag_err','flux','flux_err','filters')
                 e.g {'time':1,'mag':2}, where 1 and 2 are column index
-                correpoding to 'time' and 'mag' in the input data .
+                correpoding to 'time' and 'mag' in the input data.
+                If the data does not have unique ids, the user can neglect the
+                'id' key, and the ids will be the file path by default.
                 The user can also provide a list of indices for the 'mag' and
                 'flux' columns.
                 This is the case where the brightness is recorded in more than
@@ -59,21 +61,44 @@ class LightCurveDataset(Dataset):
                            delim_whitespace=self.delim_whitespace, header=None)
 
         # The case for multiple files of light curve data
+        file_len = [len(data)]
         if len(self.files) > 1:
 
+            file_paths = [self.files[0]]
             for fl in range(1, len(self.files)):
                 data = pd.concat([data, pd.read_csv(self.files[fl],
                                  skiprows=self.header_nrows,
                                  delim_whitespace=self.delim_whitespace,
                                  header=None)])
 
+                file_paths.append(self.files[fl])
+                file_len.append(len(data))
+
+            IDs = [file_paths[0] for i in range(file_len[0])]
+            for fl in range(1, len(file_len)):
+
+                for f in range(file_len[fl] - file_len[fl-1]):
+
+                    IDs.append(file_paths[fl])
+
     #         =================================================================
     #            Renaming the columns into standard columns for astronomaly
     #         =================================================================
-
-        idx = data.iloc[:, self.data_dict['id']]
         time = data.iloc[:, self.data_dict['time']]
-        standard_data = {'ID': idx, 'time': time}
+        standard_data = {'time': time}
+
+        if 'id' in data_dict.keys():
+            idx = data.iloc[:, self.data_dict['id']]
+            ids = np.unique(idx)
+            self.index = ids
+            self.metadata = pd.DataFrame({'ID': ids}, index=ids)
+            standard_data.update({'ID': idx})
+
+        else:
+            idx = self.files
+            self.index = idx
+            self.metadata = pd.DataFrame({'ID': idx}, index=idx)
+            standard_data.update({'ID': IDs})
 
         # Possible brightness columns
         brightness_cols = ['mag', 'flux']
@@ -124,10 +149,7 @@ class LightCurveDataset(Dataset):
                     standard_data.update({'filters': data.iloc[
                                          :, self.data_dict['filters']]})
 
-        ids = np.unique(standard_data['ID'])
-        self.metadata = pd.DataFrame({'ID': ids}, index=ids)
         self.light_curves_data = pd.DataFrame.from_dict(standard_data)
-        self.index = ids
 
     def get_display_data(self, idx):
         """
