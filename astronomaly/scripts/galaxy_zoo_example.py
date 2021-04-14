@@ -69,6 +69,9 @@ def run_pipeline():
         transform_function=image_transform_function,
         display_transform_function=display_transform_function
     )
+    # print(image_dataset.metadata)
+    # print(image_dataset.metadata.index)
+    # exit()
 
     # Creates a pipeline object for feature extraction
     pipeline_ellipse = shape_features.EllipseFitFeatures(
@@ -78,6 +81,9 @@ def run_pipeline():
 
     # Actually runs the feature extraction
     features = pipeline_ellipse.run_on_dataset(image_dataset)
+    # print(features.head())
+    # print(features.index)
+    # exit()
 
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set
@@ -131,3 +137,5 @@ def run_pipeline():
             'anomaly_scores': anomalies,
             'visualisation': t_plot, 
             'active_learning': pipeline_active_learning}
+
+# run_pipeline()

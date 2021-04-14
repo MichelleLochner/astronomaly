@@ -201,11 +201,6 @@ class NeighbourScore(PipelineStage):
         fitted_scores = reg.predict(features)
         return fitted_scores
 
-    def combine_data_frames(self, features, ml_df):
-        """
-        Convenience function to correctly combine dataframes.
-        """
-        return pd.concat((features, ml_df), axis=1, join='inner')
 
     def _execute_function(self, features_with_labels):
         """
@@ -226,9 +221,12 @@ class NeighbourScore(PipelineStage):
         """
         distances = self.compute_nearest_neighbour(features_with_labels)
         regressed_score = self.train_regression(features_with_labels)
+        # combine weighted towards regressed score where distances are small and vica versa
         trained_score = self.anom_func(distances, 
                                        regressed_score, 
                                        features_with_labels.score.values)
+        # df with features.index as index and trained_score column
+        # I will replace with gp that gives trained_score
         return pd.DataFrame(data=trained_score, 
                             index=features_with_labels.index, 
                             columns=['trained_score'])

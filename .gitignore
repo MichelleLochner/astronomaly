@@ -37,3 +37,8 @@ docs/_build/
 node_modules
 
 .idea/*
+
+*.png
+*.pickle
+*.csv
+*.pdf

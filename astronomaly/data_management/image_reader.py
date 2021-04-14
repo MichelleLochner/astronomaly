@@ -1,16 +1,19 @@
+import io
+import os
+import logging
+import tracemalloc
+
 from astropy.io import fits
 from astropy.wcs import WCS
 import numpy as np
-import os
-import tracemalloc
 import pandas as pd
 import matplotlib as mpl
-import io
+
 from skimage.transform import resize
 import cv2
 from astronomaly.base.base_dataset import Dataset
 from astronomaly.base import logging_tools
-mpl.use('Agg')
+mpl.use('Agg')  # worrying to be in imports
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
 
@@ -577,7 +580,7 @@ class ImageDataset(Dataset):
             img_name = self.metadata.loc[idx, 'original_image']
         except KeyError:
             return None
-
+        logging.debug('img_name', img_name)
         this_image = self.images[img_name]
         x0 = self.metadata.loc[idx, 'x']
         y0 = self.metadata.loc[idx, 'y']
@@ -655,7 +658,7 @@ class ImageDataset(Dataset):
 class ImageThumbnailsDataset(Dataset):
     def __init__(self, display_image_size=128, transform_function=None, 
                  display_transform_function=None,
-                 catalogue=None, additional_metadata=None, **kwargs):
+                 catalogue=None, additional_metadata=None, output_dir='./'):
         """
         Read in a set of images that have already been cut into thumbnails. 
         This would be uncommon with astronomical data but is needed to read a 
@@ -689,10 +692,9 @@ class ImageThumbnailsDataset(Dataset):
             extracted around these positions and must be the same for all
             sources. 
         """
-
         super().__init__(transform_function=transform_function, 
-                         display_image_size=128, catalogue=catalogue,
-                         **kwargs)
+                         display_image_size=128,
+                         output_dir=output_dir)  # base dataset allows list_of_files kwarg, sets self.files=list_of_files
 
         self.data_type = 'image'
         self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff']
@@ -702,14 +704,19 @@ class ImageThumbnailsDataset(Dataset):
         else:
             self.display_transform_function = display_transform_function
         self.display_image_size = display_image_size
-
+        assert catalogue is not None
         if catalogue is not None:
+            logging.info('Catalogue has been provided')
             if 'objid' in catalogue.columns:
-                catalogue.set_index('objid')
+                logging.info('Catalogue includes objid')
+                catalogue = catalogue.set_index('objid')  # very important typo, did not assign in original!
             self.metadata = catalogue
         else:
+            logging.warning('Catalogue has not been provided - files must have been specified in kwarg')
             inds = []
             file_paths = []
+            # self.files set by super().__init__
+            assert len(self.files) != 0
             for f in self.files:
                 extension = f.split('.')[-1]
                 if extension in self.known_file_types:
@@ -759,11 +766,13 @@ class ImageThumbnailsDataset(Dataset):
         png image object
             Object ready to be passed directly to the frontend
         """
-
+        logging.debug('getting filename')
         filename = self.metadata.loc[idx, 'filename']
+        logging.debug('got {}'.format(filename))
+
         cutout = cv2.imread(filename)
         cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
-        print(cutout.shape)
+
         cutout = apply_transform(cutout, self.display_transform_function)
 
         min_edge = min(cutout.shape[:2])
@@ -778,5 +787,5 @@ class ImageThumbnailsDataset(Dataset):
             if len(cutout.shape) > 2:
                 new_shape.append(cutout.shape[-1])
             cutout = resize(cutout, new_shape, anti_aliasing=False)
-
+        logging.debug('image from thumnail dataset: {}'.format(cutout.shape))
         return convert_array_to_image(cutout)

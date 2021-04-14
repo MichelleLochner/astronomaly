@@ -69,6 +69,7 @@ def get_metadata():
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_metadata(idx)
+        logging.debug('metadata: {}'.format(output))
         return json.dumps(output)
     else:
         return ""
@@ -95,8 +96,10 @@ def get_features():
     """
     if request.method == "POST":
         idx = str(request.get_json())
+        logging.debug('features idx: {}'.format(idx))
         output = controller.get_features(idx)
         output = json.dumps(output)
+        logging.debug('features: {}'.format(output))
         return output
     else:
         return ""
@@ -124,7 +127,7 @@ def get_image():
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_display_data(idx)
-        if output is None:
+        if output == None:
             return ""
         return Response(output.getvalue(), mimetype='image/png')
     else:
@@ -231,4 +234,4 @@ if __name__ == "__main__":
     print('##### Astronomaly server now running #####')
     print('Open this link in your browser:', host)
     print()
-    app.run()
+    app.run(debug=True)

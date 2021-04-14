@@ -1,8 +1,9 @@
 import numpy as np
+import pandas as pd
 import os
 import importlib
 import sys
-
+import logging
 
 class Controller:
     def __init__(self, pipeline_file):
@@ -75,6 +76,7 @@ class Controller:
         Simply calls the underlying Dataset's function to return display data.
         """
         try:
+            logging.debug('dataset is {}'.format(type(self.dataset)))
             return self.dataset.get_display_data(idx)
         except KeyError:
             return None
@@ -83,6 +85,8 @@ class Controller:
         """
         Returns the features of instance given by index idx.
         """
+        logging.info('getting features from idx {}'.format(idx))
+    
         try:
             out_dict = dict(zip(self.features.columns.astype('str'), 
                                 self.features.loc[idx].values))
@@ -110,7 +114,7 @@ class Controller:
         """
         ml_df = self.anomaly_scores
         if 'human_label' not in ml_df.columns:
-            ml_df['human_label'] = [-1] * len(ml_df)
+            ml_df['human_label'] = [-1] * len(ml_df)  # TODO I would prefer nan
         ml_df.loc[idx, 'human_label'] = label
         ml_df = ml_df.astype({'human_label': 'int'})
 
@@ -123,10 +127,9 @@ class Controller:
         Runs the selected active learning algorithm.
         """
         pipeline_active_learning = self.active_learning
-        features_with_labels = \
-            pipeline_active_learning.combine_data_frames(self.features, 
-                                                         self.anomaly_scores)
-        # print(features_with_labels)
+
+        features_with_labels = pd.concat((pipeline_active_learning.features, pipeline_active_learning.anomaly_scores), axis=1, join='inner')
+
         scores = pipeline_active_learning.run(features_with_labels)
         self.anomaly_scores['trained_score'] = scores
 

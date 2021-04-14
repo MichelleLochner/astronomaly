@@ -1,4 +1,6 @@
 import os
+import logging
+
 from astronomaly.base import logging_tools
 
 
@@ -26,6 +28,7 @@ class Dataset(object):
             './' 
         """
         self.data_type = None
+        logging.debug('Begin base dataset init')
 
         if 'filename' in kwargs:
             filename = kwargs['filename']
@@ -59,6 +62,7 @@ class Dataset(object):
         # Handles automatic file reading and writing
         if 'output_dir' in kwargs:
             self.output_dir = kwargs['output_dir']
+            logging.debug('Setting output dir from kwargs to ', self.output_dir)
         else:
             self.output_dir = './'
 
