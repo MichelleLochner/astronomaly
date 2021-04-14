@@ -112,12 +112,17 @@ class Controller:
         label : int
             Human-assigned label
         """
+        # confusingly, human_label should be part of anomaly_scores
         ml_df = self.anomaly_scores
         if 'human_label' not in ml_df.columns:
-            ml_df['human_label'] = [-1] * len(ml_df)  # TODO I would prefer nan
-        ml_df.loc[idx, 'human_label'] = label
-        ml_df = ml_df.astype({'human_label': 'int'})
+            ml_df['human_label'] = np.nan
+        if 'acquiisition' not in ml_df.columns:
+            ml_df['acquisition'] = np.nan
 
+        # actually assign the label
+        ml_df.loc[idx, 'human_label'] = label
+
+        # update the saved csv
         self.active_learning.save(
             ml_df, os.path.join(self.active_learning.output_dir, 
                                 'ml_scores.csv'), file_format='csv')
@@ -126,12 +131,16 @@ class Controller:
         """
         Runs the selected active learning algorithm.
         """
-        pipeline_active_learning = self.active_learning
 
-        features_with_labels = pd.concat((pipeline_active_learning.features, pipeline_active_learning.anomaly_scores), axis=1, join='inner')
+        features_with_labels = pd.concat([self.features, self.anomaly_scores], axis=1, join='inner')
+        # ideally would pass separately, but the too-general base class only allows for one 'data' argument
+        active_learning_output = self.active_learning.run(features_with_labels)  # for me, a df with scores, trained_scores, human_label, acquisition, same index as self.features etc
 
-        scores = pipeline_active_learning.run(features_with_labels)
-        self.anomaly_scores['trained_score'] = scores
+        # optionally by this with AnomalyTab.js. For me, will be the same as data['score] (but more up-to-date, potentially)
+        for col in ['score', 'trained_score', 'human_label', 'acquisition']:
+            if col in active_learning_output.columns.values:
+                self.anomaly_scores[col] = active_learning_output[col]
+
 
     def get_visualisation_data(self, color_by_column=''):
         """
@@ -148,26 +157,29 @@ class Controller:
         dict
             Formatting visualisation plot data
         """
-        clst = self.visualisation
-        if clst is not None:
+        visualisation = self.visualisation  # i.e. the visualisation= part of the run pipeline dict
+
+        if visualisation is not None:
             if len(color_by_column) == 0:
-                cols = [0.5] * len(clst)
-                clst['color'] = cols
-            else:
-                clst['color'] = \
-                    self.anomaly_scores.loc[clst.index, 
+                # everything will be the same colour
+                visualisation['color'] = [0.5] * len(visualisation)
+            else:  # color by that column
+                logging.info('Colouring by {}'.format(color_by_column))
+                visualisation['color'] = \
+                    self.anomaly_scores.loc[visualisation.index, 
                                             color_by_column]
             out = []
-            clst.sort_values('color')
-            for idx in clst.index:
-                dat = clst.loc[idx].values
+            visualisation.sort_values('color')
+            for idx in visualisation.index:
+                dat = visualisation.loc[idx].values
                 out.append({'id': (str)(idx), 
                             'x': '{:f}'.format(dat[0]), 
                             'y': '{:f}'.format(dat[1]),
                             'opacity': '0.5', 
-                            'color': '{:f}'.format(clst.loc[idx, 'color'])})
+                            'color': '{:f}'.format(visualisation.loc[idx, 'color'])})
             return out
         else:
+            logging.warning('No visualisation passed')
             return None
 
     def get_original_id_from_index(self, ind):

@@ -34,9 +34,6 @@ class PipelineStage(object):
             Format to save the output of this pipeline stage to. 
             Accepted values are:
             parquet
-        drop_nans : bool
-            If true, will drop any NaNs from the input before passing it to the
-            function
 
         """
 
@@ -57,11 +54,6 @@ class PipelineStage(object):
             self.output_dir = kwargs['output_dir']
         else:
             self.output_dir = './'
-
-        if 'drop_nans' in kwargs and kwargs['drop_nans'] is False:
-            self.drop_nans = False
-        else:
-            self.drop_nans = True
 
         # This allows the automatic logging every time this class is 
         # instantiated (i.e. every time this pipeline stage
@@ -187,6 +179,8 @@ class PipelineStage(object):
         same data. This can allow a much faster user experience avoiding
         rerunning functions unnecessarily.
 
+        Warning - all columns in data not 'human_label' or 'score' are assumed to be features.
+
         Parameters
         ----------
         data : pd.DataFrame
@@ -214,10 +208,7 @@ class PipelineStage(object):
             logging_tools.log(msg_string)
             print('Running', self.class_name, '...')
             t1 = time.time()
-            if self.drop_nans:
-                output = self._execute_function(data.dropna())
-            else:
-                output = self._execute_function(data)
+            output = self._execute_function(data)
             self.save(output, self.output_file)
             print('Done! Time taken:', (time.time() - t1), 's')
             return output
@@ -279,12 +270,6 @@ class PipelineStage(object):
                     print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
 
-                if self.drop_nans and np.any(np.isnan(input_instance)):
-                    input_instance = np.nan_to_num(input_instance)
-                    if not logged_nan_msg:
-                        print(nan_msg)
-                        logging_tools.log(nan_msg, level='WARNING')
-                        logged_nan_msg = True
                 out = self._execute_function(input_instance)
                 if np.any(np.isnan(out)):
                     logging_tools.log("Feature extraction failed for id " + i)

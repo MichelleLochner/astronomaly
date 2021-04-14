@@ -142,7 +142,7 @@ def get_visualisation():
     if request.method == "POST":
         technique = request.get_json()
         if technique == 'tsne':
-            output = controller.get_visualisation_data(color_by_column='score')
+            output = controller.get_visualisation_data(color_by_column='trained_score')  # updated from score TODO allow selection via React
             js = json.dumps(output)
             return js
 
@@ -166,6 +166,7 @@ def sort_data():
         if column == "random":
             controller.randomise_ml_scores()
         else:
+            logging.info('Sorting by {} column'.format(column))
             controller.sort_ml_scores(column)
         return json.dumps("success")
 

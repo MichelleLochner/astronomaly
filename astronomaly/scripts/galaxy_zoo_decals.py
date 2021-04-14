@@ -1,18 +1,23 @@
 import os
+import logging
+import json
+import glob
+
 import pandas as pd
 import numpy as np
 import zipfile
-import json
 from PIL import Image
-import glob
+
+logging.basicConfig(level=logging.INFO)
 
 os.environ['FLASK_ENV'] = 'development'
+# logging.basicConfig(level=logging.INFO)
 
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
-from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
+from astronomaly.anomaly_detection import isolation_forest, gaussian_process, human_loop_learning
 from astronomaly.visualisation import tsne
 
 # Where output should be stored
@@ -89,38 +94,55 @@ def run_pipeline():
 
     # The actual anomaly detection is called in the same way by creating an
     # Iforest pipeline object then running it
-    pipeline_iforest = isolation_forest.IforestAlgorithm(
-        force_rerun=False, output_dir=output_dir)
-    anomalies = pipeline_iforest.run(features)
+
+    # pipeline_iforest = isolation_forest.IforestAlgorithm(
+    #     force_rerun=False, output_dir=output_dir)
+    # anomalies = pipeline_iforest.run(features)
     # returns dataframe with "score" column and features.index as index
 
-    # We convert the scores onto a range of 0-5
-    pipeline_score_converter = human_loop_learning.ScoreConverter(
-        force_rerun=False, output_dir=output_dir)
-    anomalies = pipeline_score_converter.run(anomalies)
-
-    # anomalies df will now be modified to add human_label column if there are previous human_labels, saved (confusingly) in ml_scores.csv 
-    # (because it's added as a column to anomalies df rather than its own csv...)
+    
     try:
         # This is used by the frontend to store labels as they are applied so
         # that labels are not forgotten between sessions of using Astronomaly
-        if 'human_label' not in anomalies.columns:
-            df = pd.read_csv(
-                os.path.join(output_dir, 'ml_scores.csv'), 
-                index_col=0,
-                dtype={'human_label': 'int'})
-            df.index = df.index.astype('str')
+        # includes 'human_label' and 'score' columns, for ml and humans respectively
+        scores = pd.read_csv(
+                    os.path.join(output_dir, 'ml_scores.csv'), 
+                    index_col=0,
+                    dtype={'human_label': float})
+        scores.index = scores.index.astype('str')
 
-            if len(anomalies) == len(df):
-                anomalies = pd.concat(
-                    (anomalies, df['human_label']), axis=1, join='inner')
+        assert len(features) == len(scores)
+        data = pd.concat(
+            (features, scores), axis=1, join='outer')
+        assert len(data) == len(features)
+        data['human_label'] = data['human_label'].fillna(-1)
+        data['score'] = data['score'].fillna(-1)
+        data['trained_score'] = data['score']
+        data['acquisition'] = data['acquisition'].fillna(-1)
     except FileNotFoundError:
-        pass  # will save ml_scores.csv every time controller.get_label is called
+        # will save ml_scores.csv every time controller.get_label is called
+        data = features.copy()
+        data['human_label'] = np.nan
+        data['score'] = np.nan
+        data['trained_score'] = np.nan
+        data['acquisition'] = np.nan
 
+    # data = pd.concat([data, scores], axis=1)
+
+    # We convert the scores onto a range of 0-5
+    # pipeline_score_converter = human_loop_learning.ScoreConverter(
+    #     force_rerun=False, output_dir=output_dir)
+    # anomalies = pipeline_score_converter.run(anomalies)
+
+    # anomalies df will now be modified to add human_label column if there are previous human_labels, saved (confusingly) in ml_scores.csv 
+    # (because it's added as a column to anomalies df rather than its own csv...)
+
+
+    # I thought this might subclass soemthing else with dif. requirements but no, it's just pipelinestage
     # This is the active learning object that will be run on demand by the
     # frontend 
-    pipeline_active_learning = human_loop_learning.NeighbourScore(
-        alpha=1, output_dir=output_dir)
+    # pipeline_active_learning = human_loop_learning.NeighbourScore(
+    #     alpha=1, output_dir=output_dir)
 
     # We use TSNE for visualisation which is run in the same way as other parts
     # of the pipeline.
@@ -128,14 +150,25 @@ def run_pipeline():
     #     force_rerun=False,
     #     output_dir=output_dir,
     #     perplexity=100)
-    # t_plot = pipeline_tsne.run(features)
-    t_plot = None
+    # visualisation = pipeline_tsne.run(features)
 
+    # visualisation = None
+
+    visualisation = features  # this is already 2D ;)
+
+    print(data[['human_label', 'score', 'acquisition']].head())
+    # print((data['human_label'] != -1).sum())
+
+    gp_learning = gaussian_process.GaussianProcess(
+        force_rerun=False, output_dir=output_dir
+    )
+    
+    # anomaly_scores = pd.concat([human_labels, scores], axis=1)  # anomaly scores includes both ml and human scores
     # The run_pipeline function must return a dictionary with these keywords
     return {'dataset': image_dataset, 
             'features': features, 
-            'anomaly_scores': anomalies,
-            'visualisation': t_plot, 
-            'active_learning': pipeline_active_learning}
+            'anomaly_scores': data[['human_label', 'score', 'trained_score', 'acquisition']],
+            'visualisation': visualisation, 
+            'active_learning': gp_learning}
 
 # run_pipeline()

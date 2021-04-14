@@ -431,6 +431,7 @@ export class AnomalyTab extends React.Component {
                         <Grid item xs={12} align="center">
                             <Grid container alignItems="center">
                             <MuiThemeProvider theme={muiTheme}>
+                              {/* please, use a loop/map! TODO */}
                                 <Grid item xs={2}>
                                     <Button variant="contained" color={this.state.button_colors["0"]} onClick={this.handleScoreButtonClick} id="0"> 0 </Button>  
                                 </Grid> 
@@ -467,6 +468,8 @@ export class AnomalyTab extends React.Component {
                                     <MenuItem value="score">Raw anomaly score </MenuItem>
                                     <MenuItem value="trained_score">Human retrained score</MenuItem>
                                     <MenuItem value="random">Random</MenuItem>
+                                    {/* not yet showing up sadly */}
+                                    <MenuItem value="acquisition">Acquisition</MenuItem>
                                   </Select>
                                   <FormHelperText>Scoring method to sort by</FormHelperText>
                                 </FormControl>

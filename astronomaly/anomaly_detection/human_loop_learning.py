@@ -159,9 +159,9 @@ class NeighbourScore(PipelineStage):
         array
             Distance of each instance to its nearest labelled neighbour.
         """
-        features = features_with_labels.drop(columns=['human_label', 'score'])
-        # print(features)
-        label_mask = features_with_labels['human_label'] != -1
+        features = features_with_labels.drop(columns=['human_label', 'score', 'trained_score', 'acquisition'], errors='ignore')  # may not all be present
+
+        label_mask = ~pd.isna(features_with_labels['human_label'])
         labelled = features.loc[features_with_labels.index[label_mask]].values
         features = features.values
 
@@ -191,9 +191,9 @@ class NeighbourScore(PipelineStage):
         array
             The predicted user score for each instance.
         """
-        label_mask = features_with_labels['human_label'] != -1
+        label_mask = ~pd.isna(features_with_labels['human_label'])
         inds = features_with_labels.index[label_mask]
-        features = features_with_labels.drop(columns=['human_label', 'score'])
+        features = features_with_labels.drop(columns=['human_label', 'score', 'trained_score', 'acquisition'], errors='ignore')
         reg = RandomForestRegressor(n_estimators=100)
         reg.fit(features.loc[inds], 
                 features_with_labels.loc[inds, 'human_label'])
