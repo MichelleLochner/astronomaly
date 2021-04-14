@@ -249,7 +249,7 @@ def image_transform_greyscale(img):
         Greyscale image
 
     """
-    #print(np.shape(img))
+    
     if len(img.shape) > 2:
         img = np.float32(img)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -281,7 +281,7 @@ def image_transform_cv2_resize(img):
 
     return cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
 
-def image_band_addition(img):
+def image_transform_band_addition(img):
     """
     Small function that stacks the different channels together to form
     a new, single band image.
@@ -303,7 +303,7 @@ def image_band_addition(img):
     img = np.add(one,two,three)
     return img
 
-def image_band_reorder(img):
+def image_transform_band_reorder(img):
     """
     Small function that rearranges the different channels together to form
     a new image. Made specifically for the cutout.fits files
@@ -322,5 +322,51 @@ def image_band_reorder(img):
     two = img[1,:,:] # r-band - green g
     three = img[2,:,:] # z-band - red r
     
-    img = np.dstack((one,two,three))
+    img = np.dstack((three,two,one))
     return img
+
+def image_transform_colour_correction(img, bands=('g','r','z'), scales=None, m = 0.03):
+    """
+    Band weighting function used to match the display of astronomical images
+    from the DECaLS SkyViewer and SDSS. Created specifically for DECaLS fits
+    cutout files.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+        
+    Returns
+    -------
+    np.ndarray
+        Weighted and reordered image
+    """
+
+    rgbscales = {'u': (2,1.5),
+             'g': (2,6.0),
+             'r': (1,3.4),
+             'i': (0,1.0),
+             'z': (0,2.2),
+             }
+
+    I = 0
+
+    for im,band in zip(img, bands):
+        plane,scale = rgbscales[band]
+        im = np.maximum(0, im * scale + m)
+        I = I + im
+
+    I /= len(bands)
+    Q = 20
+    fI = np.arcsinh(Q * I) / np.sqrt(Q)
+    I += (I == 0.) * 1e-6
+    H,W = I.shape
+
+    rgb = np.zeros((H,W,3), np.float32)
+
+    for im,band in zip(img, bands):
+        plane,scale = rgbscales[band]
+        rgb[:,:,plane] = (im * scale + m) * fI / I
+
+    image = np.clip(rgb, 0, 1)
+    return image

@@ -245,7 +245,7 @@ class AstroImage:
 
 
 class ImageDataset(Dataset):
-    def __init__(self, fits_index=None, window_size=128, window_shift=None, 
+    def __init__(self, fits_index=None, window_size=None, window_shift=None, 
                  display_image_size=128, band_prefixes=[], bands_rgb={},
                  transform_function=None, display_transform_function=None,
                  plot_square=False, catalogue=None,
@@ -884,7 +884,6 @@ class ImageFitsDataset(Dataset):
             cols.append('objid')
 
         #### For Information Purposes ####
-
         if 'allmask_g' in self.catalogue.columns:
             catalogue['allmask'] = catalogue[['allmask_g','allmask_r','allmask_z']].max(axis=1)
             cols.append('allmask')
@@ -894,10 +893,7 @@ class ImageFitsDataset(Dataset):
         if 'fracmasked_g' in self.catalogue.columns:
             catalogue['fracmasked'] = catalogue[['fracmasked_g','fracmasked_r','fracmasked_z']].max(axis=1)
             cols.append('fracmasked')
-
-        ###################################
-
-        #### 'brickid' no longer within catalogues ####
+        ##################################
         
         if 'brickid' in self.catalogue.columns:
             cols.append('brickid')
@@ -984,15 +980,7 @@ class ImageFitsDataset(Dataset):
 
         data = fits.getdata(file_path, memmap=True)
 
-        if len(np.shape(data)) > 2:
-            one = data[0,:,:]
-            two = data[1,:,:]
-            three = data[2,:,:]
-            data = np.dstack((three,two,one))
-            transformed_image = apply_transform(data, self.display_transform_function)
-        
-        else:
-            transformed_image = apply_transform(data, self.display_transform_function)
+        transformed_image = apply_transform(data, self.display_transform_function)
 
         #Resized to the web interface size
         resized_image = resize(transformed_image, [128,128])

@@ -10,29 +10,27 @@ from astronomaly.utils import utils
 import os
 import pandas as pd
 
-#data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/GT'
-#data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Test Set 15000'
-data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Lenses'
+
+data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Test Set 15000'
+#data_dir = '/home/verlon/Desktop/Files/Data/CUTOUTS/Lenses'
 
 which_data = 'decals'
 list_of_files = []
 window_size = 32
 
-image_transform_function = [image_preprocessing.image_band_reorder,
-                            image_preprocessing.image_transform_scale,
-                            image_preprocessing.image_transform_greyscale,
-                            #image_preprocessing.image_band_addition,
+
+image_transform_function = [image_preprocessing.image_transform_colour_correction,
+                            image_preprocessing.image_transform_band_addition,
                             image_preprocessing.image_transform_sigma_clipping,
-                            # image_preprocessing.image_transform_inverse_sinh,
-                            image_preprocessing.image_transform_scale,
-                            #image_preprocessing.image_transform_cv2_resize,
+                            image_preprocessing.image_transform_scale
                             ]
 
+
 display_transform_function = [#image_preprocessing.image_transform_inverse_sinh,
-                              image_preprocessing.image_transform_scale
+                              image_preprocessing.image_transform_colour_correction,
+                              #image_preprocessing.image_transform_scale
                               ]
 
-                              
 
 
 image_dir = os.path.join(data_dir,'Cutouts')
@@ -43,12 +41,10 @@ output_dir = os.path.join(data_dir, 'Output', '')
 
 #catalogue = pd.read_csv(os.path.join(data_dir,'Ground Truth.csv'))
 
-catalogue = pd.read_csv(os.path.join(data_dir,'All_Lenses_Sorted.csv'))
+catalogue = pd.read_csv(os.path.join(data_dir,'Test Set 15000 With Lenses.csv'))
 #catalogue = pd.read_csv(os.path.join(data_dir,'Output','ellipse_catalogue.csv'))
 
-    #    '/home/verlon/Desktop/Astronomaly/Data/Coadd_0260/0260m062/Input/test_catalogue_0260m062_500.csv')
-    #    os.path.join(data_dir, 'Images','z-legacysurvey-0260m062-image.fits.fz'),
-    #    image_name = 'legacysurvey-0260m062-image.fits.fz')
+
 band_prefixes = ['z-', 'r-', 'g-']
 bands_rgb = {'r': 'z-', 'g': 'r-', 'b': 'g-'}
 plot_cmap = 'hot'
@@ -154,7 +150,7 @@ def run_pipeline():
     # t_plot = np.log(features_scaled + np.abs(features_scaled.min())+0.1)
 
     flname = os.path.join(output_dir, 'anomaly_catalogue_all.xlsx')
-    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:5000],
+    utils.create_catalogue_spreadsheet(image_dataset, anomalies[:200],
                                        filename=flname,
                                        ignore_nearby_sources=True,
                                        source_radius=0.016)
