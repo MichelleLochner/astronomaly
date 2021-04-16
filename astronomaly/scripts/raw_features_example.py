@@ -50,6 +50,9 @@ def run_pipeline():
                                      force_rerun=False)
     anomalies = pipeline_lof.run(features)
 
+    anomalies.to_csv('lof_anomalies.csv')
+    exit()
+
     pipeline_score_converter = human_loop_learning.ScoreConverter(
         output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
@@ -70,3 +73,5 @@ def run_pipeline():
             'anomaly_scores': anomalies,
             'visualisation': t_plot, 
             'active_learning': pipeline_active_learning}
+
+run_pipeline()

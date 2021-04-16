@@ -1,6 +1,6 @@
 import logging
 
-from sklearn.manifold import TSNE
+import umap
 import numpy as np
 import pandas as pd
 
@@ -8,7 +8,8 @@ from astronomaly.base.base_pipeline import PipelineStage
 
 
 class UMap(PipelineStage):
-    def __init__(self, max_samples=1000, shuffle=False, 
+    # https://umap-learn.readthedocs.io/en/latest/api.html
+    def __init__(self, max_samples=1000, shuffle=False, min_dist=0.1, n_neighbors=15,
                  **kwargs):
         """
         Rescales features using a standard sklearn scalar that subtracts the 
@@ -31,7 +32,10 @@ class UMap(PipelineStage):
             False
         """
         super().__init__(**kwargs)
+        self.max_samples = max_samples
         self.shuffle = shuffle
+        self.min_dist = min_dist
+        self.n_neighbors = n_neighbors
 
     def _execute_function(self, features):
         """
@@ -54,18 +58,19 @@ class UMap(PipelineStage):
         if len(features.columns.values) == 2:
             logging.warning('Already dim 2 - skipping umap')
             return features.copy()
+        
+        # copied from tsne
+        if len(features) > self.max_samples:
+            if not self.shuffle:
+                inds = features.index[:self.max_samples]
+            else:
+                inds = np.random.choice(features.index, self.max_samples, 
+                                        replace=False)
+            features = features.loc[inds]
 
-        # if len(features) > self.max_samples:
-        #     if not self.shuffle:
-        #         inds = features.index[:self.max_samples]
-        #     else:
-        #         inds = np.random.choice(features.index, self.max_samples, 
-        #                                 replace=False)
-        #     features = features.loc[inds]
+        reducer = umap.UMAP(n_components=2, min_dist=self.min_dist, n_neighbors=self.n_neighbors)
+        logging.info('Beginning umap transform')
+        reduced_embed = reducer.fit_transform(features)
+        logging.info('umap transform complete')
 
-        # ts = TSNE(perplexity=self.perplexity, learning_rate=10, n_iter=5000)
-        # ts.fit(features)
-
-        # fitted_tsne = ts.embedding_
-
-        # return pd.DataFrame(data=fitted_tsne, index=features.index)
+        return pd.DataFrame(data=reduced_embed, index=features.index)

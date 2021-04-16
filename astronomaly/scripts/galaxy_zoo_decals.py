@@ -18,7 +18,7 @@ from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, gaussian_process, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import tsne, umap
 
 # Where output should be stored
 output_dir = os.path.join('/home/walml/repos/astronomaly/temp')
@@ -36,8 +36,8 @@ image_transform_function = None
 display_transform_function = None
 
 max_galaxies = 1000
-feature_loc = 'dr5_8_b0_pca2_and_safe_ids.parquet'  # 2D
-# feature_loc = 'dr5_8_b0_pca10_and_safe_ids.parquet'  # 10D
+# feature_loc = 'dr5_8_b0_pca2_and_safe_ids.parquet'  # 2D
+feature_loc = 'dr5_8_b0_pca10_and_safe_ids.parquet'  # 10D
 feature_df = pd.read_parquet(feature_loc)
 feature_df = feature_df[feature_df['galaxy_id'].str.startswith('J')][:max_galaxies]
 
@@ -115,10 +115,6 @@ def run_pipeline():
         data = pd.concat(
             (features, scores), axis=1, join='outer')
         assert len(data) == len(features)
-        data['human_label'] = data['human_label'].fillna(-1)
-        data['score'] = data['score'].fillna(-1)
-        data['trained_score'] = data['score']
-        data['acquisition'] = data['acquisition'].fillna(-1)
     except FileNotFoundError:
         # will save ml_scores.csv every time controller.get_label is called
         data = features.copy()
@@ -154,10 +150,10 @@ def run_pipeline():
 
     # visualisation = None
 
-    visualisation = features  # this is already 2D ;)
+    pipeline_umap = umap.UMap(max_samples=1000)
+    visualisation = pipeline_umap.run(features)
 
     print(data[['human_label', 'score', 'acquisition']].head())
-    # print((data['human_label'] != -1).sum())
 
     gp_learning = gaussian_process.GaussianProcess(
         force_rerun=False, output_dir=output_dir

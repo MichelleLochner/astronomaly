@@ -51,6 +51,8 @@ class GaussianProcess(PipelineStage):
         X_labelled = features[is_labelled]
 
         print(y_labelled)
+        if np.any(y_labelled < -0.01):
+            raise ValueError('Some human labels are negative in {}'.format(y_labelled))
 
         self.estimator.fit(X_labelled, y_labelled)
 

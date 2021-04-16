@@ -140,11 +140,14 @@ def get_visualisation():
     Serves the data to be displayed on the visualisation tab
     """
     if request.method == "POST":
-        technique = request.get_json()
-        if technique == 'tsne':
-            output = controller.get_visualisation_data(color_by_column='trained_score')  # updated from score TODO allow selection via React
+        data = request.get_json()
+        column = data['column']
+        if data['method'] == 'tsne':  # this is deprecated, I am using umap now and it's identical - replace with 2D or similar?
+            output = controller.get_visualisation_data(color_by_column=column) # TODO allow selection via React
             js = json.dumps(output)
             return js
+        else:
+            raise ValueError('Method {} not recognized'.format(data['method']))
 
 
 @app.route('/retrain', methods=["GET", "POST"])

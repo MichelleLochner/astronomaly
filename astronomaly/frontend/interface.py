@@ -114,15 +114,19 @@ class Controller:
         """
         # confusingly, human_label should be part of anomaly_scores
         ml_df = self.anomaly_scores
-        if 'human_label' not in ml_df.columns:
-            ml_df['human_label'] = np.nan
-        if 'acquiisition' not in ml_df.columns:
-            ml_df['acquisition'] = np.nan
+        # if 'human_label' not in ml_df.columns:
+        #     ml_df['human_label'] = np.nan
+        # if 'acquiisition' not in ml_df.columns:
+        #     ml_df['acquisition'] = np.nan
 
         # actually assign the label
+        if label < -.1:  # == -1 may have weird behaviour?
+            label = np.nan  # id of "no button", and hence label of no button, is -1. I prefer nan within backend.
         ml_df.loc[idx, 'human_label'] = label
 
         # update the saved csv
+        # TODO would be much faster/more natural as sqlite db
+        # even better would be to have *only* the human labels stored here as e.g. key/value pairs
         self.active_learning.save(
             ml_df, os.path.join(self.active_learning.output_dir, 
                                 'ml_scores.csv'), file_format='csv')
@@ -168,6 +172,9 @@ class Controller:
                 visualisation['color'] = \
                     self.anomaly_scores.loc[visualisation.index, 
                                             color_by_column]
+                if color_by_column == 'acquisition':
+                    # https://codereview.stackexchange.com/questions/185785/scale-numpy-array-to-certain-range
+                    visualisation['color'] = np.interp(visualisation['color'], (visualisation['color'].min(), visualisation['color'].max()), (0, 5))  # simple hack to scale to 0-5 range
             out = []
             visualisation.sort_values('color')
             for idx in visualisation.index:
