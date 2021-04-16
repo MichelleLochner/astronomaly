@@ -90,9 +90,10 @@ class LightCurveDataset(Dataset):
         if 'id' in data_dict.keys():
             idx = data.iloc[:, self.data_dict['id']]
             ids = np.unique(idx)
-            self.index = ids
+            ids = np.array(ids, dtype='str')
+            self.index = ids[:100]  # Testing for 100 objects
             self.metadata = pd.DataFrame({'ID': ids}, index=ids)
-            standard_data.update({'ID': idx})
+            standard_data.update({'ID': np.array(idx, dtype='str')})
 
         else:
             idx = self.files
@@ -147,9 +148,35 @@ class LightCurveDataset(Dataset):
                 if 'filters' in self.data_dict.keys():
 
                     standard_data.update({'filters': data.iloc[
-                                         :, self.data_dict['filters']]})
+                                        :, self.data_dict['filters']]})
 
-        self.light_curves_data = pd.DataFrame.from_dict(standard_data)
+        lc = pd.DataFrame.from_dict(standard_data)
+
+        if 'flux' in lc.columns:
+            # Discard all the negative flux values
+            # since they are due noice or are for
+            # faint observations
+            lc = lc[lc['flux'].values > 0]
+
+            for i in range(len(np.unique(lc['filters']))):
+
+                f_zero = [24.63, 25.11, 24.80, 24.36, 22.83, 23]  # look_up y
+                # Filters
+                filt_val = (lc['filters'] == i)
+                f_obs = lc.flux[filt_val].values
+                f_obs_err = lc.flux_error[filt_val].values
+                # converting
+                flux_convs = -2.5*np.log10(f_obs/f_zero[i])
+                err_convs = -2.5*np.log10(f_obs_err/f_zero[i])
+                lc.loc[filt_val, 'flux'] = flux_convs
+                lc.loc[filt_val, 'flux_error'] = err_convs
+
+            conv_lc_cols = {'flux': 'mag', 'flux_error': 'mag_error'}
+            self.light_curves_data = lc.rename(columns=conv_lc_cols,
+                                               inplace=False)
+
+        else:
+            self.light_curves_data = lc
 
     def get_display_data(self, idx):
         """
