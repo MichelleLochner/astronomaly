@@ -46,10 +46,9 @@ def run_pipeline():
     """
 
     # This creates the object that manages the data
-    lc_dataset = light_curve_reader.LightCurveDataset(
-        data_dict={'id': 0, 'time': 1, 'flux_err': 4, 'flux': 3, 'filters': 2},
-        filename=lc_path, delim_whitespace=False, header_nrows=1
-    )
+    lc_dataset = light_curve_reader.LightCurveDataset(data_dict={'id':0,'time':1,'flux_err':4,
+    'flux':3,'filters':2},filename=lc_path, delim_whitespace=False,header_nrows=1
+    ,max_gap=100)
     print(lc_dataset.index)
     # Creates a pipeline object for feature extraction
     pipeline_feets = feets_features.Feets_Features(

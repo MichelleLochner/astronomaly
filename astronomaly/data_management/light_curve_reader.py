@@ -2,10 +2,62 @@ import pandas as pd
 import numpy as np
 from astronomaly.base.base_dataset import Dataset
 
+def split_lc(lc_data,max_gap):
+    
+
+    unq_ids = np.unique(lc_data.ID)
+    unq_ids = unq_ids[:20]
+    splitted_dict = {}
+    
+    for ids in unq_ids:
+        
+        lc = lc_data[lc_data['ID']==ids]
+        if 'filters' in lc.columns:
+
+            unq_filters = np.unique(lc.filters)
+
+            for filtr in unq_filters:
+
+
+                lc1 = lc[lc['filters']==filtr]
+
+    #             print(lc.shape)
+
+                time = lc1.time
+                time_diff = [time.iloc[i] - time.iloc[i-1] 
+                             for i in range(1,len(time))]
+                time_diff.insert(0,0)
+                lc1['time_diff'] = time_diff
+                gap_idx=np.where(lc1.time_diff>max_gap)[0]
+    #             print(gap_idx)
+
+                # Separating the lc as by the gap index
+                try:
+
+                    lc0 = lc1.iloc[:gap_idx[0]]
+                    lc0['ID'] = [ids+'a' for i in range(len(lc0.time))]
+
+                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(0):lc0})
+
+                    for k in range(1,len(gap_idx)):
+
+                        lcn = lc1.iloc[gap_idx[k-1]:gap_idx[k]]
+                        lcn['ID'] = [ids+'b' for i in range(len(lcn.time))]
+                        splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k) : lcn})
+
+                    lc2 = lc1.iloc[gap_idx[k]:]
+                    lc2['ID'] = [ids+'c' for i in range(len(lc2.time))]
+                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k+1):lc2})
+
+                except (IndexError,UnboundLocalError) as e:
+                    pass
+
+    final_data = pd.concat(splitted_dict.values(),ignore_index=False)
+    return final_data
 
 class LightCurveDataset(Dataset):
-    def __init__(self, data_dict, header_nrows=1, delim_whitespace=False,
-                 **kwargs):
+    def __init__(self, data_dict, f_zero=22, header_nrows=1, 
+                 delim_whitespace=False, max_gap=50, **kwargs):
         """
         Reads in light curve data from file(s).
 
@@ -39,18 +91,23 @@ class LightCurveDataset(Dataset):
         header_nrows: int
                 The number of rows the header covers in the dataset, by
                 default 1
+        f_zero : float/int
+                The  zero flux magnitude values, by defualt 22
         delim_whitespace: bool
                 Should be True if the data is not separated by a comma, by
                 default False"""
 
         super().__init__(data_dict=data_dict, header_nrows=header_nrows,
-                         delim_whitespace=delim_whitespace, **kwargs)
+                         delim_whitespace=delim_whitespace, f_zero=f_zero,
+                         max_gap=max_gap,**kwargs)
 
         self.data_type = 'light_curve'
         self.metadata = pd.DataFrame(data=[])
         self.data_dict = data_dict
         self.header_nrows = header_nrows
         self.delim_whitespace = delim_whitespace
+        self.f_zero = f_zero
+        self.max_gap = max_gap
 
     #         ================================================================
     #                         Reading the light curve data
@@ -59,6 +116,10 @@ class LightCurveDataset(Dataset):
         # The case where there is one file
         data = pd.read_csv(self.files[0], skiprows=self.header_nrows,
                            delim_whitespace=self.delim_whitespace, header=None)
+        
+        # Spliting the light curve data using the gaps
+        
+        
 
         # The case for multiple files of light curve data
         file_len = [len(data)]
@@ -91,8 +152,7 @@ class LightCurveDataset(Dataset):
             idx = data.iloc[:, self.data_dict['id']]
             ids = np.unique(idx)
             ids = np.array(ids, dtype='str')
-            self.index = ids[:100]  # Testing for 100 objects
-            self.metadata = pd.DataFrame({'ID': ids}, index=ids)
+#             self.index = ids[:5]  # Testing for 100 objects
             standard_data.update({'ID': np.array(idx, dtype='str')})
 
         else:
@@ -157,26 +217,32 @@ class LightCurveDataset(Dataset):
             # since they are due noice or are for
             # faint observations
             lc = lc[lc['flux'].values > 0]
+            
+            # Discard all the negative flux values
+            # since they are due noice or are for
+            # faint observations
+            lc = lc[lc['flux'].values > 0]
 
-            for i in range(len(np.unique(lc['filters']))):
-
-                f_zero = [24.63, 25.11, 24.80, 24.36, 22.83, 23]  # look_up y
-                # Filters
-                filt_val = (lc['filters'] == i)
-                f_obs = lc.flux[filt_val].values
-                f_obs_err = lc.flux_error[filt_val].values
-                # converting
-                flux_convs = -2.5*np.log10(f_obs/f_zero[i])
-                err_convs = -2.5*np.log10(f_obs_err/f_zero[i])
-                lc.loc[filt_val, 'flux'] = flux_convs
-                lc.loc[filt_val, 'flux_error'] = err_convs
-
-            conv_lc_cols = {'flux': 'mag', 'flux_error': 'mag_error'}
-            self.light_curves_data = lc.rename(columns=conv_lc_cols,
-                                               inplace=False)
+            f_zero = self.f_zero
+            # Flux and flux error
+            f_obs = lc.flux.values
+            f_obs_err = lc.flux_error.values
+            # converting
+            flux_convs = f_zero - 2.5*np.log10(f_obs)
+            err_convs = f_zero - 2.5*np.log10(f_obs_err)
+            print(len(flux_convs), len(f_obs_err))
+            lc['mag'] = flux_convs
+            lc['mag_error'] = err_convs
+            lc = split_lc(lc,self.max_gap)
+            self.light_curves_data = lc
+           
 
         else:
+            lc = split_lc(lc,self.max_gap)
             self.light_curves_data = lc
+        ids = np.unique(lc.ID)
+        self.index = ids
+        self.metadata = pd.DataFrame({'ID': ids}, index=ids)
 
     def get_display_data(self, idx):
         """
