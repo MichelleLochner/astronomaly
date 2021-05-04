@@ -2,34 +2,36 @@ import pandas as pd
 import numpy as np
 from astronomaly.base.base_dataset import Dataset
 
-def split_lc(lc_data,max_gap):
-    
+
+def split_lc(lc_data, max_gap):
+    '''Splits the light curves into smaller chunks based on their gaps
+
+    Parameters
+    ----------
+        lc_data: Dataframe with the light curves
+        max_gap: Maximum gap between observations'''
 
     unq_ids = np.unique(lc_data.ID)
     unq_ids = unq_ids[:20]
     splitted_dict = {}
-    
+
     for ids in unq_ids:
-        
-        lc = lc_data[lc_data['ID']==ids]
+
+        lc = lc_data[lc_data['ID'] == ids]
         if 'filters' in lc.columns:
 
             unq_filters = np.unique(lc.filters)
 
             for filtr in unq_filters:
 
-
-                lc1 = lc[lc['filters']==filtr]
-
-    #             print(lc.shape)
+                lc1 = lc[lc['filters'] == filtr]
 
                 time = lc1.time
-                time_diff = [time.iloc[i] - time.iloc[i-1] 
+                time_diff = [time.iloc[i] - time.iloc[i-1]
                              for i in range(1,len(time))]
                 time_diff.insert(0,0)
                 lc1['time_diff'] = time_diff
-                gap_idx=np.where(lc1.time_diff>max_gap)[0]
-    #             print(gap_idx)
+                gap_idx = np.where(lc1.time_diff > max_gap)[0]
 
                 # Separating the lc as by the gap index
                 try:
@@ -43,20 +45,48 @@ def split_lc(lc_data,max_gap):
 
                         lcn = lc1.iloc[gap_idx[k-1]:gap_idx[k]]
                         lcn['ID'] = [ids+'b' for i in range(len(lcn.time))]
-                        splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k) : lcn})
+                        splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k): lcn})
 
                     lc2 = lc1.iloc[gap_idx[k]:]
                     lc2['ID'] = [ids+'c' for i in range(len(lc2.time))]
-                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k+1):lc2})
+                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k+1): lc2})
 
                 except (IndexError,UnboundLocalError) as e:
                     pass
 
-    final_data = pd.concat(splitted_dict.values(),ignore_index=False)
+    final_data = pd.concat(splitted_dict.values(), ignore_index=False)
     return final_data
 
+
+def convert_flux_to_mag(lcs, f_zero):
+    '''Converts flux to mags for a given light curve data
+
+    Parameters
+    ----------
+        lcs: DataFrame with the light curve values
+        zeropoint: Zeropoint magnitude
+        max_gap: Maximum gap between consecutive observations'''
+
+    # Discard all the negative flux values
+    # since they are due noice or are for
+    # faint observations
+    lc = lcs[lcs['flux'].values > 0]
+
+    # Flux and flux error
+    f_obs = lc.flux.values
+    f_obs_err = lc.flux_error.values
+    # converting
+    flux_convs = f_zero - 2.5*np.log10(f_obs)
+    err_convs = f_zero - 2.5*np.log10(f_obs_err)
+    # Adding the new mag and mag_error column
+    lc['mag'] = flux_convs
+    lc['mag_error'] = err_convs
+
+    return lc
+
+
 class LightCurveDataset(Dataset):
-    def __init__(self, data_dict, f_zero=22, header_nrows=1, 
+    def __init__(self, data_dict, f_zero=22, header_nrows=1,
                  delim_whitespace=False, max_gap=50, **kwargs):
         """
         Reads in light curve data from file(s).
@@ -92,14 +122,16 @@ class LightCurveDataset(Dataset):
                 The number of rows the header covers in the dataset, by
                 default 1
         f_zero : float/int
-                The  zero flux magnitude values, by defualt 22
+                The  zero flux magnitude values, by default 22
+        max_gap: int
+                Maximum gap between consecute observations, default 50
         delim_whitespace: bool
                 Should be True if the data is not separated by a comma, by
                 default False"""
 
         super().__init__(data_dict=data_dict, header_nrows=header_nrows,
                          delim_whitespace=delim_whitespace, f_zero=f_zero,
-                         max_gap=max_gap,**kwargs)
+                         max_gap=max_gap, **kwargs)
 
         self.data_type = 'light_curve'
         self.metadata = pd.DataFrame(data=[])
@@ -118,8 +150,6 @@ class LightCurveDataset(Dataset):
                            delim_whitespace=self.delim_whitespace, header=None)
         
         # Spliting the light curve data using the gaps
-        
-        
 
         # The case for multiple files of light curve data
         file_len = [len(data)]
@@ -213,33 +243,16 @@ class LightCurveDataset(Dataset):
         lc = pd.DataFrame.from_dict(standard_data)
 
         if 'flux' in lc.columns:
-            # Discard all the negative flux values
-            # since they are due noice or are for
-            # faint observations
-            lc = lc[lc['flux'].values > 0]
-            
-            # Discard all the negative flux values
-            # since they are due noice or are for
-            # faint observations
-            lc = lc[lc['flux'].values > 0]
 
-            f_zero = self.f_zero
-            # Flux and flux error
-            f_obs = lc.flux.values
-            f_obs_err = lc.flux_error.values
-            # converting
-            flux_convs = f_zero - 2.5*np.log10(f_obs)
-            err_convs = f_zero - 2.5*np.log10(f_obs_err)
-            print(len(flux_convs), len(f_obs_err))
-            lc['mag'] = flux_convs
-            lc['mag_error'] = err_convs
-            lc = split_lc(lc,self.max_gap)
+            # Convert flux to mag
+            lc = convert_flux_to_mag(lc, self.f_zero)
+            # Split the light curve into chunks
+            lc = split_lc(lc, self.max_gap)
             self.light_curves_data = lc
-           
 
         else:
-            lc = split_lc(lc,self.max_gap)
             self.light_curves_data = lc
+
         ids = np.unique(lc.ID)
         self.index = ids
         self.metadata = pd.DataFrame({'ID': ids}, index=ids)
