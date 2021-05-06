@@ -12,7 +12,7 @@ def split_lc(lc_data, max_gap):
         max_gap: Maximum gap between observations'''
 
     unq_ids = np.unique(lc_data.ID)
-    unq_ids = unq_ids[:20]
+    unq_ids = unq_ids[:1000]
     splitted_dict = {}
 
     for ids in unq_ids:
@@ -28,8 +28,8 @@ def split_lc(lc_data, max_gap):
 
                 time = lc1.time
                 time_diff = [time.iloc[i] - time.iloc[i-1]
-                             for i in range(1,len(time))]
-                time_diff.insert(0,0)
+                             for i in range(1, len(time))]
+                time_diff.insert(0, 0)
                 lc1['time_diff'] = time_diff
                 gap_idx = np.where(lc1.time_diff > max_gap)[0]
 
@@ -39,19 +39,21 @@ def split_lc(lc_data, max_gap):
                     lc0 = lc1.iloc[:gap_idx[0]]
                     lc0['ID'] = [ids+'a' for i in range(len(lc0.time))]
 
-                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(0):lc0})
+                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(0): lc0})
 
-                    for k in range(1,len(gap_idx)):
+                    for k in range(1, len(gap_idx)):
 
                         lcn = lc1.iloc[gap_idx[k-1]:gap_idx[k]]
                         lcn['ID'] = [ids+'b' for i in range(len(lcn.time))]
-                        splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k): lcn})
+                        splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k):
+                                             lcn})
 
                     lc2 = lc1.iloc[gap_idx[k]:]
                     lc2['ID'] = [ids+'c' for i in range(len(lc2.time))]
-                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k+1): lc2})
+                    splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k+1):
+                                         lc2})
 
-                except (IndexError,UnboundLocalError) as e:
+                except (IndexError, UnboundLocalError):
                     pass
 
     final_data = pd.concat(splitted_dict.values(), ignore_index=False)
@@ -65,7 +67,7 @@ def convert_flux_to_mag(lcs, f_zero):
     ----------
         lcs: DataFrame with the light curve values
         zeropoint: Zeropoint magnitude
-        max_gap: Maximum gap between consecutive observations'''
+    '''
 
     # Discard all the negative flux values
     # since they are due noice or are for
@@ -148,7 +150,7 @@ class LightCurveDataset(Dataset):
         # The case where there is one file
         data = pd.read_csv(self.files[0], skiprows=self.header_nrows,
                            delim_whitespace=self.delim_whitespace, header=None)
-        
+
         # Spliting the light curve data using the gaps
 
         # The case for multiple files of light curve data

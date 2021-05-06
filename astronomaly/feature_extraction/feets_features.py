@@ -39,7 +39,6 @@ class Feets_Features(PipelineStage):
             incase there is an error during the feature extraction process'''
 
         # Sorting the columns for the feature extractor
-        print(lc_data.ID)
         # This needs to be extended to be more general
         standard_lc_columns = ['time', 'mag', 'mag_error']
         current_lc_columns = [cl for cl in standard_lc_columns
@@ -64,9 +63,11 @@ class Feets_Features(PipelineStage):
                                 exclude=self.exclude_features)
 
         len_labels = len(fs.features_)
+        # print('fs1',len_labels)
 
         # Computing the features
-        if len(lc_data) >= 20:
+        if len(lc_data) >= 4:
+            # print('passed')
 
             # Getting the light curve columns for the extractor
             lc_columns = []
@@ -76,21 +77,32 @@ class Feets_Features(PipelineStage):
             if 'filters' in lc_data.columns:
                 ft_values = []
                 ft_labels = []
+
                 for i in range(len(np.unique(lc_data['filters']))):
 
                     passbands = ['u', 'g', 'r', 'i', 'z', 'y']
-                    lc_data = lc_data[lc_data['filters'] == i]
-                    features, values = fs.extract(*lc_columns)
+                    filter_lc = lc_data[lc_data['filters'] == i]
 
-                    new_labels = [f + '_' + passbands[i] for f in features]
+                    lc_columns = []
+                    for col in current_lc_columns:
+                        lc_columns.append(filter_lc[col])
 
-                    for j in range(len(features)):
-                        ft_labels.append(new_labels[j])
-                        ft_values.append(values[j])
+                    # print(lc_columns)
 
-                if np.nan in ft_values:
-                    nan = [np.nan for i in range(len(ft_values))]
-                    ft_values = np.array(nan)
+                    if len(filter_lc) >= 4:
+
+                        features, values = fs.extract(*lc_columns)
+                        # print(values)
+
+                        new_labels = [f + '_' + passbands[i] for f in features]
+
+                        for j in range(len(features)):
+                            ft_labels.append(new_labels[j])
+                            ft_values.append(values[j])
+
+                    else:
+                        nan = [np.nan for label in range(len_labels)]
+                        return np.array(nan)
 
             else:
                 ft_labels, ft_values = fs.extract(*lc_columns)
