@@ -769,7 +769,6 @@ class ImageThumbnailsDataset(Dataset):
         filename = self.metadata.loc[idx, 'filename']
         cutout = cv2.imread(filename)
         cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
-        print(cutout.shape)
         cutout = apply_transform(cutout, self.display_transform_function)
 
         min_edge = min(cutout.shape[:2])
