@@ -35,7 +35,7 @@ def convert_array_to_image(arr, plot_cmap='hot'):
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
-        plt.imshow(arr, cmap=plot_cmap)
+        plt.imshow(arr, cmap=plot_cmap, origin='lower')
         output = io.BytesIO()
         FigureCanvas(fig).print_png(output)
         plt.close(fig)
@@ -69,7 +69,7 @@ def apply_transform(cutout, transform_function):
 
 
 class AstroImage:
-    def __init__(self, filenames, file_type='fits', fits_index=0, name=''):
+    def __init__(self, filenames, file_type='fits', fits_index=None, name=''):
         """
         Lightweight wrapper for an astronomy image from a fits file
 
@@ -138,15 +138,18 @@ class AstroImage:
                             dat = dat[0][0]
                         image = dat[rs:re, cs:ce]
                         break
-                self.metadata = dict(hdul[self.fits_index].header)
-                if self.wcs is None:
-                    self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
             else:
                 dat = hdul[self.fits_index].data
                 if len(dat.shape) > 2:
                     dat = dat[0][0]
                 image = dat[rs:re, cs:ce]
 
+            self.metadata = dict(hdul[self.fits_index].header)
+            if self.wcs is None:
+                self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
+
+            if len(image.shape) > 2 and image.shape[-1] > 3:
+                image = image[:, :, 0]
             if len(image.shape) > 2:
                 image = np.squeeze(image)
             images.append(image)
@@ -599,7 +602,10 @@ class ImageDataset(Dataset):
         naxis3_present = 'NAXIS3' in this_image.metadata.keys()
 
         if naxis3_present and this_image.metadata['NAXIS3'] > 1:
-            shp = [tot_size_y, tot_size_x, this_image.metadata['NAXIS3']]
+            if this_image.metadata['NAXIS3'] != 3:
+                shp = [tot_size_y, tot_size_x]
+            else:
+                shp = [tot_size_y, tot_size_x, this_image.metadata['NAXIS3']]
         else:
             shp = [tot_size_y, tot_size_x]
         cutout = np.zeros(shp)

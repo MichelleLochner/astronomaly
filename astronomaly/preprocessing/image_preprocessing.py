@@ -233,3 +233,23 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
     new_img[contour_mask == 1] = img[contour_mask == 1]
 
     return new_img
+
+
+def image_transform_remove_negatives(img):
+    """
+    Sometimes negative values (due to noise) can creep in even after sigma
+    clipping which can cause problems later. Use this function before scaling
+    to ensure negative values are set to zero.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+
+    Returns
+    -------
+    np.ndarray
+    """
+    new_img = img.copy()
+    new_img[new_img < 0] = 0
+    return new_img

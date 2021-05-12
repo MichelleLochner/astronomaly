@@ -243,7 +243,9 @@ class EllipseFitFeatures(PipelineStage):
 
         self.percentiles = percentiles
         self.labels = []
-        feat_labs = ['Residual_%d', 'Offset_%d', 'Aspect_%d', 'Theta_%d']
+        feat_labs = ['Residual_%d', 'Offset_%d', 
+                     'Aspect_%d', 'Theta_%d', 'Maj_%d']
+        self.feat_labs = feat_labs
         for f in feat_labs:
             for n in percentiles:
                 self.labels.append(f % n)
@@ -346,7 +348,7 @@ class EllipseFitFeatures(PipelineStage):
                     if aspect > 100:
                         aspect = 1
 
-                    new_params = params[:3] + [aspect] + [params[-1]]
+                    new_params = params[:3] + [aspect] + [params[-1]] 
                     feats.append(new_params)
             else:
                 failed = True
@@ -361,7 +363,7 @@ class EllipseFitFeatures(PipelineStage):
         # Normalise things relative to the highest threshold value
         # If there were problems with any sigma levels, set all values to NaNs
         if np.any(np.isnan(feats)):
-            return [np.nan] * 4 * len(self.percentiles)
+            return [np.nan] * len(self.feat_labs) * len(self.percentiles)
         else:
             max_ind = np.argmax(self.percentiles)
 
@@ -369,6 +371,7 @@ class EllipseFitFeatures(PipelineStage):
             dist_to_centre = []
             aspect = []
             theta = []
+            maj = []
 
             x0_max_sigma = feats[max_ind][1]
             y0_max_sigma = feats[max_ind][2]
@@ -392,8 +395,9 @@ class EllipseFitFeatures(PipelineStage):
                 if theta_diff > 90:
                     theta_diff -= 90
                 theta.append(theta_diff)
+                maj.append(prms[3])
 
-            return np.hstack((residuals, dist_to_centre, aspect, theta))
+            return np.hstack((residuals, dist_to_centre, aspect, theta, maj))
 
 
 class HuMomentsFeatures(PipelineStage):
