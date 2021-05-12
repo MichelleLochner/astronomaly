@@ -5,11 +5,15 @@ from astronomaly.data_management import raw_features
 from astronomaly.anomaly_detection import lof, human_loop_learning
 from astronomaly.visualisation import tsne
 
-input_dir = os.path.join(os.path.sep, 'home', 'michelle', 'Project', 
-                         'Anomaly', 'badac_data', '')
-input_files = [os.path.join(input_dir, 'y_test.npy'), 
-               os.path.join(input_dir, 'labels_test.npy')]
-output_dir = '/home/michelle/BigData/Anomaly/astronomaly_output/badac/'
+# Root directory for data
+data_dir = os.path.join(os.getcwd(), 'example_data', )
+
+input_files = [os.path.join(data_dir, 'Simulations', 'y_test.npy'), 
+               os.path.join(data_dir, 'Simulations', 'labels_test.npy')]
+
+# Where output should be stored
+output_dir = os.path.join(
+    data_dir, 'astronomaly_output', 'simulations', '')
 
 
 def artificial_human_labelling(anomalies=None, metadata=None, N=200, 

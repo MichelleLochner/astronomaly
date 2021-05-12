@@ -229,6 +229,6 @@ if __name__ == "__main__":
     controller.run_pipeline()
     host = 'http://127.0.0.1:5000/'
     print('##### Astronomaly server now running #####')
-    print('Point your browser to', host)
+    print('Open this link in your browser:', host)
     print()
     app.run()
