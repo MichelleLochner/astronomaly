@@ -183,6 +183,41 @@ def create_catalogue_spreadsheet(image_dataset, scores,
     workbook.close()
 
 
+def get_visualisation_sample(features, anomalies, anomaly_column='score',
+                             N_anomalies=20, N_total=2000):
+    """
+    Convenience function to downsample a set of data for a visualisation plot
+    (such as t-SNE or UMAP). You can choose how many anomalies to highlight
+    against a backdrop of randomly selected samples.
+    Parameters
+    ----------
+    features : pd.DataFrame
+        Input feature set
+    anomalies : pd.DataFrame
+        Contains the anomaly score to rank the objects by.
+    anomaly_column : string, optional
+        The column used to rank the anomalies by (always assumes higher is more
+        anomalous), by default 'score'
+    N_anomalies : int, optional
+        Number of most anomalous objects to plot, by default 20
+    N_total : int, optional
+        Total number to plot (not recommended to be much more than 2000 for
+        t-SNE), by default 2000
+    """
+    if N_total > len(features):
+        N_total = len(features)
+    if N_anomalies > len(features):
+        N_anomalies = 0
+    N_random = N_total - N_anomalies
+
+    index = anomalies.sort_values(anomaly_column, ascending=False).index
+    inds = index[:N_anomalies]
+    other_inds = index[N_anomalies:]
+    inds = list(inds) + list(np.random.choice(other_inds, 
+                             size=N_random, replace=False))
+    return features.loc[inds]
+
+
 def create_ellipse_check_catalogue(image_dataset, features, 
                                    filename='ellipse_catalogue.csv'):
 

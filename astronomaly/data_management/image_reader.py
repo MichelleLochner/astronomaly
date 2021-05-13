@@ -118,7 +118,7 @@ class AstroImage:
 
         try:
             for f in filenames:     
-                hdul = fits.open(f, memmap=False)
+                hdul = fits.open(f, memmap=True)
                 self.hdul_list.append(hdul)         
 
         except FileNotFoundError:
@@ -131,7 +131,7 @@ class AstroImage:
             self.name = self._strip_filename()
         else:
             self.name = name
-        
+
         print('Done!')
         
 
@@ -388,7 +388,6 @@ class ImageDataset(Dataset):
                         msg = "Cannot read image " + f + "\n \
                             Exception is: " + (str)(e)
                         logging_tools.log(msg, level="ERROR")
-        print('This is ', [f])
         if len(list(images.keys())) == 0:
             msg = "No images found, Astronomaly cannot proceed."
             logging_tools.log(msg, level="ERROR")
@@ -436,7 +435,6 @@ class ImageDataset(Dataset):
 
         if 'original_image' in self.metadata.columns:
             for img in np.unique(self.metadata.original_image):
-                print(img)
                 if img not in images.keys():
                     logging_tools.log('Image ' + img + """ found in catalogue 
                         but not in provided image data. Removing from 
@@ -447,7 +445,6 @@ class ImageDataset(Dataset):
                           'sources')
 
         self.index = self.metadata.index.values
-        print(type(self.index))
 
     def create_catalogue(self):
         """
@@ -536,8 +533,6 @@ class ImageDataset(Dataset):
         self.metadata = pd.DataFrame(met, index=the_index)
         self.metadata['x'] = self.metadata['x'].astype('int')
         self.metadata['y'] = self.metadata['y'].astype('int')
-
-
 
     def get_sample(self, idx):
         """

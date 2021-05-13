@@ -109,7 +109,7 @@ class Controller:
         label : int
             Human-assigned label
         """
-
+        
         ml_df = self.anomaly_scores
         if 'human_label' not in ml_df.columns:
             ml_df['human_label'] = [-1] * len(ml_df)

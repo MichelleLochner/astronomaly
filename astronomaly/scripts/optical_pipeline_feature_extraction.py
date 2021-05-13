@@ -12,12 +12,12 @@ import pandas as pd
 
 data_dir = '/home/verlon/Documents/Data'
 
-part = 'Part_40'
+part = 'Part_39'
 
 image_dir = os.path.join(data_dir,'Input',part,'Cutouts')
 output_dir = os.path.join(data_dir,'Output',part, '')
 
-catalogue = pd.read_csv(os.path.join(data_dir,'Input',part, part+'.csv'))[900000:1000000]
+catalogue = pd.read_csv(os.path.join(data_dir,'Input',part, part+'.csv'))[100000:200000]
 
 print(image_dir)
 print(output_dir)
@@ -105,7 +105,7 @@ def run_pipeline():
     features = features_original.copy()
 
     if extending_ellipse:
-        filname = os.path.join(data_dir,'Open_Ellipses', part+'_9_ellipse_catalogue.csv')
+        filname = os.path.join(data_dir,'Open_Ellipses', part+'_1_ellipse_catalogue.csv')
         utils.create_ellipse_check_catalogue(image_dataset, features, filename=filname)
 
     features.drop(['Warning_Open_Ellipse','Recommended_Window_Size'], 1, inplace=True)
@@ -115,5 +115,5 @@ def run_pipeline():
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
 
-    features.to_csv(os.path.join(data_dir, 'Features', part+'_9_Features.csv'))
+    features.to_csv(os.path.join(data_dir, 'Features', part+'_1_Features.csv'))
     print(len(features))

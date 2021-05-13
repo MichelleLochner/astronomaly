@@ -101,7 +101,7 @@ def run_pipeline():
 
     if feature_method == 'psd':
         pipeline_psd = power_spectrum.PSD_Features(
-            force_rerun=False, output_dir=output_dir)
+            force_rerun=True, output_dir=output_dir)
         features_original = pipeline_psd.run_on_dataset(image_dataset)
 
     elif feature_method == 'ellipse':
