@@ -10,11 +10,11 @@ import pandas as pd
 
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data')
-lc_path = os.path.join(data_dir, 'test_set_batch1.csv')
+lc_path = os.path.join(data_dir, '10k_test_sample.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', '')
+    data_dir, 'astronomaly_output', 'plasticc_mod1','')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -63,7 +63,11 @@ def run_pipeline():
                           'FluxPercentileRatioMid35',
                           'FluxPercentileRatioMid50',
                           'FluxPercentileRatioMid65',
-                          'FluxPercentileRatioMid80'])
+                          'FluxPercentileRatioMid80',
+                          'Freq1_harmonics_rel_phase_0',
+                          'Freq2_harmonics_rel_phase_0',
+                          'Freq3_harmonics_rel_phase_0',
+                          'PeriodLS','Autocor_length','Con'])
 
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)

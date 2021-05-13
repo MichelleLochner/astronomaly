@@ -66,15 +66,12 @@ class Feets_Features(PipelineStage):
         # print('fs1',len_labels)
 
         # Computing the features
-        if len(lc_data) >= 4:
+        if len(lc_data) >= 10:
             # print('passed')
 
-            # Getting the light curve columns for the extractor
-            lc_columns = []
-            for col in current_lc_columns:
-                lc_columns.append(lc_data[col])
-
+            # The case where we have filters
             if 'filters' in lc_data.columns:
+
                 ft_values = []
                 ft_labels = []
 
@@ -89,7 +86,7 @@ class Feets_Features(PipelineStage):
 
                     # print(lc_columns)
 
-                    if len(filter_lc) >= 4:
+                    if len(filter_lc) >= 10:
 
                         features, values = fs.extract(*lc_columns)
                         # print(values)
@@ -104,7 +101,12 @@ class Feets_Features(PipelineStage):
                         nan = [np.nan for label in range(len_labels)]
                         return np.array(nan)
 
+            # The case with no filters
             else:
+                lc_columns = []
+                for col in current_lc_columns:
+                    lc_columns.append(lc_data[col])
+
                 ft_labels, ft_values = fs.extract(*lc_columns)
 
             # # Updating the labels

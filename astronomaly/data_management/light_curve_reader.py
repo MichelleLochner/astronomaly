@@ -2,6 +2,11 @@ import pandas as pd
 import numpy as np
 from astronomaly.base.base_dataset import Dataset
 
+# ignores the false positve pandas warning
+# for the following kind of code
+# df['key'] == item, for an existing key in a df 
+pd.options.mode.chained_assignment = None 
+
 
 def split_lc(lc_data, max_gap):
     '''Splits the light curves into smaller chunks based on their gaps
@@ -12,7 +17,7 @@ def split_lc(lc_data, max_gap):
         max_gap: Maximum gap between observations'''
 
     unq_ids = np.unique(lc_data.ID)
-    unq_ids = unq_ids[:1000]
+    # unq_ids = unq_ids[:100]
     splitted_dict = {}
 
     for ids in unq_ids:
@@ -37,25 +42,29 @@ def split_lc(lc_data, max_gap):
                 try:
 
                     lc0 = lc1.iloc[:gap_idx[0]]
-                    lc0['ID'] = [ids+'a' for i in range(len(lc0.time))]
+                    lc0['ID'] = [ids+'_0' for i in range(len(lc0.time))]
 
                     splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(0): lc0})
 
                     for k in range(1, len(gap_idx)):
 
                         lcn = lc1.iloc[gap_idx[k-1]:gap_idx[k]]
-                        lcn['ID'] = [ids+'b' for i in range(len(lcn.time))]
+                        lcn['ID'] = [ids+'_'+str(k) 
+                                     for i in range(len(lcn.time))]
+
                         splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k):
                                              lcn})
 
                     lc2 = lc1.iloc[gap_idx[k]:]
-                    lc2['ID'] = [ids+'c' for i in range(len(lc2.time))]
+                    lc2['ID'] = [ids+'_'+str(k+1) 
+                                 for i in range(len(lc2.time))]
+
                     splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k+1):
                                          lc2})
 
                 except (IndexError, UnboundLocalError):
                     pass
-
+ 
     final_data = pd.concat(splitted_dict.values(), ignore_index=False)
     return final_data
 
@@ -73,6 +82,7 @@ def convert_flux_to_mag(lcs, f_zero):
     # since they are due noice or are for
     # faint observations
     lc = lcs[lcs['flux'].values > 0]
+    lc = lc[lc['flux_error'].values > 0]
 
     # Flux and flux error
     f_obs = lc.flux.values
