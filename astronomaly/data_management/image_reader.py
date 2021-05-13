@@ -13,7 +13,7 @@ from astronomaly.base import logging_tools
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
-
+from pathlib import Path
 
 def convert_array_to_image(arr, plot_cmap='hot'):
     """
@@ -951,7 +951,25 @@ class ImageFitsDataset(Dataset):
         """
 
         filename = self.metadata.loc[idx, 'original_image']
+
         file_path = os.path.join(self.directory, filename)
+
+        #for path in Path(self.directory).rglob('*'):
+        ##    if filename in path.name:
+        #        file_path = path
+
+        #for root,directories,f_names in os.walk(self.directory):
+        #        if filename in f_names:
+        #           file_path = os.path.join(root, filename)
+
+        #for f in os.scandir(self.directory):
+        #    if filename in f.name:
+        ##        file_path = f.path
+        #    if f.is_dir():
+        #        for k in os.scandir(f):
+        #            if filename in k.name:
+        #                #print(filename)
+        #                file_path = k.path
 
         data = fits.getdata(file_path, memmap=True)
 
@@ -977,6 +995,20 @@ class ImageFitsDataset(Dataset):
         filename = self.metadata.loc[idx, 'original_image']
 
         file_path = os.path.join(self.directory, filename)
+
+
+        #for f in os.scandir(self.directory):
+        #    if filename in f.name:
+        #        file_path = f.path
+        #    if f.is_dir():
+       #         for k in os.scandir(f):
+        #            if filename in k.name:
+        #                #print(filename)
+        #                file_path = k.path
+
+        #for folder,directories,f_names in os.walk(self.directory):
+        #        if filename in f_names:
+        #            file_path = os.path.join(folder, filename)
 
         data = fits.getdata(file_path, memmap=True)
 
@@ -1008,7 +1040,9 @@ class ImageFitsDataset(Dataset):
 
             filename = self.metadata.loc[idx, 'original_image']
             flux = self.metadata.loc[idx, 'peak_flux']
-            file_path = os.path.join(self.directory, filename)
+            for root,directories,f_names in os.walk(self.directory):
+                if filename in f_names:
+                    file_path = os.path.join(root, filename)
 
             output_path = os.path.join(self.output_dir, 'PNG','Anomaly Score')
 
