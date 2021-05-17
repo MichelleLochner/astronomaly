@@ -99,7 +99,11 @@ def convert_flux_to_mag(lcs, f_zero):
 
 class LightCurveDataset(Dataset):
     def __init__(self, data_dict, f_zero=22, header_nrows=1,
-                 delim_whitespace=False, max_gap=50, **kwargs):
+                 delim_whitespace=False, max_gap=50, plot_errors=True,
+                 filter_colors=['#9467bd', '#1f77b4', '#2ca02c', '#d62728', 
+                                '#ff7f0e', '#8c564b'],
+                 filter_labels=[],
+                 **kwargs):
         """
         Reads in light curve data from file(s).
 
@@ -139,11 +143,29 @@ class LightCurveDataset(Dataset):
                 Maximum gap between consecute observations, default 50
         delim_whitespace: bool
                 Should be True if the data is not separated by a comma, by
-                default False"""
+                default False
+        plot_errors: bool
+                If errors are available for the data, this boolean allows them
+                to be plotted
+        filter_colors: list
+                Allows the user to define their own colours (using hex codes)
+                for the different filter bands. Will revert to default
+                behaviour of the JavaScript chart if the list of colors 
+                provided is shorter than the number of unique filters.
+        filter_labels: list
+                For multiband data, labels will be passed to the frontend
+                allowing easy identification of different bands in the light
+                curve. Assumes the filters are identified by an integer in the
+                data such that the first filter (e.g. filter 0) will correspond
+                to the first label provided. For example, to plot PLAsTiCC
+                data, provide filter_labels=['u','g','r','i','z','y']
+        """
 
         super().__init__(data_dict=data_dict, header_nrows=header_nrows,
                          delim_whitespace=delim_whitespace, f_zero=f_zero,
-                         max_gap=max_gap, **kwargs)
+                         max_gap=max_gap, plot_errors=plot_errors, 
+                         filter_labels=filter_labels, 
+                         filter_colors=filter_colors, **kwargs)
 
         self.data_type = 'light_curve'
         self.metadata = pd.DataFrame(data=[])
@@ -152,6 +174,9 @@ class LightCurveDataset(Dataset):
         self.delim_whitespace = delim_whitespace
         self.f_zero = f_zero
         self.max_gap = max_gap
+        self.plot_errors = plot_errors
+        self.filter_labels = filter_labels
+        self.filter_colors = filter_colors
 
     #         ================================================================
     #                         Reading the light curve data
@@ -290,35 +315,75 @@ class LightCurveDataset(Dataset):
         # All the standard columns are included here
         data_col = ['mag']
         err_col = ['mag_error']
-        out_dict = {}
+        out_dict = {'data': [], 'errors': [], 'filter_labels': [], 
+                    'filter_colors': []}
 
         # Reading in the light curve data
-        light_curve = self.light_curves_data[
+        light_curve_original = self.light_curves_data[
                       self.light_curves_data['ID'] == idx]
 
-        # Data and error index
+        lc_cols = light_curve_original.columns.values.tolist()
+        if err_col[0] in lc_cols and self.plot_errors:
+            plot_errors = True
+        else:
+            plot_errors = False
 
-        lc_cols = light_curve.columns.values.tolist()
-        mag_indx = [cl for cl in data_col if cl in lc_cols]
-        err_indx = [cl for cl in err_col if cl in lc_cols]
+        if 'filters' in lc_cols:
+            multiband = True
+            unique_filters = np.unique(light_curve_original['filters'])
+        else:
+            multiband = False
+            unique_filters = [0]
 
         # Returns true if we have error columns
         # if err_col[0] in light_curve.columns.values.tolist() or err_col[1] in
         #  light_curve.columns.values.tolist():
 
-        light_curve['err_lower'] = light_curve[mag_indx].values - \
-            light_curve[err_indx].values
+        k = 0
+        for filt in unique_filters:
+            if multiband:
+                msk = light_curve_original['filters'] == filt
+                light_curve = light_curve_original[msk]
+            else:
+                light_curve = light_curve_original
 
-        light_curve['err_upper'] = light_curve[mag_indx].values + \
-            light_curve[err_indx].values
+            mag_indx = [cl for cl in data_col if cl in lc_cols]
+            err_indx = [cl for cl in err_col if cl in lc_cols]
 
-        lc_errs = light_curve[['time', 'err_lower', 'err_upper']]
+            if plot_errors:
+                light_curve['err_lower'] = light_curve[mag_indx].values - \
+                    light_curve[err_indx].values
 
-        # inserting the time column to data and adding 'data'
-        # and 'errors' to out_dict
-        mag_indx.insert(0, 'time')
-        out_dict['data'] = light_curve[mag_indx].values.tolist()
-        out_dict['errors'] = lc_errs.values.tolist()
+                light_curve['err_upper'] = light_curve[mag_indx].values + \
+                    light_curve[err_indx].values
+
+                lc_errs = light_curve[['time', 'err_lower', 'err_upper']]
+
+                err = lc_errs.values.tolist()
+
+            # inserting the time column to data and adding 'data'
+            # and 'errors' to out_dict
+            mag_indx.insert(0, 'time')
+            dat = light_curve[mag_indx].values.tolist()
+
+            out_dict['data'].append(dat)
+
+            if plot_errors:
+                out_dict['errors'].append(err)
+            else:
+                out_dict['errors'].append([])
+
+            if len(self.filter_labels) >= len(unique_filters):
+                out_dict['filter_labels'].append(self.filter_labels[k])
+            else:
+                out_dict['filter_labels'].append((str)(filt))
+
+            if len(self.filter_colors) >= len(unique_filters):
+                out_dict['filter_colors'].append(self.filter_colors[k])
+            else:
+                out_dict['filter_colors'].append('')
+
+            k += 1
 
         return out_dict
 
