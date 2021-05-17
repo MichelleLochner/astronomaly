@@ -13,7 +13,6 @@ from astronomaly.base import logging_tools
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
-from pathlib import Path
 
 def convert_array_to_image(arr, plot_cmap='hot'):
     """
@@ -813,7 +812,7 @@ class ImageFitsDataset(Dataset):
     def __init__(self, fits_index=None,
                  display_image_size=128,
                  transform_function=None, display_transform_function=None,
-                 catalogue=None, directory=None, output_dir=None,
+                 catalogue=None, directory=None, output_dir=None, additional_metadata=None,
                  **kwargs):
         """
         Read in a set of fits cutouts that are based on a single source. This
@@ -871,62 +870,29 @@ class ImageFitsDataset(Dataset):
         else:
             self.display_transform_function = display_transform_function
 
-        catalogue['name'] = catalogue['objid'].astype(str) + '-' + catalogue['brickid'].astype(str)
-        catalogue['peak_flux'] = catalogue[['flux_g', 'flux_r', 'flux_z']].max(axis=1)
+        if catalogue is not None:
+            catalogue['name'] = catalogue['objid'].astype(str) + '-' + catalogue['brickid'].astype(str)
+            catalogue['peak_flux'] = catalogue[['flux_g', 'flux_r', 'flux_z']].max(axis=1)
+            new_index = np.array(self.catalogue['name'].values, dtype='str')
+            #if 'objid' in catalogue.columns:
+            #    catalogue.set_index('objid')
+            self.metadata = catalogue
+            self.metadata.index = new_index
+        else:
+            inds = []
+            file_paths = []
+            for f in self.files:
+                extension = f.split('.')[-1]
+                if extension in self.known_file_types:
+                    inds.append(
+                        f.split(os.path.sep)[-1][:-(len(extension) + 1)])
+                    file_paths.append(f)
+            self.metadata = pd.DataFrame(index=inds, 
+                                         data={'filename': file_paths})
 
-        cols = []
-        if 'objid' in self.catalogue.columns:
-            cols.append('objid')
+        if additional_metadata is not None:
+            self.metadata = self.metadata.join(additional_metadata)
 
-        #### For Information Purposes ####
-        if 'allmask_g' in self.catalogue.columns:
-            catalogue['allmask'] = catalogue[['allmask_g','allmask_r','allmask_z']].max(axis=1)
-            cols.append('allmask')
-        if 'anymask_g' in self.catalogue.columns:
-            catalogue['anymask'] = catalogue[['anymask_g','anymask_r','anymask_z']].max(axis=1)
-            cols.append('anymask')
-        if 'fracmasked_g' in self.catalogue.columns:
-            catalogue['fracmasked'] = catalogue[['fracmasked_g','fracmasked_r','fracmasked_z']].max(axis=1)
-            cols.append('fracmasked')
-        ##################################
-        
-        if 'brickid' in self.catalogue.columns:
-            cols.append('brickid')
-        if 'brickname' in self.catalogue.columns:
-            cols.append('brickname')
-        if 'ra' in self.catalogue.columns:
-            cols.append('ra')
-        if 'dec' in self.catalogue.columns:
-            cols.append('dec')
-        if 'flux_g' in self.catalogue.columns:
-            cols.append('peak_flux')
-        if 'flux_g' in self.catalogue.columns:
-            cols.append('flux_g')
-        if 'flux_r' in self.catalogue.columns:
-            cols.append('flux_r')
-        if 'flux_z' in self.catalogue.columns:
-            cols.append('flux_z')
-        if 'type' in self.catalogue.columns:
-            cols.append('type')
-        if 'original_image' in self.catalogue.columns:
-            catalogue['original_image'] = catalogue['original_image'].astype(str)
-            cols.append('original_image')
-
-        new_index = np.array(self.catalogue['name'].values, dtype='str')
-
-        met = {}
-        for c in cols:
-            met[c] = self.catalogue[c].values
-
-        self.metadata = pd.DataFrame(met, index = new_index)
-
-        duplicates = []
-        for i in range(len(self.metadata.index.values)):
-            if self.metadata.index.values[i] in duplicates:
-                self.metadata.index.values[i] = self.metadata.index.values[i] + '-1'
-            else:
-                duplicates.append(self.metadata.index.values[i])
-        
         self.index = self.metadata.index.values
 
 
@@ -948,23 +914,6 @@ class ImageFitsDataset(Dataset):
         filename = self.metadata.loc[idx, 'original_image']
 
         file_path = os.path.join(self.directory, filename)
-
-        #for path in Path(self.directory).rglob('*'):
-        ##    if filename in path.name:
-        #        file_path = path
-
-        #for root,directories,f_names in os.walk(self.directory):
-        #        if filename in f_names:
-        #           file_path = os.path.join(root, filename)
-
-        #for f in os.scandir(self.directory):
-        #    if filename in f.name:
-        ##        file_path = f.path
-        #    if f.is_dir():
-        #        for k in os.scandir(f):
-        #            if filename in k.name:
-        #                #print(filename)
-        #                file_path = k.path
 
         data = fits.getdata(file_path, memmap=True)
 
@@ -990,20 +939,6 @@ class ImageFitsDataset(Dataset):
         filename = self.metadata.loc[idx, 'original_image']
 
         file_path = os.path.join(self.directory, filename)
-
-
-        #for f in os.scandir(self.directory):
-        #    if filename in f.name:
-        #        file_path = f.path
-        #    if f.is_dir():
-       #         for k in os.scandir(f):
-        #            if filename in k.name:
-        #                #print(filename)
-        #                file_path = k.path
-
-        #for folder,directories,f_names in os.walk(self.directory):
-        #        if filename in f_names:
-        #            file_path = os.path.join(folder, filename)
 
         data = fits.getdata(file_path, memmap=True)
 
