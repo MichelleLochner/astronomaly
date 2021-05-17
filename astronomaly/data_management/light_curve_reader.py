@@ -4,8 +4,8 @@ from astronomaly.base.base_dataset import Dataset
 
 # ignores the false positve pandas warning
 # for the following kind of code
-# df['key'] == item, for an existing key in a df 
-pd.options.mode.chained_assignment = None 
+# df['key'] == item, for an existing key in a df
+pd.options.mode.chained_assignment = None
 
 
 def split_lc(lc_data, max_gap):
@@ -17,7 +17,7 @@ def split_lc(lc_data, max_gap):
         max_gap: Maximum gap between observations'''
 
     unq_ids = np.unique(lc_data.ID)
-    # unq_ids = unq_ids[:100]
+    unq_ids = unq_ids
     splitted_dict = {}
 
     for ids in unq_ids:
@@ -49,14 +49,14 @@ def split_lc(lc_data, max_gap):
                     for k in range(1, len(gap_idx)):
 
                         lcn = lc1.iloc[gap_idx[k-1]:gap_idx[k]]
-                        lcn['ID'] = [ids+'_'+str(k) 
+                        lcn['ID'] = [ids+'_'+str(k)
                                      for i in range(len(lcn.time))]
 
                         splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k):
                                              lcn})
 
                     lc2 = lc1.iloc[gap_idx[k]:]
-                    lc2['ID'] = [ids+'_'+str(k+1) 
+                    lc2['ID'] = [ids+'_'+str(k+1)
                                  for i in range(len(lc2.time))]
 
                     splitted_dict.update({'lc'+ids+'_'+str(filtr)+str(k+1):
@@ -64,7 +64,7 @@ def split_lc(lc_data, max_gap):
 
                 except (IndexError, UnboundLocalError):
                     pass
- 
+
     final_data = pd.concat(splitted_dict.values(), ignore_index=False)
     return final_data
 
@@ -87,12 +87,14 @@ def convert_flux_to_mag(lcs, f_zero):
     # Flux and flux error
     f_obs = lc.flux.values
     f_obs_err = lc.flux_error.values
+    constants = (2.5/np.log(10))
     # converting
     flux_convs = f_zero - 2.5*np.log10(f_obs)
-    err_convs = f_zero - 2.5*np.log10(f_obs_err)
+    err_convs = constants*(f_obs_err/f_obs)
     # Adding the new mag and mag_error column
     lc['mag'] = flux_convs
     lc['mag_error'] = err_convs
+    lc = lc[lc['mag_error'].values < 2]
 
     return lc
 
