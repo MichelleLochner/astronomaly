@@ -15,6 +15,36 @@ export class TimeSeriesPlot extends React.PureComponent {
     render(){
         // console.log('Called PlotLightCurve render');
       // console.log(this.props.light_curve_data);
+      let data = this.props.light_curve_data.data;
+      let errors = this.props.light_curve_data.errors;
+      let filter_labels = this.props.light_curve_data.filter_labels;
+      let filter_colors = this.props.light_curve_data.filter_colors;
+
+      var i;
+      let plot_series = [];
+      for (i = 0; i < data.length; i++) {
+        let error_series = {
+          name: 'err_' + filter_labels[i],
+          type:'errorbar',
+          data:errors[i],
+          whiskerLength:5,
+          }
+
+        let scatter_series = {
+          name: filter_labels[i],
+          type:'scatter',
+          data: data[i],
+        }
+
+        if (filter_colors[i].length !== 0) {
+          scatter_series['color'] = filter_colors[i]
+        }
+
+        if (errors[i].length !== 0){
+          plot_series.push(error_series);}
+        plot_series.push(scatter_series);
+      }
+
       const options = {
         title: {
           text: ''
@@ -30,20 +60,7 @@ export class TimeSeriesPlot extends React.PureComponent {
                 animation: {duration:100}
             }
         },
-        series: [
-          {
-          name: 'errorplot',
-          type:'errorbar',
-          data:this.props.light_curve_data.errors,
-          whiskerLength:5,
-          },
-          {
-          name: 'scatterplot',
-          type:'scatter',
-          data: this.props.light_curve_data.data,
-          
-        }
-        ]
+        series: plot_series
       }
       
       return <HighchartsReact
