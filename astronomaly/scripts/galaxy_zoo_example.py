@@ -16,7 +16,7 @@ image_dir = os.path.join(data_dir, 'GalaxyZooSubset', '')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', '')
+    data_dir, 'astronomaly_output', 'galaxy_zoo', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
