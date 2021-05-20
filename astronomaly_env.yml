@@ -11,6 +11,7 @@ dependencies:
   - numpy=1.19.1
   - opencv=4.4.0
   - pandas=1.1.1
+  - photutils=1.1.0
   - pyarrow=1.0.1
   - pywavelets=1.1.1
   - scikit-image=0.17.2
