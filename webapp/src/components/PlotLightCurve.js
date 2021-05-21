@@ -20,6 +20,10 @@ export class TimeSeriesPlot extends React.PureComponent {
       let filter_labels = this.props.light_curve_data.filter_labels;
       let filter_colors = this.props.light_curve_data.filter_colors;
 
+      if (data == null) {
+        return <div></div>
+      }
+
       var i;
       let plot_series = [];
       for (i = 0; i < data.length; i++) {
