@@ -10,11 +10,11 @@ import pandas as pd
 
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data')
-lc_path = os.path.join(data_dir, '10k_test_sample.csv')
+lc_path = os.path.join(data_dir, '10k_KN_RRL_test_sample.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', 'plasticc_mod1','')
+    data_dir, 'astronomaly_output', 'plasticc_mod5','')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -52,9 +52,12 @@ def run_pipeline():
                                                                  'flux': 3,
                                                                  'filters': 2},
                                                       filename=lc_path,
+                                                      plot_errors=False,
                                                       delim_whitespace=False,
                                                       header_nrows=1,
-                                                      max_gap=100)
+                                                      max_gap=200,
+                                                      filter_labels=['g', 'r',
+                                                      'i', 'z'])
     # print(lc_dataset.index)
     # Creates a pipeline object for feature extraction
     pipeline_feets = feets_features.Feets_Features(

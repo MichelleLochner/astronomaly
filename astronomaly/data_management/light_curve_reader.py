@@ -20,8 +20,13 @@ def split_lc(lc_data, max_gap):
     unq_ids = unq_ids
     splitted_dict = {}
 
+    id_n = 0
     for ids in unq_ids:
+        id_n += 1
+        progress = id_n/len(unq_ids)
+        progress = progress*100
 
+        print('Concatinating {}%'.format(progress))
         lc = lc_data[lc_data['ID'] == ids]
         if 'filters' in lc.columns:
 
@@ -81,8 +86,15 @@ def convert_flux_to_mag(lcs, f_zero):
     # Discard all the negative flux values
     # since they are due noice or are for
     # faint observations
-    lc = lcs[lcs['flux'].values > 0]
-    lc = lc[lc['flux_error'].values > 0]
+
+    # Replacing the negative flux values with their respective errors
+    neg_flux_indx = np.where(lcs['flux'].values < 0)
+    lcs.loc[lcs['flux'] < 0, ['flux']] = lcs['flux_error'].iloc[neg_flux_indx]
+
+    # lc = lcs[lcs['flux'].values > 0]
+    # lc1 = lc[lc['flux_error'].values > 0]
+    # Only consider ugiz bands
+    lc = lcs[lcs['filters'].isin([1, 2, 3, 4])]
 
     # Flux and flux error
     f_obs = lc.flux.values
@@ -94,7 +106,6 @@ def convert_flux_to_mag(lcs, f_zero):
     # Adding the new mag and mag_error column
     lc['mag'] = flux_convs
     lc['mag_error'] = err_convs
-    lc = lc[lc['mag_error'].values < 2]
 
     return lc
 

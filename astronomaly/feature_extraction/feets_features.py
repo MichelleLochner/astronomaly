@@ -75,9 +75,10 @@ class Feets_Features(PipelineStage):
                 ft_values = []
                 ft_labels = []
 
-                for i in range(len(np.unique(lc_data['filters']))):
+                for i in range(1, len(np.unique(lc_data['filters']))):
 
                     passbands = ['u', 'g', 'r', 'i', 'z', 'y']
+                    passbands = ['g', 'r', 'i', 'z']
                     filter_lc = lc_data[lc_data['filters'] == i]
 
                     lc_columns = []
