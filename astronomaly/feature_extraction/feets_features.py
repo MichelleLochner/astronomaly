@@ -63,62 +63,75 @@ class Feets_Features(PipelineStage):
                                 exclude=self.exclude_features)
 
         len_labels = len(fs.features_)
-        # print('fs1',len_labels)
+        print(fs.features_)
+        # The case where we have filters
+        if 'filters' in lc_data.columns:
 
-        # Computing the features
-        if len(lc_data) >= 10:
-            # print('passed')
+            ft_values = []
+            ft_labels = []
 
-            # The case where we have filters
-            if 'filters' in lc_data.columns:
+            for i in range(1, 5):
 
-                ft_values = []
-                ft_labels = []
+                passbands = ['u', 'g', 'r', 'i', 'z', 'y']
+                passbands = ['g', 'r', 'i', 'z']
+                filter_lc = lc_data[lc_data['filters'] == i]
 
-                for i in range(1, len(np.unique(lc_data['filters']))):
+                lc_columns = []
+                for col in current_lc_columns:
+                    lc_columns.append(filter_lc[col])
 
-                    passbands = ['u', 'g', 'r', 'i', 'z', 'y']
-                    passbands = ['g', 'r', 'i', 'z']
-                    filter_lc = lc_data[lc_data['filters'] == i]
-
-                    lc_columns = []
-                    for col in current_lc_columns:
-                        lc_columns.append(filter_lc[col])
-
-                    # print(lc_columns)
-
-                    if len(filter_lc) >= 10:
+                # Accounts for light curves that do not have some filters
+                if len(filter_lc.ID) != 0:
+                    # Checking the number of points in the light curve
+                    if len(filter_lc.ID) >= 5:
 
                         features, values = fs.extract(*lc_columns)
-                        # print(values)
 
-                        new_labels = [f + '_' + passbands[i] for f in features]
+                        print(features)
+
+                        new_labels = [f + '_' + passbands[i-1]
+                                      for f in features]
 
                         for j in range(len(features)):
                             ft_labels.append(new_labels[j])
                             ft_values.append(values[j])
 
                     else:
-                        nan = [np.nan for label in range(len_labels)]
-                        return np.array(nan)
+                        for ft in fs.features_:
+                            ft_labels.append(ft+'_'+passbands[i-1])
+                            ft_values.append(np.nan)
 
-            # The case with no filters
-            else:
+                else:
+                    for vl in fs.features_:
+                        ft_values.append(np.nan)
+                        ft_labels.append(vl+'_' + passbands[i-1])
+
+            # Updating the labels
+            if self.labels is None:
+
+                self._set_labels(list(ft_labels))
+
+            # print(self.labels)
+            return ft_values
+
+        # The case with no filters
+        else:
+
+            if len(lc_data.ID) >= 5:
+                # print('passed')
                 lc_columns = []
                 for col in current_lc_columns:
                     lc_columns.append(lc_data[col])
 
                 ft_labels, ft_values = fs.extract(*lc_columns)
 
-            # # Updating the labels
-            if self.labels is None:
+                # # Updating the labels
+                if self.labels is None:
 
-                self._set_labels(list(ft_labels))
+                    self._set_labels(list(ft_labels))
+                return ft_values
 
-            # The calculated features
-            return ft_values
-
-        # Returns an array of nan values
-        else:
-
-            return np.array([np.nan for i in range(len_labels)])
+            # Returns an array of nan values
+            else:
+                print('Not satified')
+                return np.array([np.nan for i in range(len_labels)])

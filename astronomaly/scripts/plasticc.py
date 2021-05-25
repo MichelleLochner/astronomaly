@@ -14,7 +14,7 @@ lc_path = os.path.join(data_dir, '10k_KN_RRL_test_sample.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', 'plasticc_mod5','')
+    data_dir, 'astronomaly_output', 'plasticc_mod5', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -55,7 +55,7 @@ def run_pipeline():
                                                       plot_errors=False,
                                                       delim_whitespace=False,
                                                       header_nrows=1,
-                                                      max_gap=200,
+                                                      max_gap=100,
                                                       filter_labels=['g', 'r',
                                                       'i', 'z'])
     # print(lc_dataset.index)
@@ -70,7 +70,7 @@ def run_pipeline():
                           'Freq1_harmonics_rel_phase_0',
                           'Freq2_harmonics_rel_phase_0',
                           'Freq3_harmonics_rel_phase_0',
-                          'PeriodLS','Autocor_length','Con'])
+                          'PeriodLS', 'Autocor_length', 'Con'])
 
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)
