@@ -78,10 +78,6 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
             raised_error = True
             logging_tools.log('fit_ellipse failed with unknown error:')
 
-        #if y0 < 0:
-        #    raised_error = True
-        #    logging_tools.log('fit_ellipse failed with unknown error:')
-
     except cv2.error as e:
         logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
         raised_error = True
@@ -101,10 +97,6 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
     maj_axis = int(np.round(maj_axis))
     min_axis = int(np.round(min_axis))
     theta = int(np.round(theta))
-
-    #print(ellipse_params, 'PARAMS')
-    #print(x0,y0,'x0 y0')
-    #print(len(image), 'SHAPE')
 
     cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2), 
                 theta, 0, 360, (1, 1, 1), thickness)

@@ -258,6 +258,25 @@ def image_transform_greyscale(img):
 
     return img
 
+def image_transform_remove_negatives(img):
+    """
+    Sometimes negative values (due to noise) can creep in even after sigma
+    clipping which can cause problems later. Use this function before scaling
+    to ensure negative values are set to zero.
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+    Returns
+    -------
+    np.ndarray
+    """
+
+    new_img = img.copy()
+    new_img[new_img < 0] = 0
+    
+    return new_img
+
 def image_transform_cv2_resize(img):
     """
     Function that uses OpenCVs resampling function to resize an image
@@ -331,6 +350,8 @@ def image_transform_colour_correction(img, bands=('g','r','z'), scales=None, m =
     from the DECaLS SkyViewer and SDSS. Created specifically for DECaLS fits
     cutout files.
 
+    Requires array shapes to contain the channel axis first in line.
+
     Parameters
     ----------
     img : np.ndarray
@@ -370,3 +391,24 @@ def image_transform_colour_correction(img, bands=('g','r','z'), scales=None, m =
 
     image = np.clip(rgb, 0, 1)
     return image
+
+def image_transform_axis_shift(img):
+    """
+    Small function that shifts the band axis from the end to
+    the beginning. This position is required to use the colour
+    correction function.
+    
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+        
+    Returns
+    -------
+    np.ndarray
+        Shifted image
+    """
+
+    img = np.moveaxis(img,-1,0)
+
+    return img

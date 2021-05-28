@@ -680,7 +680,7 @@ class ImageDataset(Dataset):
 
 class ImageThumbnailsDataset(Dataset):
     def __init__(self, display_image_size=128, transform_function=None, 
-                 display_transform_function=None,
+                 display_transform_function=None, fits_format=False,
                  catalogue=None, additional_metadata=None, **kwargs):
         """
         Read in a set of images that have already been cut into thumbnails. 
@@ -718,20 +718,38 @@ class ImageThumbnailsDataset(Dataset):
 
         super().__init__(transform_function=transform_function, 
                          display_image_size=128, catalogue=catalogue,
+                         fits_format=fits_format,
+                         display_transform_function=display_transform_function,
+                         additional_metadata=additional_metadata,
                          **kwargs)
 
         self.data_type = 'image'
-        self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff']
+        self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff'
+                                'fits', 'fits.fz', 'fits.gz', 'FITS',
+                                'FITS.fz', 'FITS.gz'
+                                ]
+
         self.transform_function = transform_function
+
         if display_transform_function is None:
             self.display_transform_function = self.transform_function
         else:
             self.display_transform_function = display_transform_function
+
         self.display_image_size = display_image_size
+
+#######################################################
+
+        self.fits_format = fits_format
+        print(self.fits_format)
+
+        #self.catalogue = catalogue
+#######################################################
 
         if catalogue is not None:
             if 'objid' in catalogue.columns:
                 catalogue.set_index('objid')
+                catalogue.index = catalogue.index.astype(str) + '_' + catalogue.groupby(level=0).cumcount().astype(str)
             self.metadata = catalogue
         else:
             inds = []
@@ -765,9 +783,14 @@ class ImageThumbnailsDataset(Dataset):
             Array of image cutout
         """
 
-        filename = self.metadata.loc[idx, 'filename']
-        img = cv2.imread(filename)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if self.fits_format:
+            filename = self.metadata.loc[idx, 'filename']
+            img = fits.getdata(filename, memmap=True)
+        else:
+            filename = self.metadata.loc[idx, 'filename']
+            img = cv2.imread(filename)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
         return apply_transform(img, self.transform_function)
 
     def get_display_data(self, idx):
@@ -786,10 +809,15 @@ class ImageThumbnailsDataset(Dataset):
             Object ready to be passed directly to the frontend
         """
 
-        filename = self.metadata.loc[idx, 'filename']
-        cutout = cv2.imread(filename)
-        cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
-        print(cutout.shape)
+        if self.fits_format:
+            filename = self.metadata.loc[idx, 'filename']
+            cutout = fits.getdata(filename, memmap=True)
+        else:
+            filename = self.metadata.loc[idx, 'filename']
+            cutout = cv2.imread(filename)
+            cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
+            print(cutout.shape)
+        
         cutout = apply_transform(cutout, self.display_transform_function)
 
         min_edge = min(cutout.shape[:2])
@@ -806,148 +834,6 @@ class ImageThumbnailsDataset(Dataset):
             cutout = resize(cutout, new_shape, anti_aliasing=False)
 
         return convert_array_to_image(cutout)
-
-
-class ImageFitsDataset(Dataset):
-    def __init__(self, fits_index=None,
-                 display_image_size=128,
-                 transform_function=None, display_transform_function=None,
-                 catalogue=None, directory=None, output_dir=None, additional_metadata=None,
-                 **kwargs):
-        """
-        Read in a set of fits cutouts that are based on a single source. This
-        form is uncommon but is used when downloading directly from the DECALS
-        SkyViewer. Inherits from Dataset class.
-
-        Parameters
-        ----------
-        filename : str
-            If a single file (of any time) is to be read from, the path can be
-            given using this kwarg. 
-        directory : str
-            A directory can be given instead of an explicit list of files. The
-            child class will load all appropriate files in this directory.
-        list_of_files : list
-            Instead of the above, a list of files to be loaded can be
-            explicitly given.
-        output_dir : str
-            The directory to save the log file and all outputs to. Defaults to
-            './'
-        display_image_size : The size of the image to be displayed on the
-            web page. If the image is smaller than this, it will be
-            interpolated up to the higher number of pixels. If larger, it will
-            be downsampled.
-        transform_function : function or list, optional
-            The transformation function or list of functions that will be 
-            applied to each cutout. The function should take an input 2d array 
-            (the cutout) and return an output 2d array. If a list is provided, 
-            each function is applied in the order of the list.
-        catalogue : pandas.DataFrame or similar
-            A catalogue of the positions of sources around which cutouts will
-            be extracted. Note that a cutout of size "window_size" will be
-            extracted around these positions and must be the same for all
-            sources. 
-        """
-
-        super().__init__(display_image_size=128,
-                         transform_function=transform_function, 
-                         display_transform_function=display_transform_function,
-                         catalogue=catalogue,
-                         **kwargs)
-
-        self.data_type = 'image'
-        self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
-                                 'FITS', 'FITS.fz', 'FITS.gz']
-
-        self.display_image_size = display_image_size
-        self.transform_function = transform_function
-        self.directory = directory
-        self.catalogue = catalogue
-        self.output_dir = output_dir
-        
-        if display_transform_function is None:
-            self.display_transform_function = self.transform_function
-        else:
-            self.display_transform_function = display_transform_function
-
-        if catalogue is not None:
-            catalogue['name'] = catalogue['objid'].astype(str) + '-' + catalogue['brickid'].astype(str)
-            catalogue['peak_flux'] = catalogue[['flux_g', 'flux_r', 'flux_z']].max(axis=1)
-            new_index = np.array(self.catalogue['name'].values, dtype='str')
-            #if 'objid' in catalogue.columns:
-            #    catalogue.set_index('objid')
-            self.metadata = catalogue
-            self.metadata.index = new_index
-        else:
-            inds = []
-            file_paths = []
-            for f in self.files:
-                extension = f.split('.')[-1]
-                if extension in self.known_file_types:
-                    inds.append(
-                        f.split(os.path.sep)[-1][:-(len(extension) + 1)])
-                    file_paths.append(f)
-            self.metadata = pd.DataFrame(index=inds, 
-                                         data={'filename': file_paths})
-
-        if additional_metadata is not None:
-            self.metadata = self.metadata.join(additional_metadata)
-
-        self.index = self.metadata.index.values
-
-
-    def get_sample(self, idx):
-        """
-        Returns the data for a single sample in the dataset as indexed by idx.
-
-        Parameters
-        ----------
-        idx : string
-            Index of sample
-
-        Returns
-        -------
-        nd.array
-            Array of image cutout
-        """
-
-        filename = self.metadata.loc[idx, 'original_image']
-
-        file_path = os.path.join(self.directory, filename)
-
-        data = fits.getdata(file_path, memmap=True)
-
-        return apply_transform(data, self.transform_function)
-
-
-    def get_display_data(self, idx):
-        """
-        Returns a single instance of the dataset in a form that is ready to be
-        displayed by the web front end.
-
-        Parameters
-        ----------
-        idx : str
-            Index (should be a string to avoid ambiguity)
-
-        Returns
-        -------
-        png : image object
-            Object ready to be passed directly to the frontend
-        """
-
-        filename = self.metadata.loc[idx, 'original_image']
-
-        file_path = os.path.join(self.directory, filename)
-
-        data = fits.getdata(file_path, memmap=True)
-
-        transformed_image = apply_transform(data, self.display_transform_function)
-
-        #Resized to the web interface size
-        resized_image = resize(transformed_image, [128,128])
-
-        return convert_array_from_fits_to_image(resized_image)
 
 
     def fits_to_png(self, scores):
@@ -968,7 +854,7 @@ class ImageFitsDataset(Dataset):
         for i in range(len(scores)):
             idx = scores.index[i]
 
-            filename = self.metadata.loc[idx, 'original_image']
+            filename = self.metadata.loc[idx, 'filenames']
             flux = self.metadata.loc[idx, 'peak_flux']
             for root,directories,f_names in os.walk(self.directory):
                 if filename in f_names:

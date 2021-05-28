@@ -6,50 +6,9 @@ import numpy as np
 import xlsxwriter
 
 
-def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
-    """
-    Converts a tractor fits file to a pandas dataframe to be given
-    directly to an ImageDataset object.
-
-    Parameters
-    ----------
-    catalogue_files : string
-        tractor catalogue in fits table format 
-    image_file:
-        The image corresponding to this catalogue (to extract pixel information
-        and naming information)
-    """
-
-    catalogue = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
-
-    dataframe = {}
-    for name in catalogue.colnames:
-        data = catalogue[name].tolist()
-        dataframe[name] = data
-    
-    old_catalogue = pd.DataFrame(dataframe)
-    hdul = astropy.io.fits.open(image_file)
-
-    if len(image_name) == 0:
-        original_image = image_file.split(os.path.sep)[-1]
-    else:
-        original_image = image_name
-    
-    new_catalogue = pd.DataFrame()
-    new_catalogue['objid'] = old_catalogue['objid']
-    new_catalogue['original_image'] = [original_image] * len(new_catalogue)
-    new_catalogue['flux_g'] = old_catalogue['flux_g']
-    new_catalogue['flux_r'] = old_catalogue['flux_r']
-    new_catalogue['flux_z'] = old_catalogue['flux_z']
-    new_catalogue['x'] = old_catalogue['bx'].astype('int')
-    new_catalogue['y'] = old_catalogue['by'].astype('int')
-    new_catalogue['ra'] = old_catalogue['ra']
-    new_catalogue['dec'] = old_catalogue['dec']
-    
-    return new_catalogue
-
-
-def convert_pybdsf_catalogue(catalogue_file, image_file):
+def convert_pybdsf_catalogue(catalogue_file, image_file, 
+                             remove_point_sources=False,
+                             merge_islands=False):
     """
     Converts a pybdsf fits file to a pandas dataframe to be given
     directly to an ImageDataset object.
@@ -61,6 +20,11 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
     image_file:
         The image corresponding to this catalogue (to extract pixel information
         and naming information)
+    remove_point_sources: bool, optional
+        If true will remove all sources with an S_Code of 'S'
+    merge_islands: bool, optional
+        If true, will locate all sources belonging to a particular island and
+        merge them, maintaining only the brightest source
     """
     if 'csv' in catalogue_file:
         catalogue = pd.read_csv(catalogue_file, skiprows=5)
@@ -72,12 +36,23 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
         dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
         catalogue = dat.to_pandas()
 
+    if remove_point_sources:
+        catalogue = catalogue[catalogue['S_Code'] != 'S']
+
+    if merge_islands:
+        inds = []
+        for isl in np.unique(catalogue.Isl_id):
+            msk = catalogue.Isl_id == isl
+            ind = catalogue[msk].index[catalogue[msk]['Peak_flux'].argmax()]
+            inds.append(ind)
+        catalogue = catalogue.loc[inds]
+
     hdul = astropy.io.fits.open(image_file)
     original_image = image_file.split(os.path.sep)[-1]
 
     w = astropy.wcs.WCS(hdul[0].header, naxis=2)
 
-    x, y = w.wcs_world2pix(catalogue.RA, catalogue.DEC, 1)
+    x, y = w.wcs_world2pix(np.array(catalogue.RA), np.array(catalogue.DEC), 1)
 
     new_catalogue = pd.DataFrame()
     new_catalogue['objid'] = catalogue['Source_id']
@@ -89,7 +64,6 @@ def convert_pybdsf_catalogue(catalogue_file, image_file):
     new_catalogue['dec'] = catalogue.DEC
 
     new_catalogue.drop_duplicates(subset='objid', inplace=True)
-    new_catalogue.to_csv('deep2_offset_catalogue.tsv', sep='\t')
     return new_catalogue
 
 
@@ -305,3 +279,85 @@ class ImageCycler:
         fig.canvas.mpl_connect('key_press_event', self.onkeypress)
         plt.imshow(self.images[self.current_ind], origin='lower', cmap='hot')
         plt.title(self.current_ind)
+
+
+
+def get_file_paths(image_dir, catalogue_file, file_type = '.fits'):
+        """
+        Finds and appends the pathways of the relevant files to the catalogue. 
+        Required to access the files when passing a catalogue to the 
+        ImageThumbnailsDataset.
+
+        Parameters
+        ----------
+        image_dir : str
+            Directory where images are located (can be a single fits file or 
+            several)
+        catalogue_file : pd.DataFrame
+            Dataframe that contains the information pertaining to the data.
+        file_type : str
+            Sets the type of files used. Commonly used file types are .fits
+            or .jpgs.
+            
+        Returns
+        -------
+        catalogue_file : pd.DataFrame
+            Dataframe with the required file pathways attached.
+        """
+
+        filenames = []
+        for root, dirs, files in os.walk(image_dir):
+            for f in files:
+                if f.endswith(file_type):
+                    filenames.append(os.path.join(root, f))
+        
+        filenames = sorted(filenames, key = lambda x: x.split('/')[-1])
+
+        catalogue = catalogue_file.sort_values(['ra','dec'])
+
+        catalogue['filename'] = filenames
+        
+        return catalogue
+
+
+def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
+    """
+    Converts a tractor fits file to a pandas dataframe to be given
+    directly to an ImageDataset object.
+
+    Parameters
+    ----------
+    catalogue_files : string
+        tractor catalogue in fits table format 
+    image_file:
+        The image corresponding to this catalogue (to extract pixel information
+        and naming information)
+    """
+
+    catalogue = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
+
+    dataframe = {}
+    for name in catalogue.colnames:
+        data = catalogue[name].tolist()
+        dataframe[name] = data
+    
+    old_catalogue = pd.DataFrame(dataframe)
+    hdul = astropy.io.fits.open(image_file)
+
+    if len(image_name) == 0:
+        original_image = image_file.split(os.path.sep)[-1]
+    else:
+        original_image = image_name
+    
+    new_catalogue = pd.DataFrame()
+    new_catalogue['objid'] = old_catalogue['objid']
+    new_catalogue['original_image'] = [original_image] * len(new_catalogue)
+    new_catalogue['flux_g'] = old_catalogue['flux_g']
+    new_catalogue['flux_r'] = old_catalogue['flux_r']
+    new_catalogue['flux_z'] = old_catalogue['flux_z']
+    new_catalogue['x'] = old_catalogue['bx'].astype('int')
+    new_catalogue['y'] = old_catalogue['by'].astype('int')
+    new_catalogue['ra'] = old_catalogue['ra']
+    new_catalogue['dec'] = old_catalogue['dec']
+    
+    return new_catalogue
