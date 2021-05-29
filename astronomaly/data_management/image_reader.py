@@ -737,14 +737,7 @@ class ImageThumbnailsDataset(Dataset):
             self.display_transform_function = display_transform_function
 
         self.display_image_size = display_image_size
-
-#######################################################
-
         self.fits_format = fits_format
-        print(self.fits_format)
-
-        #self.catalogue = catalogue
-#######################################################
 
         if catalogue is not None:
             if 'objid' in catalogue.columns:
