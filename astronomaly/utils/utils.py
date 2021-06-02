@@ -8,7 +8,8 @@ import xlsxwriter
 
 def convert_pybdsf_catalogue(catalogue_file, image_file, 
                              remove_point_sources=False,
-                             merge_islands=False):
+                             merge_islands=False,
+                             read_csv_kwargs={}):
     """
     Converts a pybdsf fits file to a pandas dataframe to be given
     directly to an ImageDataset object.
@@ -25,12 +26,16 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
     merge_islands: bool, optional
         If true, will locate all sources belonging to a particular island and
         merge them, maintaining only the brightest source
+    read_csv_kwargs: dict, optional
+        Will pass these directly to panda's read_csv function to allow reading
+        in of a variety of file structures (e.g. different delimiters)
     """
     if 'csv' in catalogue_file:
-        catalogue = pd.read_csv(catalogue_file, skiprows=5)
+        catalogue = pd.read_csv(catalogue_file, **read_csv_kwargs)
         cols = list(catalogue.columns)
         for i in range(len(cols)):
             cols[i] = cols[i].strip()
+            cols[i] = cols[i].strip('#')
         catalogue.columns = cols
     else:
         dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
