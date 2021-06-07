@@ -3,6 +3,7 @@ import cv2
 from astronomaly.base.base_pipeline import PipelineStage
 from astronomaly.base import logging_tools
 
+
 def find_contours(img, threshold):
     """
     Finds the contours of an image that meet a threshold
@@ -29,8 +30,8 @@ def find_contours(img, threshold):
     img_bin[img <= threshold] = 0
     img_bin[img > threshold] = 1
 
-    contours, hierarchy = cv2.findContours(img_bin, 
-                                           cv2.RETR_EXTERNAL, 
+    contours, hierarchy = cv2.findContours(img_bin,
+                                           cv2.RETR_EXTERNAL,
                                            cv2.CHAIN_APPROX_SIMPLE)
 
     return contours, hierarchy
@@ -67,7 +68,7 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
         ellipse_arr = image.copy()
 
     # Sets some defaults for when the fitting fails
-    default_return_params = [np.nan] * 5 
+    default_return_params = [np.nan] * 5
     raised_error = False
 
     try:
@@ -98,7 +99,7 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
     min_axis = int(np.round(min_axis))
     theta = int(np.round(theta))
 
-    cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2), 
+    cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2),
                 theta, 0, 360, (1, 1, 1), thickness)
 
     if return_params:
@@ -249,19 +250,22 @@ def check_extending_ellipses(img, threshold, return_params=False):
     width = img.shape[0]
     height = img.shape[1]
 
-    new_width = width * 3
-    new_height = height * 3 
+    old_window = img.shape
 
-    blank_canvas = np.zeros((new_width,new_height), dtype=np.float)
+    new_width = width * 3
+    new_height = height * 3
+
+    blank_canvas = np.zeros((new_width, new_height), dtype=np.float)
 
     contours, hierarchy = find_contours(img, threshold)
-    
+
     # Sets some defaults for when the fitting fails
-    default_return_params = [np.nan] * 5 
+    default_return_params = [np.nan] * 5
     raised_error = False
 
     try:
-        ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(np.float32(contours[0]))
+        ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(
+            np.float32(contours[0]))
         ellipse_params = x0, y0, maj_axis, min_axis, theta
 
         if np.any(np.isnan(ellipse_params)) or y0 < 0 or x0 < 0:
@@ -274,25 +278,26 @@ def check_extending_ellipses(img, threshold, return_params=False):
 
     if raised_error:
         contour_extends = False
-        return contour_extends
+        return contour_extends, old_window
 
     x0_new = int(np.round(x0)) + (int(width))
     y0_new = int(np.round(y0)) + (int(height))
     maj_axis = int(np.round(maj_axis))
     min_axis = int(np.round(min_axis))
     theta = int(np.round(theta))
-    
-    ellipse = cv2.ellipse(blank_canvas, (x0_new, y0_new), (maj_axis // 2, min_axis // 2), theta, 0, 360, (1, 1, 1), 1)
+
+    ellipse = cv2.ellipse(blank_canvas, (x0_new, y0_new),
+                          (maj_axis // 2, min_axis // 2), theta, 0, 360, (1, 1, 1), 1)
     ellipse[int(width*1):int(width*2), int(height*1):int(height*2)] = 0
 
     if ellipse.any() != 0:
-        dif = np.sqrt( (x0 - width/2)**2 + (y0 - height/2)**2 )
+        dif = np.sqrt((x0 - width/2)**2 + (y0 - height/2)**2)
         new_window = int((max(min_axis, maj_axis) + dif) * 1.25)
         contour_extends = True
         return contour_extends, new_window
     else:
         contour_extends = False
-        return contour_extends    
+        return contour_extends, old_window
 
 
 class EllipseFitFeatures(PipelineStage):
@@ -314,7 +319,8 @@ class EllipseFitFeatures(PipelineStage):
             extends beyond the image
         """
 
-        super().__init__(percentiles=percentiles, channel=channel, extending_ellipse=extending_ellipse, **kwargs)
+        super().__init__(percentiles=percentiles, channel=channel,
+                         extending_ellipse=extending_ellipse, **kwargs)
 
         self.percentiles = percentiles
         self.labels = []
@@ -374,7 +380,7 @@ class EllipseFitFeatures(PipelineStage):
         scale = [i for i in np.arange(100, upper_limit + 1, 1)]
 
         # Start with the closest in contour (highest percentile)
-        percentiles = np.sort(self.percentiles)[::-1] 
+        percentiles = np.sort(self.percentiles)[::-1]
 
         if np.all(this_image == 0):
             failed = True
@@ -394,7 +400,8 @@ class EllipseFitFeatures(PipelineStage):
                 width = int(image.shape[1] * a / 100)
                 height = int(image.shape[0] * a / 100)
                 dim = (width, height)
-                resize = cv2.resize(this_image, dim, interpolation=cv2.INTER_AREA)
+                resize = cv2.resize(
+                    this_image, dim, interpolation=cv2.INTER_AREA)
 
                 if failed:
                     contours = []
@@ -439,16 +446,20 @@ class EllipseFitFeatures(PipelineStage):
 
                     # Check whether or not the outermost ellipse extends beyond the image
                     if self.extending_ellipse and p == percentiles[-1]:
-                        check = check_extending_ellipses(resize, thresh)
+                        check,window = check_extending_ellipses(resize, thresh)
+                        #print(window)
                         if check:
-                            new_window.append(int(check[1]))
+                            #print(window)
+                            new_window.append(window)
                             warning_open_ellipses.append(1)
                         else:
-                            new_window.append(image.shape[0])
+                            #new_window.append(image.shape[0])
+                            new_window.append(int(window[1]))
                             warning_open_ellipses.append(0)
-                        
+
                     #ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
-                    ellipse_arr = fit_ellipse(c, resize, return_params=False, filled=False)
+                    ellipse_arr = fit_ellipse(
+                        c, resize, return_params=False, filled=False)
 
                     # Params return in this order:
                     # residual, x0, y0, maj_axis, min_axis, theta
@@ -482,7 +493,7 @@ class EllipseFitFeatures(PipelineStage):
                     feats.append([np.nan] * 5)
                     logging_tools.log(failure_message)
 
-                # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each 
+                # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each
                 # sigma
                 # Normalise things relative to the highest threshold value
                 # If there were problems with any sigma levels, set all values to NaNs
@@ -513,12 +524,13 @@ class EllipseFitFeatures(PipelineStage):
                         dist_to_centre.append(r)
                         aspect.append(prms[3] / aspect_max_sigma)
                         theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
-                        # Because there's redundancy about which way an ellipse 
+                        # Because there's redundancy about which way an ellipse
                         # is aligned, we always take the acute angle
                         if theta_diff > 90:
                             theta_diff -= 90
                         theta.append(theta_diff)
-                        features = np.hstack((residuals, dist_to_centre, aspect, theta))
+                        features = np.hstack(
+                            (residuals, dist_to_centre, aspect, theta))
 
                     if len(lst) == len(percentiles):
                         stop = True
@@ -526,16 +538,16 @@ class EllipseFitFeatures(PipelineStage):
             if stop:
                 break
             if a == upper_limit:
-                features = [np.nan] * 4 * len(self.percentiles) 
+                features = [np.nan] * 4 * len(self.percentiles)
 
-        features = np.append(features,warning_open_ellipses)
-        features = np.append(features,new_window)
+        features = np.append(features, warning_open_ellipses)
+        features = np.append(features, new_window)
 
         return features
 
 
 class HuMomentsFeatures(PipelineStage):
-    def __init__(self, sigma_levels=[1, 2, 3, 4, 5], channel=None, 
+    def __init__(self, sigma_levels=[1, 2, 3, 4, 5], channel=None,
                  central_contour=False, **kwargs):
         """
         Computes the Hu moments for the contours at specified levels in an
@@ -553,7 +565,7 @@ class HuMomentsFeatures(PipelineStage):
             image
         """
 
-        super().__init__(sigma_levels=sigma_levels, channel=channel, 
+        super().__init__(sigma_levels=sigma_levels, channel=channel,
                          central_contour=central_contour, **kwargs)
 
         self.sigma_levels = sigma_levels

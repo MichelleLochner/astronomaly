@@ -212,8 +212,8 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
     img_bin[im <= thresh] = 0
     img_bin[im > thresh] = 1
 
-    contours, hierarchy = cv2.findContours(img_bin, 
-                                           cv2.RETR_EXTERNAL, 
+    contours, hierarchy = cv2.findContours(img_bin,
+                                           cv2.RETR_EXTERNAL,
                                            cv2.CHAIN_APPROX_SIMPLE)
 
     x0 = img.shape[0] // 2
@@ -234,6 +234,7 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
 
     return new_img
 
+
 def image_transform_greyscale(img):
     """
     Simple function that combines the rgb bands into a single image.
@@ -249,7 +250,7 @@ def image_transform_greyscale(img):
         Greyscale image
 
     """
-    
+
     if len(img.shape) > 2:
         img = np.float32(img)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -257,6 +258,7 @@ def image_transform_greyscale(img):
         img = img
 
     return img
+
 
 def image_transform_remove_negatives(img):
     """
@@ -274,8 +276,9 @@ def image_transform_remove_negatives(img):
 
     new_img = img.copy()
     new_img[new_img < 0] = 0
-    
+
     return new_img
+
 
 def image_transform_cv2_resize(img):
     """
@@ -290,61 +293,63 @@ def image_transform_cv2_resize(img):
     -------
     np.ndarray
         Resized image
-    
+
     """
-    scale_percent = 110 # percent of original size
+    scale_percent = 110  # percent of original size
     width = int(img.shape[1] * scale_percent / 100)
     height = int(img.shape[0] * scale_percent / 100)
     dim = (width, height)
 
+    return cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
 
-    return cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
 
 def image_transform_band_addition(img):
     """
     Small function that stacks the different channels together to form
     a new, single band image.
-    
+
     Parameters
     ----------
     img : np.ndarray
         Input image
-        
+
     Returns
     -------
     np.ndarray
         Stacked image
     """
-    one = img[:,:,0] # g-band - blue b
-    two = img[:,:,1] # r-band - green g
-    three = img[:,:,2] # z-band - red r
-    
-    img = np.add(one,two,three)
+    one = img[:, :, 0]  # g-band - blue b
+    two = img[:, :, 1]  # r-band - green g
+    three = img[:, :, 2]  # z-band - red r
+
+    img = np.add(one, two, three)
     return img
+
 
 def image_transform_band_reorder(img):
     """
     Small function that rearranges the different channels together to form
     a new image. Made specifically for the cutout.fits files
-    
+
     Parameters
     ----------
     img : np.ndarray
         Input image
-        
+
     Returns
     -------
     np.ndarray
         Stacked image
     """
-    one = img[0,:,:] # g-band - blue b
-    two = img[1,:,:] # r-band - green g
-    three = img[2,:,:] # z-band - red r
-    
-    img = np.dstack((three,two,one))
+    one = img[0, :, :]  # g-band - blue b
+    two = img[1, :, :]  # r-band - green g
+    three = img[2, :, :]  # z-band - red r
+
+    img = np.dstack((three, two, one))
     return img
 
-def image_transform_colour_correction(img, bands=('g','r','z'), scales=None, m = 0.03):
+
+def image_transform_colour_correction(img, bands=('g', 'r', 'z'), scales=None, m=0.03):
     """
     Band weighting function used to match the display of astronomical images
     from the DECaLS SkyViewer and SDSS. Created specifically for DECaLS fits
@@ -356,24 +361,24 @@ def image_transform_colour_correction(img, bands=('g','r','z'), scales=None, m =
     ----------
     img : np.ndarray
         Input image
-        
+
     Returns
     -------
     np.ndarray
         Weighted and reordered image
     """
 
-    rgbscales = {'u': (2,1.5),
-             'g': (2,6.0),
-             'r': (1,3.4),
-             'i': (0,1.0),
-             'z': (0,2.2),
-             }
+    rgbscales = {'u': (2, 1.5),
+                 'g': (2, 6.0),
+                 'r': (1, 3.4),
+                 'i': (0, 1.0),
+                 'z': (0, 2.2),
+                 }
 
     I = 0
 
-    for im,band in zip(img, bands):
-        plane,scale = rgbscales[band]
+    for im, band in zip(img, bands):
+        plane, scale = rgbscales[band]
         im = np.maximum(0, im * scale + m)
         I = I + im
 
@@ -381,34 +386,35 @@ def image_transform_colour_correction(img, bands=('g','r','z'), scales=None, m =
     Q = 20
     fI = np.arcsinh(Q * I) / np.sqrt(Q)
     I += (I == 0.) * 1e-6
-    H,W = I.shape
+    H, W = I.shape
 
-    rgb = np.zeros((H,W,3), np.float32)
+    rgb = np.zeros((H, W, 3), np.float32)
 
-    for im,band in zip(img, bands):
-        plane,scale = rgbscales[band]
-        rgb[:,:,plane] = (im * scale + m) * fI / I
+    for im, band in zip(img, bands):
+        plane, scale = rgbscales[band]
+        rgb[:, :, plane] = (im * scale + m) * fI / I
 
     image = np.clip(rgb, 0, 1)
     return image
+
 
 def image_transform_axis_shift(img):
     """
     Small function that shifts the band axis from the end to
     the beginning. This position is required to use the colour
     correction function.
-    
+
     Parameters
     ----------
     img : np.ndarray
         Input image
-        
+
     Returns
     -------
     np.ndarray
         Shifted image
     """
 
-    img = np.moveaxis(img,-1,0)
+    img = np.moveaxis(img, -1, 0)
 
     return img
