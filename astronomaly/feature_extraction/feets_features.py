@@ -87,7 +87,7 @@ class Feets_Features(PipelineStage):
 
                         features, values = fs.extract(*lc_columns)
 
-                        print(features)
+                        # print(features)
 
                         new_labels = [f + '_' + passbands[i-1]
                                       for f in features]

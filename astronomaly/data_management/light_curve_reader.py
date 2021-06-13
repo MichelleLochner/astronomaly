@@ -242,6 +242,12 @@ class LightCurveDataset(Dataset):
             self.metadata = pd.DataFrame({'ID': idx}, index=idx)
             standard_data.update({'ID': IDs})
 
+        if 'labels' in data_dict.keys():
+
+            labels = data.iloc[:, self.data_dict['labels']]
+
+            standard_data.update({'labels': labels})
+
         # Possible brightness columns
         brightness_cols = ['mag', 'flux']
 
@@ -308,11 +314,15 @@ class LightCurveDataset(Dataset):
         self.index = ids
 
         # Add the classes to the metadata
-        if 'labels' in data.columns:
+        if 'labels' in lc.columns:
 
-            labels = [data[data['ID'] == i]['labels'].values[0] for i in ids]
-            self.metadata = pd.DataFrame({'ID': ids,
-                                          'labels': labels}, index=ids)
+            labels = [lc[lc['ID'] == i]['labels'].values[0] for i in ids]
+
+            # meta_dict = {'ID':ids, 'labels':labels}
+            self.metadata = pd.DataFrame({'label': labels, 'ID': ids},
+                                         index=ids)
+
+            print('......Meta.....', self.metadata)
 
         # Metadata without the class
         else:
