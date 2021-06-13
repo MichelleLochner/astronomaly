@@ -297,7 +297,7 @@ class LightCurveDataset(Dataset):
             # Convert flux to mag
             lc = convert_flux_to_mag(lc, self.f_zero)
             # Split the light curve into chunks
-            lc = split_lc(lc, self.max_gap)
+            # lc = split_lc(lc, self.max_gap)
             self.light_curves_data = lc
 
         else:

@@ -2,19 +2,22 @@
 from astronomaly.data_management import light_curve_reader
 from astronomaly.feature_extraction import feets_features
 from astronomaly.postprocessing import scaling
-from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
+from astronomaly.anomaly_detection import lof, human_loop_learning
 from astronomaly.visualisation import tsne
 import os
 import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
 
+imp = SimpleImputer(missing_values=np.nan, strategy='mean')
 
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data')
-lc_path = os.path.join(data_dir, 'CRTS', 'transient_lightcurves.csv')
+lc_path = os.path.join(data_dir, '10k_KN_RRL_test_sample.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', '')
+    data_dir, 'astronomaly_output', 'plasticc_mod_LOF', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -46,11 +49,19 @@ def run_pipeline():
     """
 
     # This creates the object that manages the data
-    lc_dataset = light_curve_reader.LightCurveDataset(
-        filename=lc_path,
-        data_dict={'id': 0, 'time': 4, 'mag': 2, 'mag_err': 3}
-    )
-
+    lc_dataset = light_curve_reader.LightCurveDataset(data_dict={'id': 0,
+                                                                 'time': 1,
+                                                                 'flux_err': 4,
+                                                                 'flux': 3,
+                                                                 'filters': 2},
+                                                      filename=lc_path,
+                                                      plot_errors=False,
+                                                      delim_whitespace=False,
+                                                      header_nrows=1,
+                                                      max_gap=100,
+                                                      filter_labels=['g', 'r',
+                                                      'i', 'z'])
+    # print(lc_dataset.index)
     # Creates a pipeline object for feature extraction
     pipeline_feets = feets_features.Feets_Features(
         exclude_features=['Period_fit', 'PercentDifferenceFluxPercentile',
@@ -58,10 +69,19 @@ def run_pipeline():
                           'FluxPercentileRatioMid35',
                           'FluxPercentileRatioMid50',
                           'FluxPercentileRatioMid65',
-                          'FluxPercentileRatioMid80'])
+                          'FluxPercentileRatioMid80',
+                          'Freq1_harmonics_rel_phase_0',
+                          'Freq2_harmonics_rel_phase_0',
+                          'Freq3_harmonics_rel_phase_0',
+                          'Autocor_length', 'Con'])
 
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)
+    columns = features.columns
+    indx = features.index.values.tolist()
+    features = imp.fit_transform(features)
+    features = pd.DataFrame(features, columns=columns, index=indx)
+    # print(features)
 
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set
@@ -71,9 +91,9 @@ def run_pipeline():
 
     # The actual anomaly detection is called in the same way by creating an
     # Iforest pipeline object then running it
-    pipeline_iforest = isolation_forest.IforestAlgorithm(
-        force_rerun=False, output_dir=output_dir)
-    anomalies = pipeline_iforest.run(features)
+    pipeline_lof = lof.LOF_Algorithm(
+                                    force_rerun=False, output_dir=output_dir)
+    anomalies = pipeline_lof.run(features)
 
     # We convert the scores onto a range of 0-5
     pipeline_score_converter = human_loop_learning.ScoreConverter(

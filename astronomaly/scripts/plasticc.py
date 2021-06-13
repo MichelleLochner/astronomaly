@@ -6,7 +6,11 @@ from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
 from astronomaly.visualisation import tsne
 import os
 import pandas as pd
+import numpy as np
+from sklearn.impute import SimpleImputer
 
+# Replace missing values with the median of the data
+imp = SimpleImputer(missing_values=np.nan, strategy='median')
 
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data')
@@ -14,7 +18,7 @@ lc_path = os.path.join(data_dir, '10k_KN_RRL_test_sample.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', 'plasticc_mod5', '')
+    data_dir, 'astronomaly_output', 'plasticc_mod6', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -70,11 +74,15 @@ def run_pipeline():
                           'Freq1_harmonics_rel_phase_0',
                           'Freq2_harmonics_rel_phase_0',
                           'Freq3_harmonics_rel_phase_0',
-                          'PeriodLS', 'Autocor_length', 'Con'])
+                          'Autocor_length', 'Con'])
 
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)
-    print(features)
+    columns = features.columns
+    indx = features.index.values.tolist()
+    features = imp.fit_transform(features,)
+    features = pd.DataFrame(features, columns=columns, index=indx)
+    # print(features)
 
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set

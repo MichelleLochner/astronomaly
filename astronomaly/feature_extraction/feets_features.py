@@ -63,7 +63,7 @@ class Feets_Features(PipelineStage):
                                 exclude=self.exclude_features)
 
         len_labels = len(fs.features_)
-        print(fs.features_)
+        # print(fs.features_)
         # The case where we have filters
         if 'filters' in lc_data.columns:
 
