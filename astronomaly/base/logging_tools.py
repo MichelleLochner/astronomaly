@@ -140,8 +140,8 @@ def check_if_inputs_same(class_name, local_variables):
         Reads the checksum stored in the log file and returns it.
     """
     hdlrs = logging.getLogger().handlers
-    # Try to be somewhat generic allowing for other handlers but this will 
-    # only return the filename of the first FileHandler object it finds. 
+    # Try to be somewhat generic allowing for other handlers but this will
+    # only return the filename of the first FileHandler object it finds.
     # This should be ok except for weird logging edge cases.
     flname = ''
     checksum = 0
@@ -162,7 +162,7 @@ def check_if_inputs_same(class_name, local_variables):
         args_same = False
         for ln in fl.readlines()[::-1]:
             if class_name + '(' in ln:
-                # To be completely general, the string manipulation has to 
+                # To be completely general, the string manipulation has to
                 # be a little complicated
                 stripped_ln = ln.split('-')[-2].split(')')[0].split('(')[-1]
                 the_list = stripped_ln.split('=')

@@ -113,7 +113,7 @@ def convert_flux_to_mag(lcs, f_zero):
 class LightCurveDataset(Dataset):
     def __init__(self, data_dict, f_zero=22, header_nrows=1,
                  delim_whitespace=False, max_gap=50, plot_errors=True,
-                 filter_colors=['#9467bd', '#1f77b4', '#2ca02c', '#d62728', 
+                 filter_colors=['#9467bd', '#1f77b4', '#2ca02c', '#d62728',
                                 '#ff7f0e', '#8c564b'],
                  filter_labels=[],
                  **kwargs):
@@ -163,7 +163,7 @@ class LightCurveDataset(Dataset):
         filter_colors: list
                 Allows the user to define their own colours (using hex codes)
                 for the different filter bands. Will revert to default
-                behaviour of the JavaScript chart if the list of colors 
+                behaviour of the JavaScript chart if the list of colors
                 provided is shorter than the number of unique filters.
         filter_labels: list
                 For multiband data, labels will be passed to the frontend
@@ -176,8 +176,8 @@ class LightCurveDataset(Dataset):
 
         super().__init__(data_dict=data_dict, header_nrows=header_nrows,
                          delim_whitespace=delim_whitespace, f_zero=f_zero,
-                         max_gap=max_gap, plot_errors=plot_errors, 
-                         filter_labels=filter_labels, 
+                         max_gap=max_gap, plot_errors=plot_errors,
+                         filter_labels=filter_labels,
                          filter_colors=filter_colors, **kwargs)
 
         self.data_type = 'light_curve'
@@ -328,7 +328,7 @@ class LightCurveDataset(Dataset):
         # All the standard columns are included here
         data_col = ['mag']
         err_col = ['mag_error']
-        out_dict = {'data': [], 'errors': [], 'filter_labels': [], 
+        out_dict = {'data': [], 'errors': [], 'filter_labels': [],
                     'filter_colors': []}
 
         # Reading in the light curve data
