@@ -137,7 +137,8 @@ class LightCurveDataset(Dataset):
         data_dict: Dictionary
                 It a dictionary with index of the column names corresponding to
                 the following specific keys:
-                ('id','time','mag','mag_err','flux','flux_err','filters')
+                ('id','time','mag','mag_err','flux','flux_err','filters',
+                'labels')
                 e.g {'time':1,'mag':2}, where 1 and 2 are column index
                 correpoding to 'time' and 'mag' in the input data.
                 If the data does not have unique ids, the user can neglect the
@@ -305,7 +306,17 @@ class LightCurveDataset(Dataset):
 
         ids = np.unique(lc.ID)
         self.index = ids
-        self.metadata = pd.DataFrame({'ID': ids}, index=ids)
+
+        # Add the classes to the metadata
+        if 'labels' in data.columns:
+
+            labels = [data[data['ID'] == i]['labels'].values[0] for i in ids]
+            self.metadata = pd.DataFrame({'ID': ids,
+                                          'labels': labels}, index=ids)
+
+        # Metadata without the class
+        else:
+            self.metadata = pd.DataFrame({'ID': ids}, index=ids)
 
     def get_display_data(self, idx):
         """
