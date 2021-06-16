@@ -11,8 +11,6 @@ def raw_loc_to_clean_loc(raw_loc):
 
 
 def clean_feature_csv(raw_locs, image_format = 'png'):
-
-    
         
     for loc in tqdm(raw_locs):
         logging.info('Reformatting {}'.format(loc))
@@ -77,6 +75,8 @@ if __name__ == '__main__':
     # raw_search_str = '/media/walml/beta1/cnn_features/gz2/*_full_features_*.csv'
     # clean_search_str = '/media/walml/beta1/cnn_features/gz2/*_cleaned_*.parquet'
     # reformatted_parquet_loc = '/media/walml/beta1/cnn_features/gz2/cnn_features_concat.parquet'
+
+    logging.basicConfig(level=logging.INFO)
 
     raw_search_str = '/share/nas/walml/repos/zoobot/data/results/dr5_color_full_features_*.csv'
     clean_search_str = raw_loc_to_clean_loc(raw_search_str)
