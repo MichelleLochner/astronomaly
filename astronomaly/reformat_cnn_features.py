@@ -10,31 +10,30 @@ def raw_loc_to_clean_loc(raw_loc):
     return raw_loc.replace('_full_features_', '_full_cleaned_').replace('.csv', '.parquet')
 
 
-def clean_feature_csv(raw_locs, image_format = 'png'):
+def clean_feature_csv(loc, image_format = 'png'):
         
-    for loc in tqdm(raw_locs):
-        logging.info('Reformatting {}'.format(loc))
-        assert '_full_features_' in loc
-        assert '_full_cleaned_' not in loc
-        clean_loc = raw_loc_to_clean_loc(loc)
-        if not os.path.isfile(clean_loc):
+    logging.info('Reformatting {}'.format(loc))
+    assert '_full_features_' in loc
+    assert '_full_cleaned_' not in loc
+    clean_loc = raw_loc_to_clean_loc(loc)
+    if not os.path.isfile(clean_loc):
 
-            features_df = pd.read_csv(loc)
-            feature_cols = [col for col in features_df if col.startswith('feat')]
+        features_df = pd.read_csv(loc)
+        feature_cols = [col for col in features_df if col.startswith('feat')]
 
-            for col in feature_cols:
-                features_df[col] = features_df[col].apply(lambda x: float(x.replace('[', '').replace(']', '')))  # extract from list e.g. [0.1456] to 0.1456
+        for col in feature_cols:
+            features_df[col] = features_df[col].apply(lambda x: float(x.replace('[', '').replace(']', '')))  # extract from list e.g. [0.1456] to 0.1456
 
-            # features_df['png_loc'] = features_df['image_loc'].str.replace('/raid/scratch/walml/galaxy_zoo/gz2/png', '/media/walml/beta1/galaxy_zoo/gz2/png')
-            features_df['filename'] = features_df['image_loc']
+        # features_df['png_loc'] = features_df['image_loc'].str.replace('/raid/scratch/walml/galaxy_zoo/gz2/png', '/media/walml/beta1/galaxy_zoo/gz2/png')
+        features_df['filename'] = features_df['image_loc']
 
-        #     assert all([os.path.isfile(x) for x in features_df['filename']])
-            del features_df['image_loc']
-            features_df['id_str'] = list(features_df['filename'].apply(lambda x: os.path.basename(x).split('.')[-2]))
+    #     assert all([os.path.isfile(x) for x in features_df['filename']])
+        del features_df['image_loc']
+        features_df['id_str'] = list(features_df['filename'].apply(lambda x: os.path.basename(x).split('.')[-2]))
 
-        #         features_df = features_df[features_df['objid'].isin(safe_galaxies)]
+    #         features_df = features_df[features_df['objid'].isin(safe_galaxies)]
 
-            features_df.to_parquet(clean_loc)
+        features_df.to_parquet(clean_loc)
 
 
 def concat(clean_locs):
@@ -54,7 +53,7 @@ def main(raw_search_str, clean_search_str, reformatted_parquet_loc):
 
     raw_locs = glob.glob(raw_search_str)
     assert raw_locs
-    logging.info('Raw csvs to reformat: {}'.format(len(raw_locs)))
+    logging.info('Raw csvs to reformat: {} e.g. {}'.format(len(raw_locs), raw_locs[0]))
 
     pool = Pool(processes=20)
 
