@@ -714,7 +714,6 @@ class ImageThumbnailsDataset(Dataset):
             self.display_transform_function = display_transform_function
 
         self.display_image_size = display_image_size
-
         self.fits_format = fits_format
 
         if catalogue is not None:
@@ -852,3 +851,48 @@ class ImageThumbnailsDataset(Dataset):
             cutout = resize(cutout, new_shape, anti_aliasing=False)
 
         return convert_array_to_image(cutout)
+
+    def fits_to_png(self, scores):
+        """
+        Simple function that outputs png files from the input fits files
+
+        Parameters
+        ----------
+        Scores : string
+            Score of sample
+
+        Returns
+        -------
+        png : image object
+            Images are created and saved in the output folder
+        """
+
+        for i in range(len(scores)):
+            idx = scores.index[i]
+
+            filename = self.metadata.loc[idx, 'filenames']
+            flux = self.metadata.loc[idx, 'peak_flux']
+            for root, directories, f_names in os.walk(self.directory):
+                if filename in f_names:
+                    file_path = os.path.join(root, filename)
+
+            output_path = os.path.join(self.output_dir, 'PNG', 'Anomaly Score')
+
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+
+            data = fits.getdata(file_path, memmap=True)
+
+            if len(np.shape(data)) > 2:
+                one = data[0, :, :]
+                two = data[1, :, :]
+                three = data[2, :, :]
+                data = np.dstack((three, two, one))
+                transformed_image = apply_transform(
+                    data, self.display_transform_function)
+            else:
+                transformed_image = apply_transform(
+                    data, self.display_transform_function)
+
+            plt.imsave(output_path+'/AS:'+'%.6s' % scores.score[i]+'_NAME:'+str(
+                idx)+'_FLUX:'+'%.4s' % flux+'.png', transformed_image)
