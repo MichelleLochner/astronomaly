@@ -184,7 +184,7 @@ class AstroImage:
 
     def _strip_filename(self):
         """
-        Tiny utility function to make a nice formatted version of the image 
+        Tiny utility function to make a nice formatted version of the image
         name from the input filename string
 
         Returns
@@ -721,7 +721,8 @@ class ImageThumbnailsDataset(Dataset):
             if 'objid' in catalogue.columns:
                 catalogue.set_index('objid')
                 catalogue.index = catalogue.index.astype(
-                    str) + '_' + catalogue.groupby(level=0).cumcount().astype(str)
+                    str) + '_' + catalogue.groupby(
+                        level=0).cumcount().astype(str)
             self.metadata = catalogue
         else:
             inds = []
@@ -759,48 +760,34 @@ class ImageThumbnailsDataset(Dataset):
             try:
                 filename = self.metadata.loc[idx, 'filename']
                 img = fits.getdata(filename, memmap=True)
-                #shape = img.shape
-                #print(len(self.metadata.index))
                 return apply_transform(img, self.transform_function)
-            
+
             except TypeError:
-                msg = "Cannot read image: Corrupted file"
+                msg = "TypeError cannot read image: Corrupt file"
                 logging_tools.log(msg, level="ERROR")
 
-                #pass
-                
                 if self.check_corrupt_data:
-                    #utils.remove_corrupt_file(self.index,self.metadata.index, idx)
-                    img = np.zeros([3,32,32], dtype = int)
-                    #print(len(self.metadata.index))
-                    return apply_transform(img, self.transform_function)
+                    utils.remove_corrupt_file(
+                        self.index, self.metadata.index, idx)
                 else:
                     print('Corrupted data: Enable check_corrupt_data.')
-                #    print("Function")
-                #    print(img.shape)
-                #    pass
-                #else:
-                #    print('Fail')
-                    #pass     
-            #return apply_transform(img, self.transform_function)
-        
+
+            except OSError:
+                msg = "OSError cannot read image: Empty file"
+                logging_tools.log(msg, level="ERROR")
+
+                if self.check_corrupt_data:
+                    utils.remove_corrupt_file(
+                        self.index, self.metadata.index, idx)
+                else:
+                    print('Missing data: Enable check_corrupt_data.')
+
         else:
             filename = self.metadata.loc[idx, 'filename']
             img = cv2.imread(filename)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             return apply_transform(img, self.transform_function)
-
-
-        #if self.fits_format:
-        #    filename = self.metadata.loc[idx, 'filename']
-        #    img = fits.getdata(filename, memmap=True)
-        #else:
-        #    filename = self.metadata.loc[idx, 'filename']
-        #    img = cv2.imread(filename)
-        #    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        #return apply_transform(img, self.transform_function)
 
     def get_display_data(self, idx):
         """
@@ -819,8 +806,30 @@ class ImageThumbnailsDataset(Dataset):
         """
 
         if self.fits_format:
-            filename = self.metadata.loc[idx, 'filename']
-            cutout = fits.getdata(filename, memmap=True)
+            try:
+                filename = self.metadata.loc[idx, 'filename']
+                cutout = fits.getdata(filename, memmap=True)
+
+            except TypeError:
+                msg = "TypeError cannot read image: Corrupted file"
+                logging_tools.log(msg, level="ERROR")
+
+                if self.check_corrupt_data:
+                    cutout = np.zeros(
+                        [1, self.display_image_size, self.display_image_size], dtype=int)
+                else:
+                    print('Corrupted data: Enable check_corrupt_data.')
+
+            except OSError:
+                msg = "OSError cannot read image: Empty file"
+                logging_tools.log(msg, level="ERROR")
+
+                if self.check_corrupt_data:
+                    cutout = np.zeros(
+                        [1, self.display_image_size, self.display_image_size], dtype=int)
+                else:
+                    print('Missing data: Enable check_corrupt_data.')
+
         else:
             filename = self.metadata.loc[idx, 'filename']
             cutout = cv2.imread(filename)

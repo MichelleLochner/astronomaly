@@ -196,8 +196,8 @@ def get_visualisation_sample(features, anomalies, anomaly_column='score',
 def create_ellipse_check_catalogue(image_dataset, features,
                                    filename='ellipse_catalogue.csv'):
     """
-    Creates a catalogue of the most anomalous sources in the form of an excel
-    spreadsheet that includes cutout images.
+    Creates a catalogue that contains sources which require a larger window
+    or cutout size. Also contains the recommended windows size required.
 
     Parameters
     ----------
@@ -214,11 +214,11 @@ def create_ellipse_check_catalogue(image_dataset, features,
 
     met = image_dataset.metadata
 
-    dat.drop(dat.columns[0:24], axis=1, inplace=True)
-
     ellipse_warning = dat.loc[dat['Warning_Open_Ellipse'] == 1]
 
-    data = pd.merge(ellipse_warning, met, left_index=True, right_index=True)
+    data = pd.merge(ellipse_warning[[
+                    'Warning_Open_Ellipse', 'Recommended_Window_Size']],
+                    met, left_index=True, right_index=True)
 
     data.to_csv(filename)
 
@@ -364,7 +364,8 @@ def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
 
 def create_png_output(image_dataset, number_of_images, data_dir):
     """
-    Simple function that outputs a certain number of png files from the input fits files
+    Simple function that outputs a certain number of png files
+    from the input fits files
 
     Parameters
     ----------
@@ -373,7 +374,8 @@ def create_png_output(image_dataset, number_of_images, data_dir):
     number_of_images : integer
         Sets the number of images to be created by the function
     data_dir : directory
-        Location of data directory. Needed to create output folder for the images.
+        Location of data directory. 
+        Needed to create output folder for the images.
 
     Returns
     -------
@@ -397,10 +399,22 @@ def create_png_output(image_dataset, number_of_images, data_dir):
         pil_image.save(os.path.join(
             out_dir, str(name.split('.fits')[0])+'.png'))
 
+
 def remove_corrupt_file(met, ind, idx):
-    #print(catalogue)
-    print()
-    #catalogue.drop(idx, inplace = True)
+    """
+    Function that removes the corrupt or missing file
+    from the metadata and from the metadata index.
+
+    Parameters
+    ----------
+    met : pd.DataFrame
+        The metadata of the dataset
+    ind : string
+        The index of the metadata
+    idx : string
+        The index of the source file
+
+    """
+
     ind = np.delete(ind, np.where(ind == idx))
     met = np.delete(met, np.where(met == idx))
-    #print(catalogue)

@@ -287,7 +287,8 @@ def check_extending_ellipses(img, threshold, return_params=False):
     theta = int(np.round(theta))
 
     ellipse = cv2.ellipse(blank_canvas, (x0_new, y0_new),
-                          (maj_axis // 2, min_axis // 2), theta, 0, 360, (1, 1, 1), 1)
+                          (maj_axis // 2, min_axis // 2
+                           ), theta, 0, 360, (1, 1, 1), 1)
     ellipse[int(width*1):int(width*2), int(height*1):int(height*2)] = 0
 
     if ellipse.any() != 0:
@@ -301,7 +302,9 @@ def check_extending_ellipses(img, threshold, return_params=False):
 
 
 class EllipseFitFeatures(PipelineStage):
-    def __init__(self, percentiles=[90, 70, 50, 0], channel=None, extending_ellipse=False, **kwargs):
+    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,
+                 upper_limit=100, check_for_extended_ellipses=False,
+                 **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features. Warning: it's strongly recommended to
@@ -314,13 +317,18 @@ class EllipseFitFeatures(PipelineStage):
             Specify which channel to use for multiband images
         percentiles : array-like
             What percentiles to use as thresholds for the ellipses
-        extending_ellipse : boolean
-            Activates the check that determins whether or not the outermost ellipse 
-            extends beyond the image
+        check_for_extended_ellipses : boolean
+            Activates the check that determins whether or not the outermost 
+            ellipse extends beyond the image
+        upper_limit : int
+            Sets the upper limit to the up-scaling feature of the class. Used
+            when there are not enough pixels available to fit an ellipse. 
+            Default is 100.
         """
 
         super().__init__(percentiles=percentiles, channel=channel,
-                         extending_ellipse=extending_ellipse, **kwargs)
+                         check_for_extended_ellipses=check_for_extended_ellipses,
+                         upper_limit=upper_limit, **kwargs)
 
         self.percentiles = percentiles
         self.labels = []
@@ -329,11 +337,10 @@ class EllipseFitFeatures(PipelineStage):
             for n in percentiles:
                 self.labels.append(f % n)
         self.channel = channel
-        self.extending_ellipse = extending_ellipse
+        self.check_for_extended_ellipses = check_for_extended_ellipses
+        self.upper_limit = upper_limit
 
-        print(extending_ellipse)
-
-        if extending_ellipse:
+        if check_for_extended_ellipses:
             self.labels.append('Warning_Open_Ellipse')
             self.labels.append('Recommended_Window_Size')
 
@@ -365,7 +372,6 @@ class EllipseFitFeatures(PipelineStage):
 
         # Get rid of possible NaNs
         # this_image = np.nan_to_num(this_image)
-
         x0 = y0 = -1
         x_cent = this_image.shape[0] // 2
         y_cent = this_image.shape[1] // 2
@@ -376,8 +382,7 @@ class EllipseFitFeatures(PipelineStage):
         feats = []
         stop = False
 
-        upper_limit = 300
-        scale = [i for i in np.arange(100, upper_limit + 1, 1)]
+        scale = [i for i in np.arange(100, self.upper_limit + 1, 1)]
 
         # Start with the closest in contour (highest percentile)
         percentiles = np.sort(self.percentiles)[::-1]
@@ -444,20 +449,18 @@ class EllipseFitFeatures(PipelineStage):
 
                     params = get_ellipse_leastsq(c, resize)
 
-                    # Check whether or not the outermost ellipse extends beyond the image
-                    if self.extending_ellipse and p == percentiles[-1]:
-                        check,window = check_extending_ellipses(resize, thresh)
-                        #print(window)
+                    # Check whether or not the outermost ellipse extends
+                    # beyond the image
+                    if self.check_for_extended_ellipses and p == percentiles[-1]:
+                        check, window = check_extending_ellipses(
+                            resize, thresh)
                         if check:
-                            #print(window)
                             new_window.append(window)
                             warning_open_ellipses.append(1)
                         else:
-                            #new_window.append(image.shape[0])
                             new_window.append(int(window[1]))
                             warning_open_ellipses.append(0)
 
-                    #ellipse_arr, param = fit_ellipse(c, resize, return_params=True, filled=False)
                     ellipse_arr = fit_ellipse(
                         c, resize, return_params=False, filled=False)
 
@@ -493,10 +496,11 @@ class EllipseFitFeatures(PipelineStage):
                     feats.append([np.nan] * 5)
                     logging_tools.log(failure_message)
 
-                # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each
-                # sigma
+                # Now we have the leastsq value, x0, y0, aspect_ratio,
+                # theta for each sigma
                 # Normalise things relative to the highest threshold value
-                # If there were problems with any sigma levels, set all values to NaNs
+                # If there were problems with any sigma levels,
+                # set all values to NaNs
                 if np.any(np.isnan(feats)):
                     return [np.nan] * 4 * len(self.percentiles)
                 else:
@@ -524,6 +528,7 @@ class EllipseFitFeatures(PipelineStage):
                         dist_to_centre.append(r)
                         aspect.append(prms[3] / aspect_max_sigma)
                         theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
+
                         # Because there's redundancy about which way an ellipse
                         # is aligned, we always take the acute angle
                         if theta_diff > 90:
@@ -537,7 +542,7 @@ class EllipseFitFeatures(PipelineStage):
 
             if stop:
                 break
-            if a == upper_limit:
+            if a == self.upper_limit:
                 features = [np.nan] * 4 * len(self.percentiles)
 
         features = np.append(features, warning_open_ellipses)
@@ -618,7 +623,6 @@ class HuMomentsFeatures(PipelineStage):
 
             for c in contours:
                 # Only take the contour in the centre of the image
-
                 if x0 == -1:
                     # We haven't set which contour we're going to look at
                     # default to the largest

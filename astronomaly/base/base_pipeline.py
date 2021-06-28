@@ -9,29 +9,29 @@ import time
 class PipelineStage(object):
     def __init__(self, *args, **kwargs):
         """
-        Base class defining functionality for all pipeline stages. To 
-        contribute a new pipeline stage to Astronomaly, create a new class and 
+        Base class defining functionality for all pipeline stages. To
+        contribute a new pipeline stage to Astronomaly, create a new class and
         inherit PipelineStage. Always start by calling "super().__init__()" and
-        pass it all the arguments of the init function in your new class. The 
-        only other function that needs to be changed is `_execute_function` 
-        which should actually implement pipeline stage functionality. The base 
-        class will take care of automatic logging, deciding whether or not a 
-        function has already been run on this data, saving and loading of files 
+        pass it all the arguments of the init function in your new class. The
+        only other function that needs to be changed is `_execute_function`
+        which should actually implement pipeline stage functionality. The base
+        class will take care of automatic logging, deciding whether or not a
+        function has already been run on this data, saving and loading of files
         and error checking of inputs and outputs.
 
         Parameters
         ----------
         force_rerun : bool
-            If True will force the function to run over all data, even if it 
+            If True will force the function to run over all data, even if it
             has been called before.
         save_output : bool
-            If False will not save and load any files. Only use this if 
+            If False will not save and load any files. Only use this if
             functions are very fast to rerun or if you cannot write to disk.
         output_dir : string
-            Output directory where all outputs will be stored. Defaults to 
+            Output directory where all outputs will be stored. Defaults to
             current working directory.
         file_format : string
-            Format to save the output of this pipeline stage to. 
+            Format to save the output of this pipeline stage to.
             Accepted values are:
             parquet
         drop_nans : bool
@@ -158,7 +158,7 @@ class PipelineStage(object):
 
     def hash_data(self, data):
         """
-        Returns a checksum on the first few rows of a DataFrame to allow 
+        Returns a checksum on the first few rows of a DataFrame to allow
         checking if the input changed.
 
         Parameters
@@ -225,7 +225,7 @@ class PipelineStage(object):
     def run_on_dataset(self, dataset=None):
         """
         This function should be called for pipeline stages that perform feature
-        extraction so require taking a Dataset object as input. 
+        extraction so require taking a Dataset object as input.
         This is an external-facing function that should always be called
         (rather than _execute_function). This function will automatically check
         if this stage has already been run with the same arguments and on the
@@ -235,7 +235,7 @@ class PipelineStage(object):
         Parameters
         ----------
         dataset : Dataset
-            The Dataset object on which to run this feature extraction 
+            The Dataset object on which to run this feature extraction
             function, by default None
 
         Returns
@@ -279,6 +279,11 @@ class PipelineStage(object):
                     print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
 
+                if input_instance is None:
+                    none_msg = "Input sample is None, skipping sample"
+                    logging_tools.log(none_msg, level='WARNING')
+                    continue
+
                 if self.drop_nans and np.any(np.isnan(input_instance)):
                     input_instance = np.nan_to_num(input_instance)
                     if not logged_nan_msg:
@@ -310,7 +315,7 @@ class PipelineStage(object):
     def _execute_function(self, data):
         """
         This is the main function of the PipelineStage and is what should be
-        implemented when inheriting from this class. 
+        implemented when inheriting from this class.
 
         Parameters
         ----------
