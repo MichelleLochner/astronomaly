@@ -268,9 +268,10 @@ class PipelineStage(object):
             if i not in self.previous_output.index or not self.args_same:
                 if n % 100 == 0:
                     print(n, 'instances completed')
-                input_instance = dataset.get_sample(i)
 
+                input_instance = dataset.get_sample(i)
                 out = self._execute_function(input_instance)
+
                 if np.any(np.isnan(out)):
                     logging_tools.log("Feature extraction failed for id " + i)
                 output.append(out)

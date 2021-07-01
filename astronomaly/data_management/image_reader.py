@@ -580,7 +580,6 @@ class ImageDataset(Dataset):
             img_name = self.metadata.loc[idx, 'original_image']
         except KeyError:
             return None
-        logging.debug('img_name', img_name)
         this_image = self.images[img_name]
         x0 = self.metadata.loc[idx, 'x']
         y0 = self.metadata.loc[idx, 'y']
@@ -747,9 +746,14 @@ class ImageThumbnailsDataset(Dataset):
         """
 
         filename = self.metadata.loc[idx, 'filename']
-        img = cv2.imread(filename)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        return apply_transform(img, self.transform_function)
+        try:
+            img = cv2.imread(filename)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            return apply_transform(img, self.transform_function)
+        except Exception as e:
+            print('Fatal error loading {}'.format(filename))
+            assert os.path.exists(filename)
+            raise e
 
     def get_display_data(self, idx):
         """

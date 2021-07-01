@@ -62,16 +62,24 @@ def run_pipeline():
         run the human-in-the-loop learning when requested
 
     """
+    # catalog = pd.read_csv('/media/walml/beta1/galaxy_zoo/gz2/kaggle/training_solutions_rev1.csv')[2400:]
+    catalog = pd.read_csv('/media/walml/beta1/galaxy_zoo/gz2/kaggle/training_solutions_rev1.csv')
+    # print(catalog.head())
+    catalog['objid'] = catalog['GalaxyID'].astype(str)
+    # base_png_dir = '/media/walml/beta1/galaxy_zoo/gz2/kaggle/images_training_rev1'
+    base_png_dir = '/home/walml/Downloads/images_training_rev1'
+    catalog['png_loc'] = catalog['objid'].apply(lambda x: os.path.join(base_png_dir, str(x) + '.jpg'))
+    assert os.path.isfile(catalog.iloc[0]['png_loc'])
+    catalog['filename'] = catalog['png_loc']
+
+    # requires objid and filename columns
 
     # This creates the object that manages the data
     image_dataset = image_reader.ImageThumbnailsDataset(
-        directory=image_dir, output_dir=output_dir, 
+        catalogue=catalog, output_dir=output_dir, 
         transform_function=image_transform_function,
         display_transform_function=display_transform_function
     )
-    # print(image_dataset.metadata)
-    # print(image_dataset.metadata.index)
-    # exit()
 
     # Creates a pipeline object for feature extraction
     pipeline_ellipse = shape_features.EllipseFitFeatures(
@@ -81,15 +89,16 @@ def run_pipeline():
 
     # Actually runs the feature extraction
     features = pipeline_ellipse.run_on_dataset(image_dataset)
-    # print(features.head())
-    # print(features.index)
-    # exit()
+
 
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set
     pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
+
+    # features.to_parquet('gz2_kaggle_ellipse_features.parquet')  # index will be GalaxyID/objid
+    exit()
 
     # The actual anomaly detection is called in the same way by creating an
     # Iforest pipeline object then running it
@@ -138,4 +147,4 @@ def run_pipeline():
             'visualisation': t_plot, 
             'active_learning': pipeline_active_learning}
 
-# run_pipeline()
+run_pipeline()
