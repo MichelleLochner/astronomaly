@@ -255,14 +255,27 @@ def weight_by_distance(nearest_neighbor_distance, user_score, anomaly_score, min
 def get_distances(labelled_points, query_points):
     # returns list of distances between query point[i] and closest labelled point, for all i
     # TODO modified by mike to exclude distance to self
-    tree = cKDTree(labelled_points)
+
+    # for whatever reason, this breaks everything
+
+    # tree = cKDTree(labelled_points)
+    # distances = np.zeros(len(query_points))
+    # for i in range(len(query_points)):
+    #     distances_to_query_point, _ = tree.query(query_points[i], k=3)
+    #     if distances_to_query_point[0] == 0:  # distance to itself
+    #         dist = distances_to_query_point[1]
+    #     else:
+    #         dist = distances_to_query_point[0]
+    #     distances[i] = dist
+    # # print(labelled_points)
+    # return distances
+
+    # stick to the original
+
+    mytree = cKDTree(labelled_points)
     distances = np.zeros(len(query_points))
     for i in range(len(query_points)):
-        distances_to_query_point, _ = tree.query(query_points[i], k=3)
-        if distances_to_query_point[0] == 0:  # distance to itself
-            dist = distances_to_query_point[1]
-        else:
-            dist = distances_to_query_point[0]
+        dist = mytree.query(query_points[i])[0]
         distances[i] = dist
     # print(labelled_points)
     return distances
