@@ -5,20 +5,13 @@ import Grid from '@material-ui/core/Grid';
 import {createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles'
 import { blue, indigo, green, grey } from '@material-ui/core/colors';
 import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import {PlotImage} from './PlotImage.js';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
-import InputLabel from '@material-ui/core/InputLabel';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
-import {TimeSeriesPlot} from './PlotLightCurve.js';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
 import { MenuItem, Icon } from '@material-ui/core';
-import Divider from '@material-ui/core/Divider';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import IconButton from '@material-ui/core/IconButton';
 import SkipNext from '@material-ui/icons/SkipNext';
@@ -54,7 +47,7 @@ export class AnomalyTab extends React.Component {
     this.getCurrentListIndex = this.getCurrentListIndex.bind(this);
     this.setCurrentListIndex = this.setCurrentListIndex.bind(this);
 
-    this.state = {id:-1,
+    this.state = {id:-1,  // this is where the -1's are coming, by default. id of no button is -1, and so no button selected posts label:id=-1
                  max_id:0,
                  img_src:'',
                  original_id:'-1',
@@ -68,10 +61,9 @@ export class AnomalyTab extends React.Component {
                                 "3": "primary",
                                 "4": "primary",
                                 "5": "primary"},
-                 sortby:"score",
+                 sortby:"score",  // change default sort here
                  training: false};
     
-    // this.getImage(this.state.id);
   }
 
   
@@ -85,17 +77,22 @@ export class AnomalyTab extends React.Component {
     let newID;
     if (whichButton=="forward"){
       newID = this.state.id+1;
-      if (newID >= this.state.max_id) {newID = this.state.max_id - 1}
+      if (newID >= this.state.max_id) {
+        newID = this.state.max_id - 1
+      }
     }
-    else {
+    else {  // back button
       newID = this.state.id-1;
-      if (newID<0) {newID=0}
+      if (newID<0) {
+        newID=0
+      }
     }
 
     this.setState({id:newID}, this.updateOriginalID(newID));
-    // this.getImage(newID);
+
   }
 
+  // listen for keyboard strokes to update human label number or move left/right
   handleKeyDown(e){
     const whichKey = e.key;
     const allowed_keys = ["0", "1", "2", "3", "4", "5"];
@@ -164,7 +161,7 @@ export class AnomalyTab extends React.Component {
   }
 
   handleRetrainButton(e) {
-    this.setState({training:true})
+    this.setState({training:true})  // so frontend knows to wait, I assume
     fetch("/retrain", {
       method: 'POST',
       headers: {
@@ -179,18 +176,39 @@ export class AnomalyTab extends React.Component {
 
   /**
    * Allows the user to label objects based on relevance
+   * primary by default, secondary for the keyed (selected) button
+   * e.currentTarget basically is "this"?
    * @param {event} e 
    */
-  changeButtonColor(button_id) {
-    let new_colors = this.state.button_colors;
+  handleScoreButtonClick(e){
+    
+    this.changeButtonColor(e.currentTarget.id);
+    // post new human label to server
+    fetch("/label", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      // id is -1 by default i.e. when no button selected. interface.set_human_label will convert to nan
+      body: JSON.stringify({'id':this.state.original_id, 'label':e.currentTarget.id})  
+    })
+    .then((res) => {this.getMetadata(this.state.original_id)})
+    .catch(console.log)
+
+  }
+
+
+  changeButtonColor(button_id) {  // button id = key for which button to change e.g. "2". Does not include "-1".
+    let new_colors = this.state.button_colors;  // initial colors for each button
     for (const key in new_colors) {
-      new_colors[key] = "primary";
+      new_colors[key] = "primary";  // set all of them to primary, and ignore new colors - only using the keys?!
     }
-    if (button_id !== "-1") {
+    if (button_id !== "-1") {  // set specified button to "secondary" color (i.e. selected)
       new_colors[button_id] = "secondary";
     }
     this.setState({button_colors: new_colors});
   }
+
 
   resetButtonColors() {
     let new_colors = this.state.button_colors;
@@ -199,22 +217,7 @@ export class AnomalyTab extends React.Component {
     }
     this.setState({button_colors: new_colors});
   }
-   handleScoreButtonClick(e){
-    // console.log(e.currentTarget.color);
-    // e.currentTarget.color = "secondary";
-    
-    this.changeButtonColor(e.currentTarget.id);
-    fetch("/label", {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({'id':this.state.original_id, 'label':e.currentTarget.id})
-    })
-    .then((res) => {this.getMetadata(this.state.original_id)})
-    .catch(console.log)
 
-  }
 
   /**
    * Tells the backend to reorder the data according to a different scoring 
@@ -384,9 +387,9 @@ export class AnomalyTab extends React.Component {
     // console.log(this.props)
       return(
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
-                  <Grid item xs={12}></Grid>
+                  <Grid item xs={12}></Grid>  {/* Top bar margin*/}
+
                   <Grid item container xs={8} justify="center">
-                      {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3} alignItems="center">
                         <Grid item xs={12} align="center">
                           <PlotContainer datatype={this.props.datatype} original_id={this.state.original_id} light_curve_data={this.state.light_curve_data}
@@ -456,9 +459,6 @@ export class AnomalyTab extends React.Component {
                         </Grid>
 
                         <Grid item xs={12} container justify="center" alignItems="center">
-                          {/* <Grid container alignItems="center"> */}
-                            {/* <Grid item xs={1}>
-                            </Grid> */}
                             <Grid item xs={6}>
                               <Grid container item xs={12} justify="center">
                                 <Grid item xs={8}>
@@ -493,17 +493,22 @@ export class AnomalyTab extends React.Component {
                     </Grid>
                   
 
-                  <Grid item xs={4}>
-                    <Grid container alignItems="flex-start" spacing={5}>
-                      <Grid item xs={8}>
+                  <Grid item xs={4} container justify="center" alignItems="flex-start"  spacing={5}>
+                    {/* default width 12 */}
+                    {/* <Grid container direction="column" justify="center" alignItems="center" spacing={5}>   */}
+
+                      <Grid item xs={11}>
                           <ObjectDisplayer title='Metadata' object={this.state.metadata} />
                       </Grid>
 
-                      <Grid item xs={8}>
+                      <Grid item xs={11}>
                         <ObjectDisplayer title='Features' object={this.state.features} />
                       </Grid>
-                    </Grid>
+
+                    {/* </Grid> */}
                   </Grid>
+
+                  {/* bottom blank row */}
                   <Grid item xs={12}>
                   </Grid>
 

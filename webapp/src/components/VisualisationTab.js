@@ -1,12 +1,12 @@
 import React from 'react';
-import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
-import { makeStyles } from '@material-ui/core/styles';
-import { blue, indigo, green } from '@material-ui/core/colors';
-import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
-import {PlotImage} from './PlotImage';
 import {PlotContainer} from './PlotContainer.js'
+
+import FormHelperText from '@material-ui/core/FormHelperText';
+import FormControl from '@material-ui/core/FormControl';
+import { MenuItem, Icon } from '@material-ui/core';
+import Select from '@material-ui/core/Select';
+
 // import {
 //     ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip
 //   } from 'recharts';
@@ -44,7 +44,9 @@ import {XYPlot, XAxis, YAxis, MarkSeries, VerticalGridLines, HorizontalGridLines
 class MakeScatter extends React.Component {
     constructor(props){
       super(props);
-      this.state = {currentPoint:false};
+      this.state = {
+        currentPoint: false
+      };
     }
     render() {
         return (
@@ -81,10 +83,16 @@ export class VisualisationTab extends React.Component {
     constructor(props){
       super(props);
       this.getVisualisation = this.getVisualisation.bind(this);
+      this.handleColorBy = this.handleColorBy.bind(this)
       this.updateDisplayData = this.updateDisplayData.bind(this);
       this.getLightCurve = this.getLightCurve.bind(this);
       this.getRawFeatures = this.getRawFeatures.bind(this);
-      this.state = {data:[{x:0, y:0}], displayData:{}, light_curve_data:{}, raw_features_data:{}};
+      this.state = {
+        colorBy: 'score',  
+        data:[{x:0, y:0}], 
+        displayData:{}, 
+        light_curve_data:{}, 
+        raw_features_data:{}};
         
     }
     updateDisplayData(newData){
@@ -97,33 +105,39 @@ export class VisualisationTab extends React.Component {
 
     }
     getVisualisation(){
-        fetch("/visualisation", {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json'
-          },
-          body: JSON.stringify("tsne")
-        })
-        // .then(res => JSON.parse(res))
-        .then(res => res.json())
-        .then((res) =>{
-          var reformattedArray = res.map(obj =>{ 
-            var rObj = {};
-            const keys = Object.keys(obj)
-            for (const key of keys) {
-              let newval = obj[key];
-              if(key !== 'id')
-                newval = parseFloat(obj[key]);
-              rObj[key] = newval;
-            }
-            return rObj;
-          });
-          return reformattedArray;
-        })
-        .then((res) => {
-          this.setState({data:res})})
-        .catch(console.log)
-      }
+      fetch("/visualisation", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({'method': 'tsne', 'column': this.state.colorBy})
+      })
+      // and then do something with the returned data?
+      .then(res => res.json())
+      .then((res) =>{
+        var reformattedArray = res.map(obj =>{ 
+          var rObj = {};
+          const keys = Object.keys(obj)
+          for (const key of keys) {
+            let newval = obj[key];
+            if(key !== 'id')
+              newval = parseFloat(obj[key]);
+            rObj[key] = newval;
+          }
+          return rObj;
+        });
+        return reformattedArray;
+      })
+      .then((res) => {
+        this.setState({data:res})})
+      .catch(console.log)
+    }
+
+
+    handleColorBy(e) {
+      this.setState({'colorBy': e.target.value});
+      this.getVisualisation()
+    }
 
     getLightCurve(original_id){
       fetch("getlightcurve", {
@@ -165,23 +179,35 @@ export class VisualisationTab extends React.Component {
       // console.log(myData)
         return(
             <Grid component='div' container spacing={3}>
-                    <Grid item xs={12}>
-                        <div></div>
+              <Grid item xs={12}>
+                  <div></div>
+              </Grid>
+              <Grid item xs={6} container spacing={1}>
+                  <MakeScatter id='scatter' data={this.state.data} dataCallback={this.updateDisplayData}/>
+              </Grid>
+              <Grid item xs={6}>
+                  <h1> Object ID: {this.state.displayData.id}</h1>
+                  <div>
+                    <PlotContainer datatype={this.props.datatype} original_id={this.state.displayData.id} light_curve_data={this.state.light_curve_data}
+                                  raw_features_data={this.state.raw_features_data}/>
+                  </div>
+                  <div>{this.state.colorBy}: {this.state.displayData.color} </div>
+                  <Grid container item xs={12} justify="center">
+                    <Grid item xs={8}>
+                      <FormControl variant="outlined" fullWidth={true} margin='dense'>
+                        <Select id="select" onChange={this.handleColorBy} value={this.state.colorBy}>
+                          <MenuItem value="score">Score </MenuItem>
+                          <MenuItem value="acquisition">Acquisition</MenuItem>
+                        </Select>
+                        <FormHelperText>Column to color by</FormHelperText>
+                      </FormControl>
                     </Grid>
-                    <Grid item xs={6} container spacing={1}>
-                        <MakeScatter id='scatter' data={this.state.data} dataCallback={this.updateDisplayData}/>
-                    </Grid>
-                    <Grid item xs={6}>
-                        <h1> Object ID: {this.state.displayData.id}</h1>
-                        <div>
-                          <PlotContainer datatype={this.props.datatype} original_id={this.state.displayData.id} light_curve_data={this.state.light_curve_data}
-                                        raw_features_data={this.state.raw_features_data}/>
-                        </div>
-                        <div>Anomaly Score: {this.state.displayData.color} </div>
-                    </Grid>
-                    <Grid item xs={12}>
-                        <div></div>
-                    </Grid>
+                    <Grid item xs={2}></Grid>
+                  </Grid>
+              </Grid>
+              <Grid item xs={12}>
+                  <div></div>
+              </Grid>
             </Grid>
         )
     }

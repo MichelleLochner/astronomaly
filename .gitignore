@@ -42,3 +42,5 @@ node_modules
 *.pickle
 *.csv
 *.pdf
+
+.ipynb_checkpoints

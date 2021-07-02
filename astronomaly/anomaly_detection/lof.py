@@ -60,6 +60,7 @@ class LOF_Algorithm(PipelineStage):
             n_neighbors=self.n_neighbors, 
             novelty=False)
 
+        # why fit_predict and not fit? does it trigger negative_outlier_factor_?
         self.algorithm_obj.fit_predict(features)
 
         scores = self.algorithm_obj.negative_outlier_factor_

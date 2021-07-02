@@ -20,37 +20,54 @@ from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, gaussian_process, human_loop_learning
 from astronomaly.visualisation import tsne, umap
 
+
 # Where output should be stored
-output_dir = os.path.join('/home/walml/repos/astronomaly/temp')
+output_dir = os.path.join('temp')
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-# Where output should be stored
-# output_dir = os.path.join(
-#     data_dir, 'astronomaly_output', '')
-# if not os.path.exists(output_dir):
-#     os.makedirs(output_dir)
+# image_transform_function = None
+# TEMP for ellipse
+image_transform_function = [
+    lambda x: np.mean(x, axis=-1),  # mean across bands
+    image_preprocessing.image_transform_sigma_clipping,
+    image_preprocessing.image_transform_scale]
 
 
-image_transform_function = None
 display_transform_function = None
 
-max_galaxies = 1000
-# feature_loc = 'dr5_8_b0_pca2_and_safe_ids.parquet'  # 2D
-feature_loc = 'dr5_8_b0_pca10_and_safe_ids.parquet'  # 10D
-feature_df = pd.read_parquet(feature_loc)
-feature_df = feature_df[feature_df['galaxy_id'].str.startswith('J')][:max_galaxies]
+max_galaxies = None
 
-feature_cols = [col for col in feature_df.columns.values if col.startswith('feat')]
-features = feature_df[feature_cols + ['galaxy_id']]  # already pca'd
-features = features.set_index('galaxy_id')  # features must be string-indexed by objid, is not set to index internally, need to do manually
-features.index = features.index.rename('objid') # probably not needed
+# # feature_loc = 'dr5_8_b0_pca2_and_safe_ids.parquet'  # 2D
+# # feature_loc = 'dr5_8_b0_pca10_and_safe_ids.parquet  # 10D
+# feature_loc = 'decals/cnn_features_concat.parquet'  # 10D
+# feature_df = pd.read_parquet(feature_loc)
+# feature_df['galaxy_id'] = feature_df['iauname']
+# feature_df = feature_df[feature_df['galaxy_id'].str.startswith('J')]  # only the DR5 galaxies for now
 
-full_catalog = pd.read_parquet('dr5_dr8_catalog_with_radius.parquet')
-catalog = pd.merge(full_catalog, feature_df, on='galaxy_id', how='inner').reset_index(drop=True)
-catalog['objid'] = catalog['galaxy_id'].astype(str)  # objid is set as index internally (but only after assign bug fixed)
+# feature_cols = [col for col in feature_df.columns.values if col.startswith('feat')]
+# features = feature_df[feature_cols + ['galaxy_id']]  # already pca'd
+# features = features.set_index('galaxy_id')  # features must be string-indexed by objid, is not set to index internally, need to do manually
+# features.index = features.index.rename('objid') # probably not needed
+
+# full_catalog = pd.read_parquet('gz_decals_auto_posteriors.parquet')
+# catalog = pd.merge(full_catalog, feature_df, on='galaxy_id', how='inner').reset_index(drop=True)
+
+catalog = pd.read_csv('dr5_volunteer_catalog_internal.csv', usecols=['iauname', 'png_loc'])
+# objid is set as index internally (but only after assign bug fixed)
+catalog['objid'] = catalog['iauname'].astype(str) 
+# catalog['objid'] = catalog['galaxy_id'].astype(str)
 catalog['filename'] = catalog['png_loc']
+# catalog['filename'] = catalog['iauname'].apply(lambda x: '/raid/scratch/walml/galaxy_zoo/decals/png/' + x[:4] + '/' + x + '.png')
+catalog['filename'] = catalog['filename'].str.replace('/dr5', '/raid/scratch/walml/galaxy_zoo/decals/png')
+# catalog['filename'] = catalog['filename'].str.replace('/media/walml/beta1/decals/png_native/dr5', '/raid/scratch/walml/galaxy_zoo/decals/png')
+print(catalog['filename'][0])
+assert os.path.isfile(catalog['filename'][0])
 
+
+if max_galaxies is not None:
+    catalog = catalog.sample(max_galaxies)
+print(len(catalog))
 
 # requires args like output_dir passed as globals, be careful
 def run_pipeline():
@@ -91,6 +108,19 @@ def run_pipeline():
     # display_data = image_dataset.get_display_data(image_dataset.metadata.index[0])
     # im = Image.open(display_data).convert('RGB') 
     # im.show()
+
+    """Temporarily added back to calculate ellipse features on decals"""
+    pipeline_ellipse = shape_features.EllipseFitFeatures(
+        percentiles=[90, 80, 70, 60, 50, 0],
+        output_dir=output_dir, channel=0, force_rerun=False, 
+        central_contour=False)
+    features = pipeline_ellipse.run_on_dataset(image_dataset)
+    pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
+                                            output_dir=output_dir)
+    features = pipeline_scaler.run(features)
+    features.to_parquet('decals_ellipse_features.parquet')  # index will be GalaxyID/objid
+    exit()
+
 
     # The actual anomaly detection is called in the same way by creating an
     # Iforest pipeline object then running it
@@ -167,4 +197,4 @@ def run_pipeline():
             'visualisation': visualisation, 
             'active_learning': gp_learning}
 
-# run_pipeline()
+run_pipeline()
