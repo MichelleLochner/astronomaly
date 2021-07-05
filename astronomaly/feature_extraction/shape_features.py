@@ -300,7 +300,7 @@ def check_extending_ellipses(img, threshold, return_params=False):
         contour_extends = False
         return contour_extends, old_window
 
-
+      
 class EllipseFitFeatures(PipelineStage):
     def __init__(self, percentiles=[90, 70, 50, 0], channel=None,
                  upper_limit=100, check_for_extended_ellipses=False,
@@ -545,7 +545,6 @@ class EllipseFitFeatures(PipelineStage):
             features = np.append(features, new_window)
 
         return features
-
 
 class HuMomentsFeatures(PipelineStage):
     def __init__(self, sigma_levels=[1, 2, 3, 4, 5], channel=None,

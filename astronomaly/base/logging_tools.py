@@ -180,7 +180,7 @@ def check_if_inputs_same(class_name, local_variables):
                                 kwarg_list.append(s[0])
                             kwarg_list.append(s[-1])
 
-                    if len(s) != 0:
+                    if len(kwarg_list) != 0:
                         for k in range(0, len(kwarg_list), 2):
                             try:
 
