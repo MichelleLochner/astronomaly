@@ -13,12 +13,14 @@ class Feets_Features(PipelineStage):
     Output:
         A 1D array with the extracted feature'''
 
-    def __init__(self, exclude_features, **kwargs):
+    def __init__(self, exclude_features, compute_on_mags=True, **kwargs):
 
-        super().__init__(exclude_features=exclude_features, **kwargs)
+        super().__init__(exclude_features=exclude_features,
+                         compute_on_mags=compute_on_mags, **kwargs)
 
         self.exclude_features = exclude_features
         self.labels = None
+        self.compute_on_mags = compute_on_mags
 
     def _set_labels(self, feature_labels):
 
@@ -40,7 +42,14 @@ class Feets_Features(PipelineStage):
 
         # Sorting the columns for the feature extractor
         # This needs to be extended to be more general
-        standard_lc_columns = ['time', 'mag', 'mag_error']
+
+        if self.compute_on_mags is True:
+
+            standard_lc_columns = ['time', 'mag', 'mag_error']
+
+        else:
+            standard_lc_columns = ['time', 'flux', 'flux_error']
+
         current_lc_columns = [cl for cl in standard_lc_columns
                               if cl in lc_data.columns]
 
@@ -50,11 +59,11 @@ class Feets_Features(PipelineStage):
         # Renaming the columns for feets
         for cl in current_lc_columns:
 
-            if cl == 'mag':
+            if cl == 'mag' or cl == 'flux':
 
                 available_columns.append('magnitude')
 
-            if cl == 'mag_error':
+            if cl == 'mag_error' or cl == 'flux_error':
 
                 available_columns.append('error')
 
@@ -70,10 +79,10 @@ class Feets_Features(PipelineStage):
             ft_values = []
             ft_labels = []
 
-            for i in range(1, 5):
+            for i in range(0, 6):
 
                 passbands = ['u', 'g', 'r', 'i', 'z', 'y']
-                passbands = ['g', 'r', 'i', 'z']
+                # passbands = ['g', 'r', 'i', 'z']
                 filter_lc = lc_data[lc_data['filters'] == i]
 
                 lc_columns = []

@@ -101,7 +101,7 @@ def convert_flux_to_mag(lcs, f_zero):
     f_obs_err = lc.flux_error.values
     constants = (2.5/np.log(10))
     # converting
-    flux_convs = f_zero - 2.5*np.log10(f_obs)
+    flux_convs = - 2.5*np.log10(f_obs/f_zero)
     err_convs = constants*(f_obs_err/f_obs)
     # Adding the new mag and mag_error column
     lc['mag'] = flux_convs
@@ -113,6 +113,7 @@ def convert_flux_to_mag(lcs, f_zero):
 class LightCurveDataset(Dataset):
     def __init__(self, data_dict, f_zero=22, header_nrows=1,
                  delim_whitespace=False, max_gap=50, plot_errors=True,
+                 convert_flux=True,
                  filter_colors=['#9467bd', '#1f77b4', '#2ca02c', '#d62728',
                                 '#ff7f0e', '#8c564b'],
                  filter_labels=[],
@@ -179,6 +180,7 @@ class LightCurveDataset(Dataset):
                          delim_whitespace=delim_whitespace, f_zero=f_zero,
                          max_gap=max_gap, plot_errors=plot_errors,
                          filter_labels=filter_labels,
+                         convert_flux=convert_flux,
                          filter_colors=filter_colors, **kwargs)
 
         self.data_type = 'light_curve'
@@ -191,6 +193,7 @@ class LightCurveDataset(Dataset):
         self.plot_errors = plot_errors
         self.filter_labels = filter_labels
         self.filter_colors = filter_colors
+        self.convert_flux = convert_flux
 
     #         ================================================================
     #                         Reading the light curve data
@@ -302,7 +305,14 @@ class LightCurveDataset(Dataset):
         if 'flux' in lc.columns:
 
             # Convert flux to mag
-            lc = convert_flux_to_mag(lc, self.f_zero)
+            if convert_flux is True:
+                lc = convert_flux_to_mag(lc, self.f_zero)
+
+            # THIS IS TEMPORARY, ESSENTIAL FOR PLOTTING
+            # lc1 = lc.copy()
+            lc['mag'] = lc.flux
+            lc['mag_error'] = lc.flux_error
+            # =========UnComment To Split Lcs==================
             # Split the light curve into chunks
             # lc = split_lc(lc, self.max_gap)
             self.light_curves_data = lc
@@ -316,13 +326,11 @@ class LightCurveDataset(Dataset):
         # Add the classes to the metadata
         if 'labels' in lc.columns:
 
-            labels = [lc[lc['ID'] == i]['labels'].values[0] for i in ids]
-
-            # meta_dict = {'ID':ids, 'labels':labels}
+            lc1 = lc.copy()
+            lc1 = lc.drop_duplicates(subset='ID')
+            labels = [lc1[lc1['ID'] == i]['labels'].values[0] for i in ids]
             self.metadata = pd.DataFrame({'label': labels, 'ID': ids},
                                          index=ids)
-
-            print('......Meta.....', self.metadata)
 
         # Metadata without the class
         else:
