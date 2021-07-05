@@ -332,10 +332,15 @@ class EllipseFitFeatures(PipelineStage):
 
         self.percentiles = percentiles
         self.labels = []
-        feat_labs = ['Residual_%d', 'Offset_%d', 'Aspect_%d', 'Theta_%d']
+        feat_labs = ['Residual_%d', 'Offset_%d',
+                     'Aspect_%d', 'Theta_%d', 'Maj_%d']
+
+        self.feat_labs = feat_labs
+
         for f in feat_labs:
             for n in percentiles:
                 self.labels.append(f % n)
+
         self.channel = channel
         self.check_for_extended_ellipses = check_for_extended_ellipses
         self.upper_limit = upper_limit
@@ -372,14 +377,14 @@ class EllipseFitFeatures(PipelineStage):
 
         # Get rid of possible NaNs
         # this_image = np.nan_to_num(this_image)
+
         x0 = y0 = -1
         x_cent = this_image.shape[0] // 2
         y_cent = this_image.shape[1] // 2
 
         warning_open_ellipses = []
         new_window = []
-        all_contours = []
-        feats = []
+        #feats = []
         stop = False
 
         scale = [i for i in np.arange(100, self.upper_limit + 1, 1)]
@@ -395,15 +400,13 @@ class EllipseFitFeatures(PipelineStage):
             failure_message = ""
 
         for a in scale:
-            drawn_contours = []
-            all_ellipses = []
             lst = []
             feats = []
 
             for p in percentiles:
                 lst.append(p)
-                width = int(image.shape[1] * a / 100)
-                height = int(image.shape[0] * a / 100)
+                width = int(image.shape[1] * (a / 100))
+                height = int(image.shape[0] * (a / 100))
                 dim = (width, height)
                 resize = cv2.resize(
                     this_image, dim, interpolation=cv2.INTER_AREA)
@@ -444,6 +447,7 @@ class EllipseFitFeatures(PipelineStage):
 
                     c = contours[ind]
 
+                    # Minimum of 5 points are needed to draw a unique ellipse
                     if len(c) < 5:
                         break
 
@@ -460,9 +464,6 @@ class EllipseFitFeatures(PipelineStage):
                         else:
                             new_window.append(int(window[1]))
                             warning_open_ellipses.append(0)
-
-                    ellipse_arr = fit_ellipse(
-                        c, resize, return_params=False, filled=False)
 
                     # Params return in this order:
                     # residual, x0, y0, maj_axis, min_axis, theta
@@ -482,12 +483,6 @@ class EllipseFitFeatures(PipelineStage):
                         new_params = params[:3] + [aspect] + [params[-1]]
                         feats.append(new_params)
 
-                    all_ellipses.append(ellipse_arr)
-                    all_contours.append(c)
-
-                    draw = draw_contour(c, resize)
-                    drawn_contours.append(draw)
-
                 else:
                     failed = True
                     failure_message = "No contour found"
@@ -502,7 +497,7 @@ class EllipseFitFeatures(PipelineStage):
                 # If there were problems with any sigma levels,
                 # set all values to NaNs
                 if np.any(np.isnan(feats)):
-                    return [np.nan] * 4 * len(self.percentiles)
+                    return [np.nan] * len(self.feat_labs) * len(self.percentiles)
                 else:
                     max_ind = np.argmax(self.percentiles)
 
@@ -510,6 +505,7 @@ class EllipseFitFeatures(PipelineStage):
                     dist_to_centre = []
                     aspect = []
                     theta = []
+                    maj = []
 
                     x0_max_sigma = feats[max_ind][1]
                     y0_max_sigma = feats[max_ind][2]
@@ -534,19 +530,19 @@ class EllipseFitFeatures(PipelineStage):
                         if theta_diff > 90:
                             theta_diff -= 90
                         theta.append(theta_diff)
+                        maj.append(prms[3])
                         features = np.hstack(
-                            (residuals, dist_to_centre, aspect, theta))
+                            (residuals, dist_to_centre, aspect, theta, maj))
 
-                    if len(lst) == len(percentiles):
-                        stop = True
-
-            if stop:
+            if len(lst) == len(percentiles):
                 break
             if a == self.upper_limit:
-                features = [np.nan] * 4 * len(self.percentiles)
+                features = [np.nan] * \
+                    len(self.feat_labs) * len(self.percentiles)
 
-        features = np.append(features, warning_open_ellipses)
-        features = np.append(features, new_window)
+        if self.check_for_extended_ellipses:
+            features = np.append(features, warning_open_ellipses)
+            features = np.append(features, new_window)
 
         return features
 
