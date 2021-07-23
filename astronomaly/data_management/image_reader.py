@@ -690,6 +690,9 @@ class ImageThumbnailsDataset(Dataset):
             applied to each cutout. The function should take an input 2d array 
             (the cutout) and return an output 2d array. If a list is provided, 
             each function is applied in the order of the list.
+        fits_format : boolean
+            Set to True if the cutouts are in fits format (as opposed to jpeg
+            or png).
         catalogue : pandas.DataFrame or similar
             A catalogue of the positions of sources around which cutouts will
             be extracted. Note that a cutout of size "window_size" will be
@@ -706,7 +709,7 @@ class ImageThumbnailsDataset(Dataset):
                          **kwargs)
 
         self.data_type = 'image'
-        self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff'
+        self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff',
                                  'fits', 'fits.fz', 'fits.gz', 'FITS',
                                  'FITS.fz', 'FITS.gz'
                                  ]
