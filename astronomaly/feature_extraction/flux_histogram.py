@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import ndimage
 from astronomaly.base.base_pipeline import PipelineStage
 from astronomaly.preprocessing.image_preprocessing import image_transform_scale
 
@@ -7,7 +6,7 @@ from astronomaly.preprocessing.image_preprocessing import image_transform_scale
 def calculate_flux_histogram(img, nbins, norm=True):
     """
     Histograms the flux values of the pixels into a given number of bins.
-    
+
 
     Parameters
     ----------
