@@ -10,7 +10,8 @@ from PIL import Image
 def convert_pybdsf_catalogue(catalogue_file, image_file,
                              remove_point_sources=False,
                              merge_islands=False,
-                             read_csv_kwargs={}):
+                             read_csv_kwargs={},
+                             colnames={}):
     """
     Converts a pybdsf fits file to a pandas dataframe to be given
     directly to an ImageDataset object.
@@ -30,7 +31,21 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
     read_csv_kwargs: dict, optional
         Will pass these directly to panda's read_csv function to allow reading
         in of a variety of file structures (e.g. different delimiters)
+    colnames: dict, optional
+        Allows you to choose the column names for "source_identifier" (which
+        column to use to identify the source), "Isl_id", "Peak_flux" and 
+        "S_Code" (if
+        remove_point_sources is true)
     """
+
+    if 'Peak_flux' not in colnames:
+        colnames['Peak_flux'] = 'Peak_flux'
+    if 'S_Code' not in colnames:
+        colnames['S_Code'] = 'S_Code'
+    if 'source_identifier' not in colnames:
+        colnames['source_identifier'] = 'Source_id'
+    if 'Isl_id' not in colnames:
+        colname['Isl_id'] = 'Isl_id'
 
     if 'csv' in catalogue_file:
         catalogue = pd.read_csv(catalogue_file, **read_csv_kwargs)
@@ -44,13 +59,14 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
         catalogue = dat.to_pandas()
 
     if remove_point_sources:
-        catalogue = catalogue[catalogue['S_Code'] != 'S']
+        catalogue = catalogue[catalogue[colnames['S_Code']] != 'S']
 
     if merge_islands:
         inds = []
-        for isl in np.unique(catalogue.Isl_id):
-            msk = catalogue.Isl_id == isl
-            ind = catalogue[msk].index[catalogue[msk]['Peak_flux'].argmax()]
+        for isl in np.unique(catalogue[colnames['Isl_id']]):
+            msk = catalogue[colnames['Isl_id']] == isl
+            selection = catalogue[msk][colnames['Peak_flux']]
+            ind = catalogue[msk].index[selection.argmax()]
             inds.append(ind)
         catalogue = catalogue.loc[inds]
 
@@ -62,9 +78,9 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
     x, y = w.wcs_world2pix(np.array(catalogue.RA), np.array(catalogue.DEC), 1)
 
     new_catalogue = pd.DataFrame()
-    new_catalogue['objid'] = catalogue['Source_id']
+    new_catalogue['objid'] = catalogue[colnames['source_identifier']]
     new_catalogue['original_image'] = [original_image] * len(new_catalogue)
-    new_catalogue['peak_flux'] = catalogue['Peak_flux']
+    new_catalogue['peak_flux'] = catalogue[colnames['Peak_flux']]
     new_catalogue['x'] = x
     new_catalogue['y'] = y
     new_catalogue['ra'] = catalogue.RA
