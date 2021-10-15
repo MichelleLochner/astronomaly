@@ -45,7 +45,7 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
     if 'source_identifier' not in colnames:
         colnames['source_identifier'] = 'Source_id'
     if 'Isl_id' not in colnames:
-        colname['Isl_id'] = 'Isl_id'
+        colnames['Isl_id'] = 'Isl_id'
 
     if 'csv' in catalogue_file:
         catalogue = pd.read_csv(catalogue_file, **read_csv_kwargs)
