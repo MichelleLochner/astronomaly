@@ -1,4 +1,4 @@
-pip==20.2.2
+pip==21.1
 astropy==4.0.1
 flask==1.1.2
 matplotlib==3.3.1
