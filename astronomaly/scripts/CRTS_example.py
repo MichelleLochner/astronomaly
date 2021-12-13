@@ -14,7 +14,7 @@ lc_path = os.path.join(data_dir, 'CRTS', 'transient_lightcurves.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', '')
+    data_dir, 'CRTS', 'astronomaly_output', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -48,7 +48,8 @@ def run_pipeline():
     # This creates the object that manages the data
     lc_dataset = light_curve_reader.LightCurveDataset(
         filename=lc_path,
-        data_dict={'id': 0, 'time': 4, 'mag': 2, 'mag_err': 3}
+        data_dict={'id': 0, 'time': 4, 'mag': 2, 'mag_err': 3},
+        output_dir=output_dir
     )
 
     # Creates a pipeline object for feature extraction
@@ -58,7 +59,9 @@ def run_pipeline():
                           'FluxPercentileRatioMid35',
                           'FluxPercentileRatioMid50',
                           'FluxPercentileRatioMid65',
-                          'FluxPercentileRatioMid80'])
+                          'FluxPercentileRatioMid80'],
+        output_dir=output_dir,
+        force_rerun=False)
 
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)
