@@ -335,6 +335,7 @@ class LightCurveDataset(Dataset):
         # Metadata without the class
         else:
             self.metadata = pd.DataFrame({'ID': ids}, index=ids)
+        print('%d light curves loaded successfully' %len(self.index))
 
     def get_display_data(self, idx):
         """
