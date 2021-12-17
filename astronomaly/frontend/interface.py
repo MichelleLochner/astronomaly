@@ -74,6 +74,7 @@ class Controller:
         """
         Simply calls the underlying Dataset's function to return display data.
         """
+
         try:
             return self.dataset.get_display_data(idx)
         except KeyError:
@@ -108,6 +109,7 @@ class Controller:
         label : int
             Human-assigned label
         """
+        
         ml_df = self.anomaly_scores
         if 'human_label' not in ml_df.columns:
             ml_df['human_label'] = [-1] * len(ml_df)
@@ -117,18 +119,36 @@ class Controller:
         self.active_learning.save(
             ml_df, os.path.join(self.active_learning.output_dir, 
                                 'ml_scores.csv'), file_format='csv')
-
+                                    
     def run_active_learning(self):
         """
         Runs the selected active learning algorithm.
         """
-        pipeline_active_learning = self.active_learning
-        features_with_labels = \
-            pipeline_active_learning.combine_data_frames(self.features, 
-                                                         self.anomaly_scores)
-        # print(features_with_labels)
-        scores = pipeline_active_learning.run(features_with_labels)
-        self.anomaly_scores['trained_score'] = scores
+        has_no_labels = 'human_label' not in self.anomaly_scores.columns
+        labels_unset = np.sum(self.anomaly_scores['human_label'] != -1) == 0
+        if has_no_labels or labels_unset:
+            print("Active learning requested but no training labels "
+                  "have been applied.")
+            return "failed"
+        else:
+            pipeline_active_learning = self.active_learning
+            features_with_labels = \
+                pipeline_active_learning.combine_data_frames(
+                    self.features, self.anomaly_scores)
+            # print(features_with_labels)
+            scores = pipeline_active_learning.run(features_with_labels)
+            self.anomaly_scores['trained_score'] = scores
+            return "success"
+
+    def delete_labels(self):
+        """
+        Allows the user to delete all the labels they've applied and start 
+        again
+        """
+        print('Delete labels called')
+        if 'human_label' in self.anomaly_scores.columns:
+            self.anomaly_scores['human_label'] = -1
+        print('All user-applied labels have been reset to -1 (i.e. deleted)')
 
     def get_visualisation_data(self, color_by_column=''):
         """

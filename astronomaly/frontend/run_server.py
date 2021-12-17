@@ -149,7 +149,16 @@ def retrain():
     """
     Calls the human-in-the-loop learning
     """
-    controller.run_active_learning()
+    res = controller.run_active_learning()
+    return json.dumps(res)
+
+
+@app.route('/deletelabels', methods=["GET", "POST"])
+def delete_labels():
+    """
+    Deletes the existing labels allowing the user to start again
+    """
+    controller.delete_labels()
     return json.dumps("success")
 
 

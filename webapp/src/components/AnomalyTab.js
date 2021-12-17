@@ -23,6 +23,11 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import IconButton from '@material-ui/core/IconButton';
 import SkipNext from '@material-ui/icons/SkipNext';
 import SkipPrevious from '@material-ui/icons/SkipPrevious';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
@@ -40,6 +45,8 @@ export class AnomalyTab extends React.Component {
     this.handleSortBy = this.handleSortBy.bind(this);
     this.changeSortBy = this.changeSortBy.bind(this);
     this.handleRetrainButton = this.handleRetrainButton.bind(this);
+    this.handleDeleteLabelsButton = this.handleDeleteLabelsButton.bind(this);
+    this.handleDialogClose = this.handleDialogClose.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
     this.updateOriginalID = this.updateOriginalID.bind(this);
     this.getLightCurve = this.getLightCurve.bind(this);
@@ -69,7 +76,8 @@ export class AnomalyTab extends React.Component {
                                 "4": "primary",
                                 "5": "primary"},
                  sortby:"score",
-                 training: false};
+                 training: false,
+                 dialog_open: false};
     
     // this.getImage(this.state.id);
   }
@@ -172,9 +180,38 @@ export class AnomalyTab extends React.Component {
       },
       body: JSON.stringify('retrain')
     })
-    .then((res) => {this.setState({sortby:"trained_score", training:false});
-                    this.changeSortBy("trained_score")})
+    .then((res) => {return res.json()})
+    .then((res) => {
+      if (res == "success") {
+        this.setState({sortby:"trained_score", training:false});
+        this.changeSortBy("trained_score")
+      }
+      else {
+        this.setState({training:false})
+      }
+    })
     .catch(console.log)
+  }
+
+  handleDeleteLabelsButton(e) {
+    this.setState({dialog_open:true});
+  }
+
+  handleDialogClose(e) {
+    if (e.currentTarget.id == "dialog_yes") {
+      fetch("/deletelabels", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify('deletelabels')
+      })
+      .then((res) => {this.setState({sortby:"score", dialog_open:false})})
+      .then((res) => this.changeSortBy("score"))
+      .then((res) => this.resetButtonColors())
+      .catch(console.log)}
+    else {
+      this.setState({dialog_open:false})}
   }
 
   /**
@@ -474,9 +511,37 @@ export class AnomalyTab extends React.Component {
                                 <Grid item xs={2}></Grid>
                               </Grid>
                             </Grid>
-                            <Grid item xs={2}></Grid>
-                            <Grid item xs={2}>
+                            <Grid item xs={1}></Grid>
+                            <Grid item xs={3}>
                             {this.state.training && <CircularProgress/>}
+                            {!this.state.training && 
+                              <Button variant="contained" color="primary" id="delete_labels" onClick={this.handleDeleteLabelsButton}> 
+                                Delete Labels
+                              </Button> }
+                              <Dialog
+                                open={this.state.dialog_open}
+                                onClose={this.handleDialogClose}
+                                aria-labelledby="alert-dialog-title"
+                                aria-describedby="alert-dialog-description"
+                              >
+                                <DialogTitle id="alert-dialog-title">{"Delete all user labels?"}</DialogTitle>
+                                <DialogContent>
+                                  <DialogContentText id="alert-dialog-description">
+                                    This will permanently delete all the labels that you may have painstakingly applied to the data.
+                                    Are you sure you want to do this?
+                                  </DialogContentText>
+                                </DialogContent>
+                                <DialogActions>
+                                  <Button onClick={this.handleDialogClose} id="dialog_no" color="primary" autoFocus>
+                                    No
+                                  </Button>
+                                  <Button onClick={this.handleDialogClose} id="dialog_yes" color="primary">
+                                    Yes
+                                  </Button>
+                                </DialogActions>
+                              </Dialog>
+
+
                             </Grid>
                             
                             <Grid item xs={2}>
