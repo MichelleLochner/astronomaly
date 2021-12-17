@@ -19,10 +19,22 @@ export class TimeSeriesPlot extends React.PureComponent {
       let errors = this.props.light_curve_data.errors;
       let filter_labels = this.props.light_curve_data.filter_labels;
       let filter_colors = this.props.light_curve_data.filter_colors;
+      let plot_data_type = this.props.plot_data_type;
 
       if (data == null) {
         return <div></div>
       }
+
+      if (plot_data_type == 'mag') {
+        let ylabel = 'Magnitude';
+        let reversed = true;
+      }
+
+      else {
+        let ylabel = 'Flux';
+        let reversed = false;
+      }
+
 
       var i;
       let plot_series = [];
@@ -55,8 +67,8 @@ export class TimeSeriesPlot extends React.PureComponent {
         },
         legend: {enabled:false},
         xAxis: {title:{text:'MJD'}},
-        yAxis: {title:{text:'Magnitude'},
-                reversed: true},
+        yAxis: {title:{text:ylabel},
+                reversed: reversed},
         credits: {enabled:false},
         plotOptions: {
             series: {
