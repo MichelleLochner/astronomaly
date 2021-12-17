@@ -16,12 +16,12 @@ const config = {
   rules: [
   {
    test: /\.jsx?/,
-   loader: 'babel-loader',
+   loader: ['babel-loader'],
    exclude: /node_modules/
   },
   {
     test: /\.css$/,
-    loader: 'style-loader!css-loader?modules'
+    loader: ['style-loader','css-loader?modules']
   },
   {
     test: /\.(gif|png|jpe?g|svg)$/i,

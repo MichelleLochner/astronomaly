@@ -9,13 +9,13 @@
     ]
   },
   "dependencies": {
-    "react-scripts": "3.0.1"
+    "react-scripts": "^2.1.3"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack -p --progress --config webpack.config.js",
+    "build": "webpack --mode production --progress --config webpack.config.js",
     "dev-build": "webpack --progress -d --config webpack.config.js",
-    "watch": "webpack --progress -d --config webpack.config.js --watch"
+    "watch": "webpack  --config webpack.config.js --progress --watch"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -33,34 +33,21 @@
     ]
   },
   "devDependencies": {
-    "@material-ui/core": "^4.0.0-rc.0",
-    "@material-ui/icons": "^4.9.1",
-    "@nivo/heatmap": "^0.59.1",
+    "@material-ui/core": "^4.12.3",
+    "@material-ui/icons": "^4.11.2",
     "babel": "^6.23.0",
     "babel-core": "^6.26.3",
-    "babel-loader": "^7.1.5",
+    "babel-loader": "^8.2.3",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.24.1",
-    "c3": "^0.7.1",
-    "css-loader": "^3.0.0",
-    "d3": "^5.9.7",
-    "d3-contour": "^1.3.2",
-    "d3-hexbin": "^0.2.2",
-    "eslint": "^6.6.0",
-    "highcharts": "^9.0.0",
-    "highcharts-react-official": "^2.2.2",
-    "icons": "^1.0.0",
-    "ify-loader": "^1.1.0",
-    "image-webpack-loader": "^5.0.0",
-    "jsdoc": "^3.6.3",
-    "nivo": "^0.31.0",
-    "react": "^16.8.6",
-    "react-dom": "^16.8.6",
-    "react-responsive-pinch-zoom-pan": "^0.2.2",
+    "highcharts": "^9.3.2",
+    "highcharts-react-official": "^3.1.0",
+    "image-webpack-loader": "^1.8.0",
+    "react": "^16.3.0",
+    "react-dom": "^16.3.0",
+    "react-responsive-pinch-zoom-pan": "^0.3.0",
     "react-vis": "^1.11.7",
-    "recharts": "^1.6.2",
-    "style-loader": "^0.23.1",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10"
+    "webpack": "^5.65.0",
+    "webpack-cli": "^4.9.1"
   }
 }
