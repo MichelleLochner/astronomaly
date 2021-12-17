@@ -14,7 +14,7 @@ lc_path = os.path.join(data_dir, 'CRTS', 'transient_lightcurves.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'CRTS', 'astronomaly_output', '')
+    data_dir, 'astronomaly_output', 'CRTS', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
