@@ -279,7 +279,12 @@ class PipelineStage(object):
                     print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
 
-                if self.drop_nans and np.any(pd.isnull(input_instance)):
+                if input_instance is None:
+                    none_msg = "Input sample is None, skipping sample"
+                    logging_tools.log(none_msg, level='WARNING')
+                    continue
+
+                if self.drop_nans and np.any(np.isnull(input_instance)):
                     input_instance = np.nan_to_num(input_instance)
                     if not logged_nan_msg:
                         print(nan_msg)
