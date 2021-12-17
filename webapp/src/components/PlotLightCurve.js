@@ -15,14 +15,60 @@ export class TimeSeriesPlot extends React.PureComponent {
     render(){
         // console.log('Called PlotLightCurve render');
       // console.log(this.props.light_curve_data);
+      let data = this.props.light_curve_data.data;
+      let errors = this.props.light_curve_data.errors;
+      let filter_labels = this.props.light_curve_data.filter_labels;
+      let filter_colors = this.props.light_curve_data.filter_colors;
+      let plot_data_type = this.props.plot_data_type;
+
+      if (data == null) {
+        return <div></div>
+      }
+
+      if (plot_data_type == 'mag') {
+        let ylabel = 'Magnitude';
+        let reversed = true;
+      }
+
+      else {
+        let ylabel = 'Flux';
+        let reversed = false;
+      }
+
+
+      var i;
+      let plot_series = [];
+      for (i = 0; i < data.length; i++) {
+        let error_series = {
+          name: 'err_' + filter_labels[i],
+          type:'errorbar',
+          data:errors[i],
+          whiskerLength:5,
+          }
+
+        let scatter_series = {
+          name: filter_labels[i],
+          type:'scatter',
+          data: data[i],
+        }
+
+        if (filter_colors[i].length !== 0) {
+          scatter_series['color'] = filter_colors[i]
+        }
+
+        if (errors[i].length !== 0){
+          plot_series.push(error_series);}
+        plot_series.push(scatter_series);
+      }
+
       const options = {
         title: {
           text: ''
         },
         legend: {enabled:false},
         xAxis: {title:{text:'MJD'}},
-        yAxis: {title:{text:'Magnitude'},
-                reversed: true},
+        yAxis: {title:{text:ylabel},
+                reversed: reversed},
         credits: {enabled:false},
         plotOptions: {
             series: {
@@ -30,20 +76,7 @@ export class TimeSeriesPlot extends React.PureComponent {
                 animation: {duration:100}
             }
         },
-        series: [
-          {
-          name: 'errorplot',
-          type:'errorbar',
-          data:this.props.light_curve_data.errors,
-          whiskerLength:5,
-          },
-          {
-          name: 'scatterplot',
-          type:'scatter',
-          data: this.props.light_curve_data.data,
-          
-        }
-        ]
+        series: plot_series
       }
       
       return <HighchartsReact
