@@ -10,7 +10,7 @@ import pandas as pd
 
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data')
-lc_path = os.path.join(data_dir, 'CRTS', 'transient_lightcurves.csv')
+lc_path = os.path.join(data_dir, 'CRTS', 'CRTS_subset_500.csv')
 
 # Where output should be stored
 output_dir = os.path.join(
@@ -20,6 +20,8 @@ if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 display_transform_function = []
+# Change this to false to automatically use previously run features
+force_rerun = True 
 
 
 def run_pipeline():
@@ -60,27 +62,29 @@ def run_pipeline():
                           'FluxPercentileRatioMid50',
                           'FluxPercentileRatioMid65',
                           'FluxPercentileRatioMid80'],
+        compute_on_mags=True,
+        ignore_warnings=False,  # Feets prints a lot of warnings to screen
         output_dir=output_dir,
-        force_rerun=False)
+        force_rerun=force_rerun)
 
     # Actually runs the feature extraction
     features = pipeline_feets.run_on_dataset(lc_dataset)
 
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set
-    pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
+    pipeline_scaler = scaling.FeatureScaler(force_rerun=force_rerun,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
 
     # The actual anomaly detection is called in the same way by creating an
     # Iforest pipeline object then running it
     pipeline_iforest = isolation_forest.IforestAlgorithm(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=force_rerun, output_dir=output_dir)
     anomalies = pipeline_iforest.run(features)
 
     # We convert the scores onto a range of 0-5
     pipeline_score_converter = human_loop_learning.ScoreConverter(
-        force_rerun=False, output_dir=output_dir)
+        force_rerun=force_rerun, output_dir=output_dir)
     anomalies = pipeline_score_converter.run(anomalies)
 
     try:
