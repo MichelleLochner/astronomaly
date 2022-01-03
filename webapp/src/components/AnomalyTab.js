@@ -2,23 +2,17 @@ import React from 'react';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 // import {makeStyles } from '@material-ui/core/styles';
-import {createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles'
+import {createTheme, MuiThemeProvider } from '@material-ui/core/styles'
 import { blue, indigo, green, grey } from '@material-ui/core/colors';
 import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import {PlotImage} from './PlotImage.js';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import InputLabel from '@material-ui/core/InputLabel';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
-import {TimeSeriesPlot} from './PlotLightCurve.js';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
 import { MenuItem, Icon } from '@material-ui/core';
-import Divider from '@material-ui/core/Divider';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import IconButton from '@material-ui/core/IconButton';
 import SkipNext from '@material-ui/icons/SkipNext';
@@ -29,7 +23,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 
-const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
+const muiTheme = createTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
                                             
 
