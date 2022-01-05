@@ -1,13 +1,11 @@
 import React from 'react';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
-// import {makeStyles } from '@material-ui/core/styles';
 import {createTheme, MuiThemeProvider } from '@material-ui/core/styles'
 import { blue, indigo, green, grey } from '@material-ui/core/colors';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
-import InputLabel from '@material-ui/core/InputLabel';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
@@ -416,7 +414,7 @@ export class AnomalyTab extends React.Component {
       return(
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
                   <Grid item xs={12}></Grid>
-                  <Grid item container xs={8} justify="center">
+                  <Grid item container xs={8} justifyContent="center">
                       {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3} alignItems="center">
                         <Grid item xs={12} align="center">
@@ -449,7 +447,7 @@ export class AnomalyTab extends React.Component {
                         </Grid>
                       </Grid>
                               
-                        <Grid item xs={12} container justify="center">
+                        <Grid item xs={12} container justifyContent="center">
 
                           <Grid item xs={4}>
                             <Typography variant="overline" display="block">
@@ -485,12 +483,12 @@ export class AnomalyTab extends React.Component {
                             
                         </Grid>
 
-                        <Grid item xs={12} container justify="center" alignItems="center">
+                        <Grid item xs={12} container justifyContent="center" alignItems="center">
                           {/* <Grid container alignItems="center"> */}
                             {/* <Grid item xs={1}>
                             </Grid> */}
                             <Grid item xs={6}>
-                              <Grid container item xs={12} justify="center">
+                              <Grid container item xs={12} justifyContent="center">
                                 <Grid item xs={8}>
                                 <FormControl variant="outlined" fullWidth={true} margin='dense'>
                                   {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
