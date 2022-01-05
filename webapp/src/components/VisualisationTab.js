@@ -8,79 +8,10 @@ import HighchartsReact from 'highcharts-react-official'
 import HighchartsColorAxis from "highcharts/modules/coloraxis"; 
 
 HighchartsColorAxis(Highcharts);
-// import {
-//     ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip
-//   } from 'recharts';
-// import {XYPlot, XAxis, YAxis, MarkSeries, VerticalGridLines, HorizontalGridLines, Hint} from 'react-vis';
-
-// Testing the scatter plot
-
-// const myData = [{'x': '-16.820', 'y': '-43.163'}, 
-// {'x': '46.367538', 'y': '-0.309925'}, 
-// // {'x': '-37.459553', 'y': '-27.726826'}, 
-// // {'x': '28.261280', 'y': '13.430197'}, 
-// // {'x': '-16.480743', 'y': '35.427864'}, 
-// // {'x': '-7.735086', 'y': '53.409462'}, 
-// // {'x': '19.494431', 'y': '20.171560'}, 
-// // {'x': '-23.625153', 'y': '37.620316'}, 
-// // {'x': '29.343306', 'y': '-11.579516'}, 
-// // {'x': '-30.035269', 'y': '-14.403445'}
-// ];
-
-// function getRandomData() {
-//   return new Array(2000).fill(0).map(row => ({
-//     x: Math.random() * 20,
-//     y: Math.random() * 20,
-//     size: Math.random() * 10,
-//     color: Math.random() * 10,
-//     opacity: Math.random() * 0.5 + 0.5
-//   }));
-// }
-
-// const randomData = getRandomData();
-
-function getRandomData() {
-  return new Array(2000).fill(0).map(row => (
-    [Math.random() * 20, Math.random() * 20]
-  ));
-}
 
 
-// /**
-//  * Scatter plot for visualisation
-//  */
-// class MakeScatter extends React.Component {
-//     constructor(props){
-//       super(props);
-//       this.state = {currentPoint:false};
-//     }
-//     render() {
-//         return (
-//             <XYPlot
-//               width={600}
-//               height={600}
-//               margin={{left:50, right:50, top:50, bottom:50}}
-//               // onMouseLeave={() => this.setState({hintValue: false})}
-//             >
-//               <VerticalGridLines />
-//               <HorizontalGridLines />
-//               <XAxis />
-//               <YAxis />
-//               <MarkSeries
-//                 className="mark-series-example"
-//                 sizeRange={[1, 5]}
-//                 colorDomain = {[0, 1, 2, 3, 4, 5]}
-//                 colorRange = {['#000004', '#2c115f', '#721f81', '#b73779', '#f1605d', '#feb078']}
-//                 animation = {false}
-//                 onNearestXY = {value => this.setState({currentPoint:value})}
-//                 onValueClick={(datapoint) => this.props.dataCallback(this.state.currentPoint)}
-//                 data={this.props.data}/>
-//               {/* {this.state.hintValue ? <Hint value={this.state.hintValue} /> : null} */}
-//             </XYPlot>
 
-//           );
-//     }
-// }
+
 
 /**
  * Scatter plot for visualisation
@@ -91,52 +22,16 @@ function getRandomData() {
   }
 
   render() {
-    
-    // let data = [];
-    // for (let i = 0; i < this.props.data.length; i++) {
-    //   data.push(this.props.data[i].x, this.props.data[i].y);
-    // }
-
-    // let data_series = {
-    //   name: 'vis',
-    //   type: 'scatter',
-    //   data: data,
-    // }
-    // // console.log(data);
-    // let plot_series = [data_series];
-
-    // const options = {
-    //   title: {
-    //     text: ''
-    //   },
-    //   legend: {enabled:false},
-    //   xAxis: {title:{text:''}},
-    //   yAxis: {title:{text:''}},
-    //   credits: {enabled:false},
-    //   plotOptions: {
-    //       series: {
-    //           marker:{enabled: true, enabledThreshold:0},
-    //           // animation: {duration:100}
-    //           animation:false
-    //       }
-    //   },
-    //   series: plot_series
-    // }
-    // console.log('scatter plot rendering');
     let callBack = this.props.callBack;
     let data_org = this.props.data;
-
-    let xy_data = [];
-    for (let i=0; i<data_org.length; i++) {
-      xy_data.push({x:data_org[i].x, y:data_org[i].y, col:data_org[i].color});
-    }
-    
 
     // let xy_data = [];
     // for (let i=0; i<data_org.length; i++) {
     //   xy_data.push({x:data_org[i].x, y:data_org[i].y, col:data_org[i].color});
     // }
-    
+    console.log(data_org[0])
+    // console.log(xy_data[0])
+
     const options = {
       chart: {
         zoomType:'xy'
@@ -147,7 +42,7 @@ function getRandomData() {
       
       legend: {enabled:false},
       xAxis: {
-              title:{text:'Arbirtrary units'},
+              title:{text:'Arbitrary units'},
               tickLength:0,
               lineColor:'transparent'
               },
@@ -171,7 +66,7 @@ function getRandomData() {
                           '<br>' + 'x: ' + this.point.x + 
                           '<br>' + 'y: ' + this.point.y + 
                           '<br>' + 'score: ' 
-                          + data_org[this.point.index].color;
+                          + data_org[this.point.index].col;
                 }
               },
       credits: {enabled:false},
@@ -188,7 +83,7 @@ function getRandomData() {
         {
         name: 'transformed features',
         type:'scatter',
-        data: xy_data,
+        data: data_org,
         colorKey: 'col',
         cursor: 'pointer',
         events: {
@@ -220,8 +115,7 @@ export class VisualisationTab extends React.Component {
       this.updateDisplayData = this.updateDisplayData.bind(this);
       this.getLightCurve = this.getLightCurve.bind(this);
       this.getRawFeatures = this.getRawFeatures.bind(this);
-      const randomData = getRandomData();
-      this.state = {data:[{x:0, y:0}], displayData:{}, light_curve_data:{}, raw_features_data:{}, randomData:randomData};
+      this.state = {data:[{x:0, y:0}], displayData:{}, light_curve_data:{}, raw_features_data:{}};
     }
     updateDisplayData(newData){
       if (this.props.datatype == 'image')
@@ -250,6 +144,10 @@ export class VisualisationTab extends React.Component {
               let newval = obj[key];
               if(key !== 'id')
                 newval = parseFloat(obj[key]);
+              // Color is a special field to highcharts so we just change this key
+              if(key == 'color')
+                rObj['col'] = newval;
+              else
               rObj[key] = newval;
             }
             return rObj;
@@ -314,7 +212,7 @@ export class VisualisationTab extends React.Component {
                           <PlotContainer datatype={this.props.datatype} original_id={this.state.displayData.id} light_curve_data={this.state.light_curve_data}
                                         raw_features_data={this.state.raw_features_data}/>
                         </div>
-                        <div>Anomaly Score: {this.state.displayData.color} </div>
+                        <div>Anomaly Score: {this.state.displayData.col} </div>
                     </Grid>
                     <Grid item xs={12}>
                         <div></div>
@@ -323,3 +221,35 @@ export class VisualisationTab extends React.Component {
         )
     }
 }
+
+// Testing the scatter plot
+
+// const myData = [{'x': '-16.820', 'y': '-43.163'}, 
+// {'x': '46.367538', 'y': '-0.309925'}, 
+// // {'x': '-37.459553', 'y': '-27.726826'}, 
+// // {'x': '28.261280', 'y': '13.430197'}, 
+// // {'x': '-16.480743', 'y': '35.427864'}, 
+// // {'x': '-7.735086', 'y': '53.409462'}, 
+// // {'x': '19.494431', 'y': '20.171560'}, 
+// // {'x': '-23.625153', 'y': '37.620316'}, 
+// // {'x': '29.343306', 'y': '-11.579516'}, 
+// // {'x': '-30.035269', 'y': '-14.403445'}
+// ];
+
+// function getRandomData() {
+//   return new Array(2000).fill(0).map(row => ({
+//     x: Math.random() * 20,
+//     y: Math.random() * 20,
+//     size: Math.random() * 10,
+//     color: Math.random() * 10,
+//     opacity: Math.random() * 0.5 + 0.5
+//   }));
+// }
+
+// const randomData = getRandomData();
+
+// function getRandomData() {
+//   return new Array(2000).fill(0).map(row => (
+//     [Math.random() * 20, Math.random() * 20]
+//   ));
+// }
