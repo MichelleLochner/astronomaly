@@ -109,7 +109,7 @@ class Controller:
         label : int
             Human-assigned label
         """
-        
+
         ml_df = self.anomaly_scores
         if 'human_label' not in ml_df.columns:
             ml_df['human_label'] = [-1] * len(ml_df)
@@ -119,7 +119,7 @@ class Controller:
         self.active_learning.save(
             ml_df, os.path.join(self.active_learning.output_dir, 
                                 'ml_scores.csv'), file_format='csv')
-                                    
+
     def run_active_learning(self):
         """
         Runs the selected active learning algorithm.
@@ -175,7 +175,7 @@ class Controller:
                     self.anomaly_scores.loc[clst.index, 
                                             color_by_column]
             out = []
-            clst.sort_values('color')
+            clst = clst.sort_values('color')
             for idx in clst.index:
                 dat = clst.loc[idx].values
                 out.append({'id': (str)(idx), 
@@ -183,6 +183,7 @@ class Controller:
                             'y': '{:f}'.format(dat[1]),
                             'opacity': '0.5', 
                             'color': '{:f}'.format(clst.loc[idx, 'color'])})
+
             return out
         else:
             return None
