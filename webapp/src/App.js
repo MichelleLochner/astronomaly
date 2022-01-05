@@ -1,26 +1,19 @@
 import React from 'react';
-import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import Cancel from '@material-ui/icons/Cancel';
 import Tooltip from '@material-ui/core/Tooltip';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography'
-import TextField from '@material-ui/core/TextField'
-import Paper from '@material-ui/core/Paper'
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
 import { ThemeProvider } from '@material-ui/styles';
-import { makeStyles, useTheme } from '@material-ui/core/styles';
 import { withStyles } from '@material-ui/styles';
-import { createMuiTheme } from '@material-ui/core/styles'
-import { blue, indigo, green, red } from '@material-ui/core/colors'
+import { createTheme } from '@material-ui/core/styles'
+import { blue, indigo} from '@material-ui/core/colors'
 import AppBar from '@material-ui/core/AppBar';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import './App.css';
-import {AlgorithmTab} from './components/AlgorithmTab'
 import {AnomalyTab} from './components/AnomalyTab'
-// import {VisualisationTab} from './components/VisualisationTab'
+import {VisualisationTab} from './components/VisualisationTab'
 
 // const DATA_TYPE = 'image';
 // const DATA_TYPE = 'light_curve';
@@ -65,7 +58,7 @@ const styles = theme =>({
   }
 });
 
-const theme = createMuiTheme({
+const theme = createTheme({
   palette: {
     secondary: {
       main: blue[400]
@@ -137,8 +130,13 @@ class App extends React.Component {
     })
     .catch(console.log)   
   }
+
+  componentDidMount(){
+    this.getDataType();
+  }
+
   render (){
-    // console.log('HELLO');
+    // console.log('main app rendering')
     // console.log(this.props);
     if (this.state.closing) {
       return (
@@ -152,7 +150,7 @@ class App extends React.Component {
           </Grid>
       )
     }
-    this.getDataType();
+    
     const { classes } = this.props;
     return (
       <div className={classes.root}>
@@ -185,8 +183,8 @@ class App extends React.Component {
 
           {/* {this.state.tabNumber === 0 && <AlgorithmTab />} */}
           {this.state.tabNumber === 0 && <AnomalyTab datatype={this.state.dataType} />}
-          {/* {this.state.tabNumber === 1 && <VisualisationTab datatype={this.state.dataType}/>} */}
-          {this.state.tabNumber === 1 && <AnomalyTab datatype={this.state.dataType} />}
+          {this.state.tabNumber === 1 && <VisualisationTab datatype={this.state.dataType}/>}
+          {/* {this.state.tabNumber === 1 && <AnomalyTab datatype={this.state.dataType} />} */}
         </ThemeProvider>
       </div>
     );
