@@ -1,16 +1,17 @@
 import React from 'react';
-import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
-import { makeStyles } from '@material-ui/core/styles';
-import { blue, indigo, green } from '@material-ui/core/colors';
-import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
-import {PlotImage} from './PlotImage';
 import {PlotContainer} from './PlotContainer.js'
+import Highcharts from 'highcharts'
+import HighchartsMore from 'highcharts/highcharts-more';
+HighchartsMore(Highcharts);
+import HighchartsReact from 'highcharts-react-official'
+import HighchartsColorAxis from "highcharts/modules/coloraxis"; 
+
+HighchartsColorAxis(Highcharts);
 // import {
 //     ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip
 //   } from 'recharts';
-import {XYPlot, XAxis, YAxis, MarkSeries, VerticalGridLines, HorizontalGridLines, Hint} from 'react-vis';
+// import {XYPlot, XAxis, YAxis, MarkSeries, VerticalGridLines, HorizontalGridLines, Hint} from 'react-vis';
 
 // Testing the scatter plot
 
@@ -38,41 +39,176 @@ import {XYPlot, XAxis, YAxis, MarkSeries, VerticalGridLines, HorizontalGridLines
 
 // const randomData = getRandomData();
 
+function getRandomData() {
+  return new Array(2000).fill(0).map(row => (
+    [Math.random() * 20, Math.random() * 20]
+  ));
+}
+
+
+// /**
+//  * Scatter plot for visualisation
+//  */
+// class MakeScatter extends React.Component {
+//     constructor(props){
+//       super(props);
+//       this.state = {currentPoint:false};
+//     }
+//     render() {
+//         return (
+//             <XYPlot
+//               width={600}
+//               height={600}
+//               margin={{left:50, right:50, top:50, bottom:50}}
+//               // onMouseLeave={() => this.setState({hintValue: false})}
+//             >
+//               <VerticalGridLines />
+//               <HorizontalGridLines />
+//               <XAxis />
+//               <YAxis />
+//               <MarkSeries
+//                 className="mark-series-example"
+//                 sizeRange={[1, 5]}
+//                 colorDomain = {[0, 1, 2, 3, 4, 5]}
+//                 colorRange = {['#000004', '#2c115f', '#721f81', '#b73779', '#f1605d', '#feb078']}
+//                 animation = {false}
+//                 onNearestXY = {value => this.setState({currentPoint:value})}
+//                 onValueClick={(datapoint) => this.props.dataCallback(this.state.currentPoint)}
+//                 data={this.props.data}/>
+//               {/* {this.state.hintValue ? <Hint value={this.state.hintValue} /> : null} */}
+//             </XYPlot>
+
+//           );
+//     }
+// }
+
 /**
  * Scatter plot for visualisation
  */
-class MakeScatter extends React.Component {
-    constructor(props){
-      super(props);
-      this.state = {currentPoint:false};
-    }
-    render() {
-        return (
-            <XYPlot
-              width={600}
-              height={600}
-              margin={{left:50, right:50, top:50, bottom:50}}
-              // onMouseLeave={() => this.setState({hintValue: false})}
-            >
-              <VerticalGridLines />
-              <HorizontalGridLines />
-              <XAxis />
-              <YAxis />
-              <MarkSeries
-                className="mark-series-example"
-                sizeRange={[1, 5]}
-                colorDomain = {[0, 1, 2, 3, 4, 5]}
-                colorRange = {['#000004', '#2c115f', '#721f81', '#b73779', '#f1605d', '#feb078']}
-                animation = {false}
-                onNearestXY = {value => this.setState({currentPoint:value})}
-                onValueClick={(datapoint) => this.props.dataCallback(this.state.currentPoint)}
-                data={this.props.data}/>
-              {/* {this.state.hintValue ? <Hint value={this.state.hintValue} /> : null} */}
-            </XYPlot>
+ class MakeScatter extends React.Component {
+  constructor(props){
+    super(props);   
+  }
 
-          );
+  render() {
+    
+    // let data = [];
+    // for (let i = 0; i < this.props.data.length; i++) {
+    //   data.push(this.props.data[i].x, this.props.data[i].y);
+    // }
+
+    // let data_series = {
+    //   name: 'vis',
+    //   type: 'scatter',
+    //   data: data,
+    // }
+    // // console.log(data);
+    // let plot_series = [data_series];
+
+    // const options = {
+    //   title: {
+    //     text: ''
+    //   },
+    //   legend: {enabled:false},
+    //   xAxis: {title:{text:''}},
+    //   yAxis: {title:{text:''}},
+    //   credits: {enabled:false},
+    //   plotOptions: {
+    //       series: {
+    //           marker:{enabled: true, enabledThreshold:0},
+    //           // animation: {duration:100}
+    //           animation:false
+    //       }
+    //   },
+    //   series: plot_series
+    // }
+    // console.log('scatter plot rendering');
+    let callBack = this.props.callBack;
+    let data_org = this.props.data;
+
+    let xy_data = [];
+    for (let i=0; i<data_org.length; i++) {
+      xy_data.push({x:data_org[i].x, y:data_org[i].y, col:data_org[i].color});
     }
-}
+    
+
+    // let xy_data = [];
+    // for (let i=0; i<data_org.length; i++) {
+    //   xy_data.push({x:data_org[i].x, y:data_org[i].y, col:data_org[i].color});
+    // }
+    
+    const options = {
+      chart: {
+        zoomType:'xy'
+      },
+      title: {
+        text: ''
+      },
+      
+      legend: {enabled:false},
+      xAxis: {
+              title:{text:'Arbirtrary units'},
+              tickLength:0,
+              lineColor:'transparent'
+              },
+      yAxis: {title:{text:'Arbitrary units'},
+              gridLineWidth: 0,
+              lineColor:'transparent'
+              },
+      colorAxis: {
+              min: 0,
+              max: 4,
+              stops: [
+                [0, '#000004'], 
+                [0.2, '#2c115f'], 
+                [0.4, '#721f81'], 
+                [0.6, '#b73779'], 
+                [0.8,'#f1605d'], 
+                [1.0, '#feb078']]
+      },
+      tooltip: {formatter: function(){
+                  return 'ID: ' + data_org[this.point.index].id + 
+                          '<br>' + 'x: ' + this.point.x + 
+                          '<br>' + 'y: ' + this.point.y + 
+                          '<br>' + 'score: ' 
+                          + data_org[this.point.index].color;
+                }
+              },
+      credits: {enabled:false},
+      plotOptions: {
+          series: {
+              marker:{enabled: true, enabledThreshold:0, radius:5},
+              
+              animation: {duration:100},
+              // Allows the use of objects in the data instead of only 2d arrays
+              turboThreshold: 3000,
+          }
+      },
+      series: [
+        {
+        name: 'transformed features',
+        type:'scatter',
+        data: xy_data,
+        colorKey: 'col',
+        cursor: 'pointer',
+        events: {
+            click: function(event) {
+              callBack(data_org[event.point.index]);
+            }
+          }
+        }
+      ]
+    }
+  
+    return <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        constructorType={'chart'}
+        immutable={true}
+      />
+  }
+  
+ }
 
 /**
  * Tab to display visualisation
@@ -84,8 +220,8 @@ export class VisualisationTab extends React.Component {
       this.updateDisplayData = this.updateDisplayData.bind(this);
       this.getLightCurve = this.getLightCurve.bind(this);
       this.getRawFeatures = this.getRawFeatures.bind(this);
-      this.state = {data:[{x:0, y:0}], displayData:{}, light_curve_data:{}, raw_features_data:{}};
-        
+      const randomData = getRandomData();
+      this.state = {data:[{x:0, y:0}], displayData:{}, light_curve_data:{}, raw_features_data:{}, randomData:randomData};
     }
     updateDisplayData(newData){
       if (this.props.datatype == 'image')
@@ -161,18 +297,19 @@ export class VisualisationTab extends React.Component {
 
     render() {
       // console.log('Data');
-      // console.log(this.state.data);
+      // console.log(this.state.displayData);
       // console.log(myData)
+      // console.log('vis tab rendering')
         return(
             <Grid component='div' container spacing={3}>
                     <Grid item xs={12}>
                         <div></div>
                     </Grid>
                     <Grid item xs={6} container spacing={1}>
-                        <MakeScatter id='scatter' data={this.state.data} dataCallback={this.updateDisplayData}/>
+                        <MakeScatter id='scatter' data={this.state.data} callBack={this.updateDisplayData}/>
                     </Grid>
                     <Grid item xs={6}>
-                        <h1> Object ID: {this.state.displayData.id}</h1>
+                      <h1> Object ID: {this.state.displayData.id}</h1>
                         <div>
                           <PlotContainer datatype={this.props.datatype} original_id={this.state.displayData.id} light_curve_data={this.state.light_curve_data}
                                         raw_features_data={this.state.raw_features_data}/>
