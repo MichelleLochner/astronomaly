@@ -95,12 +95,14 @@ HighchartsColorAxis(Highcharts);
       ]
     }
   
-    return <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        constructorType={'chart'}
-        immutable={true}
-      />
+    return (
+        <HighchartsReact
+            highcharts={Highcharts}
+            options={options}
+            constructorType={'chart'}
+            immutable={true}
+          />
+    )
   }
   
  }
@@ -199,24 +201,42 @@ export class VisualisationTab extends React.Component {
       // console.log(myData)
       // console.log('vis tab rendering')
         return(
-            <Grid component='div' container spacing={3}>
-                    <Grid item xs={12}>
-                        <div></div>
-                    </Grid>
-                    <Grid item xs={6} container spacing={1}>
-                        <MakeScatter id='scatter' data={this.state.data} callBack={this.updateDisplayData}/>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <h1> Object ID: {this.state.displayData.id}</h1>
-                        <div>
-                          <PlotContainer datatype={this.props.datatype} original_id={this.state.displayData.id} light_curve_data={this.state.light_curve_data}
-                                        raw_features_data={this.state.raw_features_data}/>
-                        </div>
-                        <div>Anomaly Score: {this.state.displayData.col} </div>
-                    </Grid>
-                    <Grid item xs={12}>
-                        <div></div>
-                    </Grid>
+            <Grid component='div' container spacing={6} direction={'column'}>
+              <Grid item lg={12} xl={12}>
+                  <div></div>
+              </Grid>
+
+              <Grid item lg={12} xl={12} container direction = {'row'}>
+                <Grid item lg={6} xl={4} container spacing={10} direction={'column'}>
+                  <Grid item>
+                      <div></div>
+                  </Grid>
+                  <Grid item>
+                    <MakeScatter id='scatter' data={this.state.data} callBack={this.updateDisplayData}/>
+                  </Grid>
+                  <Grid item>
+                    <div></div>
+                  </Grid>
+                </Grid>
+
+                <Grid item lg={6} xl={4} container spacing={1} direction={'column'} justifyContent={"center"}>
+                  <Grid item style={{textAlign: "center"}}>
+                  <h1> Object ID: {this.state.displayData.id}</h1>
+                  </Grid>
+                  <Grid item>
+                      <PlotContainer datatype={this.props.datatype} original_id={this.state.displayData.id} light_curve_data={this.state.light_curve_data}
+                                    raw_features_data={this.state.raw_features_data}/>
+                  </Grid>
+                  
+                  <Grid item style={{textAlign: "center"}}>
+                  Anomaly Score: {this.state.displayData.col}
+                  </Grid>
+                </Grid>
+              </Grid>
+
+              <Grid item lg={12} xl={12}>
+                  <div></div>
+              </Grid>
             </Grid>
         )
     }
