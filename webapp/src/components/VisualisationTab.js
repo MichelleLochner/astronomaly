@@ -6,11 +6,7 @@ import HighchartsMore from 'highcharts/highcharts-more';
 HighchartsMore(Highcharts);
 import HighchartsReact from 'highcharts-react-official'
 import HighchartsColorAxis from "highcharts/modules/coloraxis"; 
-
 HighchartsColorAxis(Highcharts);
-
-
-
 
 
 /**
@@ -21,16 +17,19 @@ HighchartsColorAxis(Highcharts);
     super(props);   
   }
 
+  shouldComponentUpdate(newProps, newState){
+    // Makes sure this component doesn't render until it has to
+    if (newProps.data === this.props.data) {
+      return false
+    }
+    else {
+      return true
+    }
+  }
+
   render() {
     let callBack = this.props.callBack;
     let data_org = this.props.data;
-
-    // let xy_data = [];
-    // for (let i=0; i<data_org.length; i++) {
-    //   xy_data.push({x:data_org[i].x, y:data_org[i].y, col:data_org[i].color});
-    // }
-    console.log(data_org[0])
-    // console.log(xy_data[0])
 
     const options = {
       chart: {
@@ -69,7 +68,7 @@ HighchartsColorAxis(Highcharts);
                           + data_org[this.point.index].col;
                 }
               },
-      credits: {enabled:false},
+      credits: {enabled:false}, // Otherwise prints highcarts logo
       plotOptions: {
           series: {
               marker:{enabled: true, enabledThreshold:0, radius:5},
@@ -136,7 +135,6 @@ export class VisualisationTab extends React.Component {
           },
           body: JSON.stringify("tsne")
         })
-        // .then(res => JSON.parse(res))
         .then(res => res.json())
         .then((res) =>{
           var reformattedArray = res.map(obj =>{ 
@@ -170,8 +168,6 @@ export class VisualisationTab extends React.Component {
         body: JSON.stringify(original_id)
       })
       .then((res) => {return res.json()})
-      // .then((res)=> {console.log(res);
-      //               return res})
       .then((res) => this.setState({light_curve_data:res}))
       .catch(console.log);
     }
@@ -185,8 +181,6 @@ export class VisualisationTab extends React.Component {
         body: JSON.stringify(original_id)
       })
       .then((res) => {return res.json()})
-      // .then((res)=> {console.log(res);
-      //               return res})
       .then((res) => this.setState({raw_features_data:res}))
       .catch(console.log);
     }
@@ -196,12 +190,13 @@ export class VisualisationTab extends React.Component {
     }
 
     render() {
-      // console.log('Data');
-      // console.log(this.state.displayData);
-      // console.log(myData)
-      // console.log('vis tab rendering')
+        // Only render this component once the data has been read in
+        let scatter = <div></div>;
+        if (this.state.data.length > 1) {
+          scatter =  <MakeScatter id='scatter' data={this.state.data} callBack={this.updateDisplayData}/>
+        }
         return(
-            <Grid component='div' container spacing={6} direction={'column'}>
+            <Grid component='div' container spacing={3} direction={'column'}>
               <Grid item lg={12} xl={12}>
                   <div></div>
               </Grid>
@@ -212,7 +207,7 @@ export class VisualisationTab extends React.Component {
                       <div></div>
                   </Grid>
                   <Grid item>
-                    <MakeScatter id='scatter' data={this.state.data} callBack={this.updateDisplayData}/>
+                    {scatter}
                   </Grid>
                   <Grid item>
                     <div></div>
