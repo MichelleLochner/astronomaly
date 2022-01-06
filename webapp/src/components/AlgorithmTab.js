@@ -16,7 +16,7 @@ export class AlgorithmTab extends React.Component {
         return(
             <div>
 
-                <Grid component='span' container spacing={3} align='center' justify='center'>
+                <Grid component='span' container spacing={3} align='center' justifyContent='center'>
                 <Grid item xs={12}>
                         <div></div>
                     </Grid>
