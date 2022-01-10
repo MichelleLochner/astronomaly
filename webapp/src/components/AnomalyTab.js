@@ -20,6 +20,7 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import Tooltip from '@material-ui/core/Tooltip';
 
 const muiTheme = createTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
@@ -44,6 +45,7 @@ export class AnomalyTab extends React.Component {
     this.getLightCurve = this.getLightCurve.bind(this);
     this.updateObjectData = this.updateObjectData.bind(this);
     this.getMetadata = this.getMetadata.bind(this);
+    this.getCoordinates = this.getCoordinates.bind(this);
     this.getFeatures = this.getFeatures.bind(this);
     this.getRawFeatures = this.getRawFeatures.bind(this);
     this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
@@ -61,6 +63,8 @@ export class AnomalyTab extends React.Component {
                  raw_features_data:{data:[],categories:[]},
                  features:{},
                  metadata:{},
+                 search_cds:'',
+                 search_ads:'',
                  button_colors:{"0": "primary",
                                 "1": "primary",
                                 "2": "primary",
@@ -272,6 +276,7 @@ export class AnomalyTab extends React.Component {
       this.getRawFeatures(newOriginalId)
     this.getFeatures(newOriginalId);
     this.getMetadata(newOriginalId);
+    this.getCoordinates(newOriginalId);
     this.setCurrentListIndex();
   }
 
@@ -335,6 +340,26 @@ export class AnomalyTab extends React.Component {
     .then((res) => {this.changeButtonColor(parseInt(this.state.metadata.human_label).toString())})
     .catch(console.log);
   }
+
+  getCoordinates(original_id){
+    fetch("getcoordinates", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    .then((res) => {
+      let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
+                res.ra + '%2C' + res.dec
+      let search_ads = "https://das.datacentral.org.au/das?RA=" + 
+                res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0"
+      this.setState({search_cds:search_cds, search_ads:search_ads})
+    })
+    .catch(console.log);
+  }
+
 
   updateOriginalID(ind){
     fetch("/getindex", {
@@ -556,6 +581,21 @@ export class AnomalyTab extends React.Component {
                       <Grid item xs={8}>
                         <ObjectDisplayer title='Features' object={this.state.features} />
                       </Grid>
+                      <Grid item xs={8} >
+                        <Tooltip title="Opens the CDS portal to search for this object in other datasets" sx={{fontSize: 20}}>
+                          <Button variant="contained" color="primary" id="search1" href={this.state.search_cds} target="_blank">
+                            Search by Coordinates (CDS)
+                          </Button> 
+                        </Tooltip>
+                      </Grid>
+                      <Grid item xs={8} >
+                        <Tooltip title="Opens ADS which contains extra datasets but requires login">
+                          <Button variant="contained" color="primary" id="search2" href={this.state.search_ads} target="_blank">
+                            Search by Coordinates (ADS)
+                          </Button> 
+                        </Tooltip>
+                      </Grid>
+
                     </Grid>
                   </Grid>
                   <Grid item xs={12}>

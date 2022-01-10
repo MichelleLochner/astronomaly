@@ -74,6 +74,20 @@ def get_metadata():
         return ""
 
 
+@app.route('/getcoordinates', methods=["POST"])
+def get_coordinates():
+    """
+    Serves the coordinates (if available) for a particular object in string
+    format, separated by a comma
+    """
+    if request.method == "POST":
+        idx = str(request.get_json())
+        output = controller.get_coordinates(idx)
+        return json.dumps(output)
+    else:
+        return ""
+
+
 @app.route('/getlightcurve', methods=["POST"])
 def get_light_curve():
     """

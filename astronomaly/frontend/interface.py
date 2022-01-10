@@ -254,6 +254,28 @@ class Controller:
         except KeyError:
             return {}
 
+    def get_coordinates(self, idx):
+        """
+        If available, will return the coordinates of the requested object in
+        object format, ready to pass on to another website like simbad
+
+        Parameters
+        ----------
+        idx : str
+            Index of the object
+
+        Returns
+        -------
+        dict
+            Coordinates
+        """
+        met = self.dataset.metadata
+        if 'ra' in met and 'dec' in met:
+            return {'ra': str(met.loc[idx, 'ra']),
+                    'dec': str(met.loc[idx, 'dec'])}
+        else:
+            return {}
+
     def randomise_ml_scores(self):
         """
         Returns the anomaly scores in a random order
