@@ -64,7 +64,7 @@ export class AnomalyTab extends React.Component {
                  features:{},
                  metadata:{},
                  search_cds:'',
-                 search_ads:'',
+                 search_das:'',
                  button_colors:{"0": "primary",
                                 "1": "primary",
                                 "2": "primary",
@@ -353,9 +353,9 @@ export class AnomalyTab extends React.Component {
     .then((res) => {
       let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
                 res.ra + '%2C' + res.dec
-      let search_ads = "https://das.datacentral.org.au/das?RA=" + 
+      let search_das = "https://das.datacentral.org.au/das?RA=" + 
                 res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0"
-      this.setState({search_cds:search_cds, search_ads:search_ads})
+      this.setState({search_cds:search_cds, search_das:search_das})
     })
     .catch(console.log);
   }
@@ -589,9 +589,9 @@ export class AnomalyTab extends React.Component {
                         </Tooltip>
                       </Grid>
                       <Grid item xs={8} >
-                        <Tooltip title="Opens ADS which contains extra datasets but requires login">
-                          <Button variant="contained" color="primary" id="search2" href={this.state.search_ads} target="_blank">
-                            Search by Coordinates (ADS)
+                        <Tooltip title="Opens DAS which contains extra datasets but requires login">
+                          <Button variant="contained" color="primary" id="search2" href={this.state.search_das} target="_blank">
+                            Search by Coordinates (DAS)
                           </Button> 
                         </Tooltip>
                       </Grid>
