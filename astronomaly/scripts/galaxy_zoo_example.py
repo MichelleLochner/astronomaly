@@ -4,7 +4,7 @@ from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import tsne, umap_plot
 import os
 import pandas as pd
 import zipfile
@@ -119,15 +119,20 @@ def run_pipeline():
 
     # We use TSNE for visualisation which is run in the same way as other parts
     # of the pipeline.
-    pipeline_tsne = tsne.TSNE_Plot(
-        force_rerun=False,
-        output_dir=output_dir,
-        perplexity=100)
-    t_plot = pipeline_tsne.run(features)
+    # pipeline_tsne = tsne.TSNE_Plot(
+    #     force_rerun=False,
+    #     output_dir=output_dir,
+    #     perplexity=100)
+    # vis_plot = pipeline_tsne.run(features)
+
+    pipeline_umap = umap_plot.UMAP_Plot(
+        force_rerun=True,
+        output_dir=output_dir)
+    vis_plot = pipeline_umap.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
     return {'dataset': image_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
-            'visualisation': t_plot, 
+            'visualisation': vis_plot, 
             'active_learning': pipeline_active_learning}
