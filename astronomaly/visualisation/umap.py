@@ -1,28 +1,35 @@
-import logging
-
 import umap
 import numpy as np
 import pandas as pd
 
 from astronomaly.base.base_pipeline import PipelineStage
+from astronomaly.base import logging_tools
 
 
-class UMap(PipelineStage):
+class UMAP_Plot(PipelineStage):
     # https://umap-learn.readthedocs.io/en/latest/api.html
-    def __init__(self, max_samples=1000, shuffle=False, min_dist=0.1, n_neighbors=15,
-                 **kwargs):
+    def __init__(self, min_dist=0.1, n_neighbors=15, max_samples=2000,
+                 shuffle=False, **kwargs):
         """
-        Rescales features using a standard sklearn scalar that subtracts the 
-        mean and divides by the standard deviation for each feature. Highly 
-        recommended for most machine learning algorithms and for any data 
-        visualisation such as t-SNE.
+        Computes a UMAP visualisation of the data
 
         Parameters
         ----------
-        perplexity : float, optional
-            The perplexity is related to the number of nearest neighbors that  
-            is used in other manifold learning algorithms (see t-SNE
-            documentation), by default 30
+        min_dist: float (optional, default 0.1)
+            (Taken from UMAP documentation)
+            The effective minimum distance between embedded points. Smaller
+            values will result in a more clustered/clumped embedding where
+            nearby points on the manifold are drawn closer together, while
+            larger values will result on a more even dispersal of points. The
+            value should be set relative to the spread value, which determines
+            the scale at which embedded points will be spread out.
+        n_neighbors: float (optional, default 15)
+            (Taken from UMAP documentation)
+            The size of local neighborhood (in terms of number of neighboring
+            sample points) used for manifold approximation. Larger values
+            result in more global views of the manifold, while smaller values
+            result in more local data being preserved. In general values
+            should be in the range 2 to 100.
         max_samples : int, optional
             Limits the computation to this many samples (by default 2000). Will
             be the first 2000 samples if shuffle=False. This is very useful as
@@ -31,7 +38,8 @@ class UMap(PipelineStage):
             Randomises the sample before selecting max_samples, by default 
             False
         """
-        super().__init__(**kwargs)
+        super().__init__(min_dist=min_dist, n_neighbors=n_neighbors,
+                         max_samples=max_samples, shuffle=shuffle, **kwargs)
         self.max_samples = max_samples
         self.shuffle = shuffle
         self.min_dist = min_dist
@@ -51,14 +59,13 @@ class UMap(PipelineStage):
         -------
         pd.DataFrame
             Returns a dataframe with the same index as the input features and
-            two columns, one for each dimension of the t-SNE plot.
-
+            two columns, one for each dimension of the UMAP plot.
         """
-        
+
         if len(features.columns.values) == 2:
-            logging.warning('Already dim 2 - skipping umap')
+            logging_tools.log('Already dim 2 - skipping umap', level='WARNING')
             return features.copy()
-        
+
         # copied from tsne
         if len(features) > self.max_samples:
             if not self.shuffle:
@@ -68,9 +75,10 @@ class UMap(PipelineStage):
                                         replace=False)
             features = features.loc[inds]
 
-        reducer = umap.UMAP(n_components=2, min_dist=self.min_dist, n_neighbors=self.n_neighbors)
-        logging.info('Beginning umap transform')
+        reducer = umap.UMAP(n_components=2, min_dist=self.min_dist,
+                            n_neighbors=self.n_neighbors)
+        logging_tools.log('Beginning umap transform')
         reduced_embed = reducer.fit_transform(features)
-        logging.info('umap transform complete')
+        logging_tools.log('umap transform complete')
 
         return pd.DataFrame(data=reduced_embed, index=features.index)
