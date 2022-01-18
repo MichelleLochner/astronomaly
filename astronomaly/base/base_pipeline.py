@@ -176,7 +176,19 @@ class PipelineStage(object):
             total_hash = hash_pandas_object(pd.DataFrame(
                 [hash_per_row.values]))
         except TypeError:
-            total_hash = hash_pandas_object(pd.DataFrame(data))
+            # Input data is not already a pandas dataframe
+            # Most likely it's an image (np.array)
+            # In order to hash, it has to be converted to a DataFrame so must
+            # be a 2d array
+            try:
+                if len(data.shape) > 2:
+                    data = data.ravel()
+                total_hash = hash_pandas_object(pd.DataFrame(data))
+            except (AttributeError, ValueError) as e:
+                # I'm not sure this could ever happen but just in case
+                logging_tools.log("""Data must be either a pandas dataframe or
+                numpy array""", level='ERROR')
+                raise e
         return int(total_hash.values[0])
 
     def run(self, data):
@@ -215,6 +227,8 @@ class PipelineStage(object):
             print('Running', self.class_name, '...')
             t1 = time.time()
             if self.drop_nans:
+                # This is ok here because everything after feature extraction
+                # is always a DataFrame
                 output = self._execute_function(data.dropna())
             else:
                 output = self._execute_function(data)
@@ -246,9 +260,7 @@ class PipelineStage(object):
         # *** WARNING: this has not been tested against adding new data and
         # *** ensuring the function is called for new data only
         dat = dataset.get_sample(dataset.index[0])
-        # Have to do a slight hack if the data is too high dimensional
-        if len(dat.shape) > 2:
-            dat = dat.ravel()
+
         new_checksum = self.hash_data(dat)
         if not self.args_same or new_checksum != self.checksum:
             # If the arguments have changed we rerun everything
@@ -266,7 +278,7 @@ class PipelineStage(object):
         print('Extracting features using', self.class_name, '...')
         t1 = time.time()
         logged_nan_msg = False
-        nan_msg = "NaNs detected in some input images." \
+        nan_msg = "NaNs detected in some input data." \
                   "NaNs will be set to zero. You can change " \
                   "behaviour by setting drop_nan=False"
 
@@ -284,9 +296,25 @@ class PipelineStage(object):
                     logging_tools.log(none_msg, level='WARNING')
                     continue
 
-                if self.drop_nans and np.any(np.isnull(input_instance)):
-                    input_instance = np.nan_to_num(input_instance)
-                    if not logged_nan_msg:
+                if self.drop_nans:
+                    found_nans = False
+                    try:
+                        if np.any(np.isnan(input_instance)):
+                            input_instance = np.nan_to_num(input_instance)
+                            found_nans = True
+                    except TypeError:
+                        # So far I've only found this happens when there are 
+                        # strings in a DataFrame
+                        for col in input_instance.columns:
+                            try:
+                                if np.any(np.isnan(input_instance[col])):
+                                    input_instance[col] = \
+                                        np.nan_to_num(input_instance[col])
+                                    found_nans = True
+                            except TypeError:
+                                # Probably just a column of strings
+                                pass
+                    if not logged_nan_msg and found_nans:
                         print(nan_msg)
                         logging_tools.log(nan_msg, level='WARNING')
                         logged_nan_msg = True

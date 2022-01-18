@@ -351,11 +351,13 @@ export class AnomalyTab extends React.Component {
     })
     .then((res) => {return res.json()})
     .then((res) => {
-      let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
-                res.ra + '%2C' + res.dec
-      let search_das = "https://das.datacentral.org.au/das?RA=" + 
-                res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0"
-      this.setState({search_cds:search_cds, search_das:search_das})
+      if(res.ra!=undefined){
+        let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
+                  res.ra + '%2C' + res.dec
+        let search_das = "https://das.datacentral.org.au/das?RA=" + 
+                  res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0"
+        this.setState({search_cds:search_cds, search_das:search_das})
+      }
     })
     .catch(console.log);
   }
@@ -435,7 +437,7 @@ export class AnomalyTab extends React.Component {
 
   render() {
     // console.log('Anomaly')
-    // console.log(this.props)
+    // console.log(this.state.search_cds)
       return(
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
                   <Grid item xs={12}></Grid>
@@ -582,18 +584,25 @@ export class AnomalyTab extends React.Component {
                         <ObjectDisplayer title='Features' object={this.state.features} />
                       </Grid>
                       <Grid item xs={8} >
-                        <Tooltip title="Opens the CDS portal to search for this object in other datasets" sx={{fontSize: 20}}>
-                          <Button variant="contained" color="primary" id="search1" href={this.state.search_cds} target="_blank">
-                            Search by Coordinates (CDS)
-                          </Button> 
-                        </Tooltip>
+                        {(this.state.search_cds.length >0) &&
+                        // Only display if there are coordinates to search by
+                          <Tooltip title="Opens the CDS portal to search for this object in other datasets" sx={{fontSize: 20}}>
+                            <Button variant="contained" color="primary" id="search1" href={this.state.search_cds} target="_blank">
+                              Search by Coordinates (CDS)
+                            </Button> 
+                          </Tooltip>
+                        }
                       </Grid>
+                        
                       <Grid item xs={8} >
-                        <Tooltip title="Opens DAS which contains extra datasets but requires login">
-                          <Button variant="contained" color="primary" id="search2" href={this.state.search_das} target="_blank">
-                            Search by Coordinates (DAS)
-                          </Button> 
-                        </Tooltip>
+                        {(this.state.search_das.length >0) &&
+                          // Only display if there are coordinates to search by
+                          <Tooltip title="Opens DAS which contains extra datasets but requires login">
+                            <Button variant="contained" color="primary" id="search2" href={this.state.search_das} target="_blank">
+                              Search by Coordinates (DAS)
+                            </Button> 
+                          </Tooltip>
+                        }
                       </Grid>
 
                     </Grid>

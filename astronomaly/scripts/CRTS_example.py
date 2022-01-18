@@ -63,7 +63,9 @@ def run_pipeline():
                           'FluxPercentileRatioMid65',
                           'FluxPercentileRatioMid80'],
         compute_on_mags=True,
-        ignore_warnings=False,  # Feets prints a lot of warnings to screen
+        # Feets prints a lot of warnings to screen, set this to true to ignore
+        # You may also want to run with `python -W ignore` (with caution)
+        ignore_warnings=True,  
         output_dir=output_dir,
         force_rerun=force_rerun)
 
