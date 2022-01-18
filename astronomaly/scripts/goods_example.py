@@ -43,14 +43,14 @@ for f in fls:
         break
 
 if not found_fits:
+    data_link = "https://archive.stsci.edu/pub/hlsp/goods/v2/" + \
+                "h_sb_sect23_v2.0_drz_img.fits "
     # No data to run on!
     print('No data found to run on, downloading some GOODS-S data...')
-    os.system(
-        "wget " +  # noqa
-        "https://archive.stsci.edu/pub/hlsp/goods/v2/" +
-        "h_sb_sect23_v2.0_drz_img.fits " +
-        "-P " + image_dir
-        )
+    print('If wget is slow, try downloading the data directly from this link:')
+    print(data_link)
+    print()
+    os.system("wget " + data_link + "-P " + image_dir)
     print('GOODS-S data downloaded.')
 
 
@@ -88,15 +88,15 @@ def run_pipeline():
 
     """
     image_dataset = image_reader.ImageDataset(
-            directory=image_dir,
-            window_size=window_size, output_dir=output_dir, plot_square=False,
-            transform_function=image_transform_function,
-            display_transform_function=display_transform_function,
-            plot_cmap=plot_cmap,
-            catalogue=catalogue,
-            band_prefixes=band_prefixes,
-            bands_rgb=bands_rgb
-            )  # noqa
+        directory=image_dir,
+        window_size=window_size, output_dir=output_dir, plot_square=False,
+        transform_function=image_transform_function,
+        display_transform_function=display_transform_function,
+        plot_cmap=plot_cmap,
+        catalogue=catalogue,
+        band_prefixes=band_prefixes,
+        bands_rgb=bands_rgb
+        )  # noqa
 
     if feature_method == 'psd':
         pipeline_psd = power_spectrum.PSD_Features(
