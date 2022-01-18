@@ -20,21 +20,22 @@ export class TimeSeriesPlot extends React.PureComponent {
       let filter_labels = this.props.light_curve_data.filter_labels;
       let filter_colors = this.props.light_curve_data.filter_colors;
       let plot_data_type = this.props.plot_data_type;
+      let ylabel = 'Flux';
+      let reversed = false;
 
       if (data == null) {
         return <div></div>
       }
 
       if (plot_data_type == 'mag') {
-        let ylabel = 'Magnitude';
-        let reversed = true;
+        ylabel = 'Magnitude';
+        reversed = true;
       }
 
-      else {
-        let ylabel = 'Flux';
-        let reversed = false;
-      }
-
+      // else {
+      //   const ylabel = 'Flux';
+      //   const reversed = false;
+      // }
 
       var i;
       let plot_series = [];
