@@ -25,7 +25,7 @@ Navigate to the Astronomaly folder.
 
 Make sure you've installed <a href="https://virtualenv.pypa.io/en/latest/installation.html">virtualenv</a> to create virtual environments with native python.
 
-Type: <br>
+Create the virtual environment: <br>
 `virtualenv venv_astronomaly` 
 
 Activate the environment: <br>
