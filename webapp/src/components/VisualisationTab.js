@@ -1,5 +1,10 @@
 import React from 'react';
 import Grid from '@material-ui/core/Grid';
+import Tooltip from '@material-ui/core/Tooltip';
+import FormHelperText from '@material-ui/core/FormHelperText';
+import FormControl from '@material-ui/core/FormControl';
+import { MenuItem } from '@material-ui/core';
+import Select from '@material-ui/core/Select';
 import {PlotContainer} from './PlotContainer.js'
 import Highcharts from 'highcharts'
 import HighchartsMore from 'highcharts/highcharts-more';
@@ -116,7 +121,15 @@ export class VisualisationTab extends React.Component {
       this.updateDisplayData = this.updateDisplayData.bind(this);
       this.getLightCurve = this.getLightCurve.bind(this);
       this.getRawFeatures = this.getRawFeatures.bind(this);
-      this.state = {data:[{x:0, y:0}], displayData:{}, light_curve_data:{}, raw_features_data:{}};
+      this.getAvailableColumns = this.getAvailableColumns.bind(this);
+      this.handleColourBy = this.handleColourBy.bind(this);
+      this.state = {
+        data:[{x:0, y:0}],
+        available_columns:{}, 
+        colourByColumn:'score',
+        displayData:{}, 
+        light_curve_data:{}, 
+        raw_features_data:{}};
     }
     updateDisplayData(newData){
       if (this.props.datatype == 'image')
@@ -133,7 +146,7 @@ export class VisualisationTab extends React.Component {
           headers: {
               'Content-Type': 'application/json'
           },
-          body: JSON.stringify("tsne")
+          body: JSON.stringify(this.state.colourByColumn)
         })
         .then(res => res.json())
         .then((res) =>{
@@ -155,7 +168,8 @@ export class VisualisationTab extends React.Component {
           return reformattedArray;
         })
         .then((res) => {
-          this.setState({data:res})})
+          this.setState({data:res})
+        })
         .catch(console.log)
       }
 
@@ -185,15 +199,63 @@ export class VisualisationTab extends React.Component {
       .catch(console.log);
     }
 
+    getAvailableColumns(){
+      fetch("/getColumns", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify("")
+      })
+      .then(res => res.json())
+      .then((res) => {
+        this.setState({available_columns:res});
+      })
+      .catch(console.log)
+    }
+
+    handleColourBy(e){
+      const colourByColumn = e.target.value;
+      this.setState({colourByColumn:colourByColumn}, this.getVisualisation);
+    }
+
     componentDidMount() {
+      this.getAvailableColumns();
       this.getVisualisation();
     }
 
     render() {
         // Only render this component once the data has been read in
         let scatter = <div></div>;
+        let dropdown = <div></div>;
+        // console.log('render')
+        
         if (this.state.data.length > 1) {
           scatter =  <MakeScatter id='scatter' data={this.state.data} callBack={this.updateDisplayData}/>
+
+          let menuItems = [];
+          let column_names = this.state.available_columns;
+          for (const [col, text] of Object.entries(column_names)) {
+              menuItems.push(<MenuItem key={col} value={col}>{text}</MenuItem>)
+          }
+
+          let form = 
+          <FormControl variant="outlined" fullWidth={true}     margin='dense'>
+              <Select id="select" onChange={this.handleColourBy} value={this.state.colourByColumn}>
+                {menuItems}
+              </Select>
+            <FormHelperText>Scoring method to colour by</FormHelperText>
+          </FormControl>
+
+          let htext = ""
+          if (Object.keys(this.state.available_columns).length < 2) {
+            htext = "Some options only available after running active learning" }
+          
+          dropdown = 
+          <Tooltip title={htext} sx={{fontSize: 20}}>
+              {form}
+          </Tooltip>
+
         }
         return(
             <Grid component='div' container spacing={3} direction={'column'}>
@@ -210,7 +272,7 @@ export class VisualisationTab extends React.Component {
                     {scatter}
                   </Grid>
                   <Grid item>
-                    <div></div>
+                    {dropdown}
                   </Grid>
                 </Grid>
 

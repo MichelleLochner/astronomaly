@@ -120,7 +120,7 @@ def run_pipeline():
     # We use UMAP for visualisation which is run in the same way as other parts
     # of the pipeline.
     pipeline_umap = umap_plot.UMAP_Plot(
-        force_rerun=True,
+        force_rerun=False,
         output_dir=output_dir)
     vis_plot = pipeline_umap.run(features)
 

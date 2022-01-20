@@ -28,6 +28,13 @@ class Controller:
         self.module_name = None
         self.active_learning = None
         self.current_index = 0  # Index in the anomalies list
+        # A dictionary to be used by the frontend for column names when 
+        # colouring the visualisation plot
+        self.column_name_dict = {
+            'score': 'Raw anomaly score',
+            'trained_score': 'Active learning score',
+            'predicted_user_score': 'Predicted user score'
+        }
 
         self.set_pipeline_script(pipeline_file)
 
@@ -124,6 +131,7 @@ class Controller:
         """
         Runs the selected active learning algorithm.
         """
+
         has_no_labels = 'human_label' not in self.anomaly_scores.columns
         labels_unset = np.sum(self.anomaly_scores['human_label'] != -1) == 0
         if has_no_labels or labels_unset:
@@ -135,9 +143,12 @@ class Controller:
             features_with_labels = \
                 pipeline_active_learning.combine_data_frames(
                     self.features, self.anomaly_scores)
-            # print(features_with_labels)
-            scores = pipeline_active_learning.run(features_with_labels)
-            self.anomaly_scores['trained_score'] = scores
+            active_output = pipeline_active_learning.run(features_with_labels)
+
+            # This is safer than pd.combine which always makes new columns
+            for col in active_output.columns:
+                self.anomaly_scores[col] = \
+                    active_output.loc[self.anomaly_scores.index, col]
             return "success"
 
     def delete_labels(self):
@@ -150,6 +161,17 @@ class Controller:
             self.anomaly_scores['human_label'] = -1
         print('All user-applied labels have been reset to -1 (i.e. deleted)')
 
+    def get_active_learning_columns(self):
+        """
+        Checks if active learning has been run and returns appropriate columns
+        to use in plotting
+        """
+        out_dict = {}
+        for col in self.anomaly_scores.columns:
+            if col in self.column_name_dict.keys():
+                out_dict[col] = self.column_name_dict[col]
+        return out_dict
+
     def get_visualisation_data(self, color_by_column=''):
         """
         Returns the data for the visualisation plot in the correct json format.
@@ -158,7 +180,10 @@ class Controller:
         ----------
         color_by_column : str, optional
             If given, the points on the plot will be coloured by this column so
-            for instance, more anomalous objects are brighter.
+            for instance, more anomalous objects are brighter. Current options
+            are: 'score' (raw ML anomaly score), 'trained_score' (score after
+            active learning) and 'user_predicted_score' (the regressed values
+            of the human applied labels)
 
         Returns
         -------
@@ -167,7 +192,8 @@ class Controller:
         """
         clst = self.visualisation
         if clst is not None:
-            if len(color_by_column) == 0:
+            if color_by_column == '':
+                # Column would have already been checked by frontend
                 cols = [0.5] * len(clst)
                 clst['color'] = cols
             else:

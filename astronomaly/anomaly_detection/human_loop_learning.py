@@ -229,6 +229,7 @@ class NeighbourScore(PipelineStage):
         trained_score = self.anom_func(distances, 
                                        regressed_score, 
                                        features_with_labels.score.values)
-        return pd.DataFrame(data=trained_score, 
+        dat = np.column_stack(([regressed_score, trained_score]))
+        return pd.DataFrame(data=dat, 
                             index=features_with_labels.index, 
-                            columns=['trained_score'])
+                            columns=['predicted_user_score', 'trained_score'])
