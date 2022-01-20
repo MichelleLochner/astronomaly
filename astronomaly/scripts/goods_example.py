@@ -6,7 +6,7 @@ from astronomaly.feature_extraction import shape_features
 from astronomaly.dimensionality_reduction import pca
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import tsne_plot
 import os
 import pandas as pd
 
@@ -147,7 +147,7 @@ def run_pipeline():
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, output_dir=output_dir)
 
-    pipeline_tsne = tsne.TSNE_Plot(
+    pipeline_tsne = tsne_plot.TSNE_Plot(
         force_rerun=False,
         output_dir=output_dir,
         perplexity=50)

@@ -3,7 +3,7 @@ import os
 import numpy as np
 from astronomaly.data_management import raw_features
 from astronomaly.anomaly_detection import lof, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import tsne_plot
 
 # Root directory for data
 data_dir = os.path.join(os.getcwd(), 'example_data', )
@@ -62,7 +62,7 @@ def run_pipeline():
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, force_rerun=True, output_dir=output_dir)
 
-    pipeline_tsne = tsne.TSNE_Plot(output_dir=output_dir, perplexity=50)
+    pipeline_tsne = tsne_plot.TSNE_Plot(output_dir=output_dir, perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])
 
     return {'dataset': raw_dataset, 

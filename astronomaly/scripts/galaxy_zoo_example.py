@@ -4,7 +4,7 @@ from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne, umap_plot
+from astronomaly.visualisation import umap_plot
 import os
 import pandas as pd
 import zipfile
@@ -117,14 +117,8 @@ def run_pipeline():
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, output_dir=output_dir)
 
-    # We use TSNE for visualisation which is run in the same way as other parts
+    # We use UMAP for visualisation which is run in the same way as other parts
     # of the pipeline.
-    # pipeline_tsne = tsne.TSNE_Plot(
-    #     force_rerun=False,
-    #     output_dir=output_dir,
-    #     perplexity=100)
-    # vis_plot = pipeline_tsne.run(features)
-
     pipeline_umap = umap_plot.UMAP_Plot(
         force_rerun=True,
         output_dir=output_dir)

@@ -3,7 +3,7 @@ from astronomaly.data_management import light_curve_reader
 from astronomaly.feature_extraction import feets_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import tsne_plot
 import os
 import pandas as pd
 
@@ -112,7 +112,7 @@ def run_pipeline():
 
     # We use TSNE for visualisation which is run in the same way as other parts
     # of the pipeline.
-    pipeline_tsne = tsne.TSNE_Plot(
+    pipeline_tsne = tsne_plot.TSNE_Plot(
         force_rerun=False,
         output_dir=output_dir,
         perplexity=100)
