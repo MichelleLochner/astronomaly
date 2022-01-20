@@ -44,7 +44,14 @@ HighchartsColorAxis(Highcharts);
         text: ''
       },
       
-      legend: {enabled:false},
+      legend: {
+        title: {
+            text: 'Score'
+        },
+        layout: 'vertical',
+        align: 'right',
+        verticalAlign: 'middle'
+    },
       xAxis: {
               title:{text:'Arbitrary units'},
               tickLength:0,
@@ -56,14 +63,17 @@ HighchartsColorAxis(Highcharts);
               },
       colorAxis: {
               min: 0,
-              max: 4,
+              max: 5,
               stops: [
                 [0, '#000004'], 
                 [0.2, '#2c115f'], 
                 [0.4, '#721f81'], 
                 [0.6, '#b73779'], 
                 [0.8,'#f1605d'], 
-                [1.0, '#feb078']]
+                [1.0, '#feb078']],
+              reversed: false,
+              endOnTick: false,
+              tickInterval: 1
       },
       tooltip: {formatter: function(){
                   return 'ID: ' + data_org[this.point.index].id + 
