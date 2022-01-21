@@ -74,6 +74,20 @@ def get_metadata():
         return ""
 
 
+@app.route('/getcoordinates', methods=["POST"])
+def get_coordinates():
+    """
+    Serves the coordinates (if available) for a particular object in string
+    format, separated by a comma
+    """
+    if request.method == "POST":
+        idx = str(request.get_json())
+        output = controller.get_coordinates(idx)
+        return json.dumps(output)
+    else:
+        return ""
+
+
 @app.route('/getlightcurve', methods=["POST"])
 def get_light_curve():
     """
@@ -131,17 +145,31 @@ def get_image():
         return ""
 
 
+@app.route('/getColumns', methods=["GET", "POST"])
+def get_available_columns():
+    """
+    Tells the frontend whether or not active learning has been run so that it 
+    can display the appropriate options when selecting which column to colour 
+    by
+    """  
+    if request.method == "POST":
+        output = controller.get_active_learning_columns()
+        return json.dumps(output)
+    else:
+        return ""
+
+
 @app.route('/visualisation', methods=["GET", "POST"])
 def get_visualisation():
     """
     Serves the data to be displayed on the visualisation tab
     """
     if request.method == "POST":
-        technique = request.get_json()
-        if technique == 'tsne':
-            output = controller.get_visualisation_data(color_by_column='score')
-            js = json.dumps(output)
-            return js
+        color_by_column = request.get_json()
+        output = controller.get_visualisation_data(
+            color_by_column=color_by_column)
+        js = json.dumps(output)
+        return js
 
 
 @app.route('/retrain', methods=["GET", "POST"])
@@ -149,7 +177,16 @@ def retrain():
     """
     Calls the human-in-the-loop learning
     """
-    controller.run_active_learning()
+    res = controller.run_active_learning()
+    return json.dumps(res)
+
+
+@app.route('/deletelabels', methods=["GET", "POST"])
+def delete_labels():
+    """
+    Deletes the existing labels allowing the user to start again
+    """
+    controller.delete_labels()
     return json.dumps("success")
 
 

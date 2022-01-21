@@ -1,30 +1,28 @@
 import React from 'react';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
-// import {makeStyles } from '@material-ui/core/styles';
-import {createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles'
+import {createTheme, MuiThemeProvider } from '@material-ui/core/styles'
 import { blue, indigo, green, grey } from '@material-ui/core/colors';
 import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import {PlotImage} from './PlotImage.js';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
-import InputLabel from '@material-ui/core/InputLabel';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
-import {TimeSeriesPlot} from './PlotLightCurve.js';
+import { MenuItem } from '@material-ui/core';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
-import { MenuItem, Icon } from '@material-ui/core';
-import Divider from '@material-ui/core/Divider';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import IconButton from '@material-ui/core/IconButton';
 import SkipNext from '@material-ui/icons/SkipNext';
 import SkipPrevious from '@material-ui/icons/SkipPrevious';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Tooltip from '@material-ui/core/Tooltip';
 
-const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
+const muiTheme = createTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
                                             
 
@@ -40,11 +38,14 @@ export class AnomalyTab extends React.Component {
     this.handleSortBy = this.handleSortBy.bind(this);
     this.changeSortBy = this.changeSortBy.bind(this);
     this.handleRetrainButton = this.handleRetrainButton.bind(this);
+    this.handleDeleteLabelsButton = this.handleDeleteLabelsButton.bind(this);
+    this.handleDialogClose = this.handleDialogClose.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
     this.updateOriginalID = this.updateOriginalID.bind(this);
     this.getLightCurve = this.getLightCurve.bind(this);
     this.updateObjectData = this.updateObjectData.bind(this);
     this.getMetadata = this.getMetadata.bind(this);
+    this.getCoordinates = this.getCoordinates.bind(this);
     this.getFeatures = this.getFeatures.bind(this);
     this.getRawFeatures = this.getRawFeatures.bind(this);
     this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
@@ -62,6 +63,8 @@ export class AnomalyTab extends React.Component {
                  raw_features_data:{data:[],categories:[]},
                  features:{},
                  metadata:{},
+                 search_cds:'',
+                 search_das:'',
                  button_colors:{"0": "primary",
                                 "1": "primary",
                                 "2": "primary",
@@ -69,7 +72,8 @@ export class AnomalyTab extends React.Component {
                                 "4": "primary",
                                 "5": "primary"},
                  sortby:"score",
-                 training: false};
+                 training: false,
+                 dialog_open: false};
     
     // this.getImage(this.state.id);
   }
@@ -172,9 +176,38 @@ export class AnomalyTab extends React.Component {
       },
       body: JSON.stringify('retrain')
     })
-    .then((res) => {this.setState({sortby:"trained_score", training:false});
-                    this.changeSortBy("trained_score")})
+    .then((res) => {return res.json()})
+    .then((res) => {
+      if (res == "success") {
+        this.setState({sortby:"trained_score", training:false});
+        this.changeSortBy("trained_score")
+      }
+      else {
+        this.setState({training:false})
+      }
+    })
     .catch(console.log)
+  }
+
+  handleDeleteLabelsButton(e) {
+    this.setState({dialog_open:true});
+  }
+
+  handleDialogClose(e) {
+    if (e.currentTarget.id == "dialog_yes") {
+      fetch("/deletelabels", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify('deletelabels')
+      })
+      .then((res) => {this.setState({sortby:"score", dialog_open:false})})
+      .then((res) => this.changeSortBy("score"))
+      .then((res) => this.resetButtonColors())
+      .catch(console.log)}
+    else {
+      this.setState({dialog_open:false})}
   }
 
   /**
@@ -243,6 +276,7 @@ export class AnomalyTab extends React.Component {
       this.getRawFeatures(newOriginalId)
     this.getFeatures(newOriginalId);
     this.getMetadata(newOriginalId);
+    this.getCoordinates(newOriginalId);
     this.setCurrentListIndex();
   }
 
@@ -306,6 +340,28 @@ export class AnomalyTab extends React.Component {
     .then((res) => {this.changeButtonColor(parseInt(this.state.metadata.human_label).toString())})
     .catch(console.log);
   }
+
+  getCoordinates(original_id){
+    fetch("getcoordinates", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    .then((res) => {
+      if(res.ra!=undefined){
+        let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
+                  res.ra + '%2C' + res.dec
+        let search_das = "https://das.datacentral.org.au/das?RA=" + 
+                  res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0"
+        this.setState({search_cds:search_cds, search_das:search_das})
+      }
+    })
+    .catch(console.log);
+  }
+
 
   updateOriginalID(ind){
     fetch("/getindex", {
@@ -381,11 +437,11 @@ export class AnomalyTab extends React.Component {
 
   render() {
     // console.log('Anomaly')
-    // console.log(this.props)
+    // console.log(this.state.search_cds)
       return(
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
                   <Grid item xs={12}></Grid>
-                  <Grid item container xs={8} justify="center">
+                  <Grid item container xs={8} justifyContent="center">
                       {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3} alignItems="center">
                         <Grid item xs={12} align="center">
@@ -418,7 +474,7 @@ export class AnomalyTab extends React.Component {
                         </Grid>
                       </Grid>
                               
-                        <Grid item xs={12} container justify="center">
+                        <Grid item xs={12} container justifyContent="center">
 
                           <Grid item xs={4}>
                             <Typography variant="overline" display="block">
@@ -454,12 +510,12 @@ export class AnomalyTab extends React.Component {
                             
                         </Grid>
 
-                        <Grid item xs={12} container justify="center" alignItems="center">
+                        <Grid item xs={12} container justifyContent="center" alignItems="center">
                           {/* <Grid container alignItems="center"> */}
                             {/* <Grid item xs={1}>
                             </Grid> */}
                             <Grid item xs={6}>
-                              <Grid container item xs={12} justify="center">
+                              <Grid container item xs={12} justifyContent="center">
                                 <Grid item xs={8}>
                                 <FormControl variant="outlined" fullWidth={true} margin='dense'>
                                   {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
@@ -474,9 +530,37 @@ export class AnomalyTab extends React.Component {
                                 <Grid item xs={2}></Grid>
                               </Grid>
                             </Grid>
-                            <Grid item xs={2}></Grid>
-                            <Grid item xs={2}>
+                            <Grid item xs={1}></Grid>
+                            <Grid item xs={3}>
                             {this.state.training && <CircularProgress/>}
+                            {!this.state.training && 
+                              <Button variant="contained" color="primary" id="delete_labels" onClick={this.handleDeleteLabelsButton}> 
+                                Delete Labels
+                              </Button> }
+                              <Dialog
+                                open={this.state.dialog_open}
+                                onClose={this.handleDialogClose}
+                                aria-labelledby="alert-dialog-title"
+                                aria-describedby="alert-dialog-description"
+                              >
+                                <DialogTitle id="alert-dialog-title">{"Delete all user labels?"}</DialogTitle>
+                                <DialogContent>
+                                  <DialogContentText id="alert-dialog-description">
+                                    This will permanently delete all the labels that you may have painstakingly applied to the data.
+                                    Are you sure you want to do this?
+                                  </DialogContentText>
+                                </DialogContent>
+                                <DialogActions>
+                                  <Button onClick={this.handleDialogClose} id="dialog_no" color="primary" autoFocus>
+                                    No
+                                  </Button>
+                                  <Button onClick={this.handleDialogClose} id="dialog_yes" color="primary">
+                                    Yes
+                                  </Button>
+                                </DialogActions>
+                              </Dialog>
+
+
                             </Grid>
                             
                             <Grid item xs={2}>
@@ -499,6 +583,28 @@ export class AnomalyTab extends React.Component {
                       <Grid item xs={8}>
                         <ObjectDisplayer title='Features' object={this.state.features} />
                       </Grid>
+                      <Grid item xs={8} >
+                        {(this.state.search_cds.length >0) &&
+                        // Only display if there are coordinates to search by
+                          <Tooltip title="Opens the CDS portal to search for this object in other datasets" sx={{fontSize: 20}}>
+                            <Button variant="contained" color="primary" id="search1" href={this.state.search_cds} target="_blank">
+                              Search by Coordinates (CDS)
+                            </Button> 
+                          </Tooltip>
+                        }
+                      </Grid>
+                        
+                      <Grid item xs={8} >
+                        {(this.state.search_das.length >0) &&
+                          // Only display if there are coordinates to search by
+                          <Tooltip title="Opens DAS which contains extra datasets but requires login">
+                            <Button variant="contained" color="primary" id="search2" href={this.state.search_das} target="_blank">
+                              Search by Coordinates (DAS)
+                            </Button> 
+                          </Tooltip>
+                        }
+                      </Grid>
+
                     </Grid>
                   </Grid>
                   <Grid item xs={12}>

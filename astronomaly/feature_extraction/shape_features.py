@@ -30,8 +30,8 @@ def find_contours(img, threshold):
     img_bin[img <= threshold] = 0
     img_bin[img > threshold] = 1
 
-    contours, hierarchy = cv2.findContours(img_bin, 
-                                           cv2.RETR_EXTERNAL, 
+    contours, hierarchy = cv2.findContours(img_bin,
+                                           cv2.RETR_EXTERNAL,
                                            cv2.CHAIN_APPROX_SIMPLE)
 
     return contours, hierarchy
@@ -68,20 +68,24 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
         ellipse_arr = image.copy()
 
     # Sets some defaults for when the fitting fails
-    default_return_params = [np.nan] * 5 
+    default_return_params = [np.nan] * 5
     raised_error = False
 
     try:
         ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(contour)
         ellipse_params = x0, y0, maj_axis, min_axis, theta
 
-        if np.any(np.isnan(ellipse_params)):
+        if np.any(np.isnan(ellipse_params)) or y0 < 0 or x0 < 0:
             raised_error = True
             logging_tools.log('fit_ellipse failed with unknown error:')
 
     except cv2.error as e:
         logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
         raised_error = True
+
+    if x0 > len(image) or y0 > len(image):
+        raised_error = True
+        logging_tools.log('fit_ellipse failed with unknown error:')
 
     if raised_error:
         if return_params:
@@ -95,7 +99,7 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
     min_axis = int(np.round(min_axis))
     theta = int(np.round(theta))
 
-    cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2), 
+    cv2.ellipse(ellipse_arr, (x0, y0), (maj_axis // 2, min_axis // 2),
                 theta, 0, 360, (1, 1, 1), thickness)
 
     if return_params:
@@ -223,8 +227,84 @@ def get_hu_moments(img):
     return hu_feats
 
 
+def check_extending_ellipses(img, threshold, return_params=False):
+    """
+    Checks and flags images when the contour extends beyond the image size.
+    Used to check whether the image size (window size) must be increased.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (must be 2d, no channel information)
+    threshold : 
+        Threshold values for drawing the outermost contour.
+    return_params : bool
+        If true also returns the parameters of the fitted ellipse
+
+    Returns
+    -------
+    boolean
+        Value that flags whether the ellipse extending beyond the image or not.
+    """
+
+    width = img.shape[0]
+    height = img.shape[1]
+
+    old_window = img.shape
+
+    new_width = width * 3
+    new_height = height * 3
+
+    blank_canvas = np.zeros((new_width, new_height), dtype=np.float)
+
+    contours, hierarchy = find_contours(img, threshold)
+
+    # Sets some defaults for when the fitting fails
+    default_return_params = [np.nan] * 5
+    raised_error = False
+
+    try:
+        ((x0, y0), (maj_axis, min_axis), theta) = cv2.fitEllipse(
+            np.float32(contours[0]))
+        ellipse_params = x0, y0, maj_axis, min_axis, theta
+
+        if np.any(np.isnan(ellipse_params)) or y0 < 0 or x0 < 0:
+            raised_error = True
+            logging_tools.log('fit_ellipse failed with unknown error:')
+
+    except cv2.error as e:
+        logging_tools.log('fit_ellipse failed with cv2 error:' + e.msg)
+        raised_error = True
+
+    if raised_error:
+        contour_extends = False
+        return contour_extends, old_window
+
+    x0_new = int(np.round(x0)) + (int(width))
+    y0_new = int(np.round(y0)) + (int(height))
+    maj_axis = int(np.round(maj_axis))
+    min_axis = int(np.round(min_axis))
+    theta = int(np.round(theta))
+
+    ellipse = cv2.ellipse(blank_canvas, (x0_new, y0_new),
+                          (maj_axis // 2, min_axis // 2
+                           ), theta, 0, 360, (1, 1, 1), 1)
+    ellipse[int(width*1):int(width*2), int(height*1):int(height*2)] = 0
+
+    if ellipse.any() != 0:
+        dif = np.sqrt((x0 - width/2)**2 + (y0 - height/2)**2)
+        new_window = int((max(min_axis, maj_axis) + dif) * 1.25)
+        contour_extends = True
+        return contour_extends, new_window
+    else:
+        contour_extends = False
+        return contour_extends, old_window
+
+      
 class EllipseFitFeatures(PipelineStage):
-    def __init__(self, percentiles=[90, 70, 50, 0], channel=None, **kwargs):
+    def __init__(self, percentiles=[90, 70, 50, 0], channel=None,
+                 upper_limit=100, check_for_extended_ellipses=False,
+                 **kwargs):
         """
         Computes a fit to an ellipse for an input image. Translation and 
         rotation invariate features. Warning: it's strongly recommended to
@@ -235,19 +315,39 @@ class EllipseFitFeatures(PipelineStage):
         ----------
         channel : int
             Specify which channel to use for multiband images
-        percentiles: array-like
+        percentiles : array-like
             What percentiles to use as thresholds for the ellipses
+        check_for_extended_ellipses : boolean
+            Activates the check that determins whether or not the outermost 
+            ellipse extends beyond the image
+        upper_limit : int
+            Sets the upper limit to the up-scaling feature of the class. Used
+            when there are not enough pixels available to fit an ellipse. 
+            Default is 100.
         """
 
-        super().__init__(percentiles=percentiles, channel=channel, **kwargs)
+        super().__init__(percentiles=percentiles, channel=channel,
+                         check_for_extended_ellipses=check_for_extended_ellipses,
+                         upper_limit=upper_limit, **kwargs)
 
         self.percentiles = percentiles
         self.labels = []
-        feat_labs = ['Residual_%d', 'Offset_%d', 'Aspect_%d', 'Theta_%d']
+        feat_labs = ['Residual_%d', 'Offset_%d',
+                     'Aspect_%d', 'Theta_%d', 'Maj_%d']
+
+        self.feat_labs = feat_labs
+
         for f in feat_labs:
             for n in percentiles:
                 self.labels.append(f % n)
+
         self.channel = channel
+        self.check_for_extended_ellipses = check_for_extended_ellipses
+        self.upper_limit = upper_limit
+
+        if check_for_extended_ellipses:
+            self.labels.append('Warning_Open_Ellipse')
+            self.labels.append('Recommended_Window_Size')
 
     def _execute_function(self, image):
         """
@@ -282,9 +382,15 @@ class EllipseFitFeatures(PipelineStage):
         x_cent = this_image.shape[0] // 2
         y_cent = this_image.shape[1] // 2
 
-        feats = []
+        warning_open_ellipses = []
+        new_window = []
+        #feats = []
+        stop = False
+
+        scale = [i for i in np.arange(100, self.upper_limit + 1, 1)]
+
         # Start with the closest in contour (highest percentile)
-        percentiles = np.sort(self.percentiles)[::-1] 
+        percentiles = np.sort(self.percentiles)[::-1]
 
         if np.all(this_image == 0):
             failed = True
@@ -293,111 +399,155 @@ class EllipseFitFeatures(PipelineStage):
             failed = False
             failure_message = ""
 
-        for p in percentiles:
-            if failed:
-                contours = []
-            else:
-                thresh = np.percentile(this_image[this_image > 0], p)
-                contours, hierarchy = find_contours(this_image, thresh)
+        for a in scale:
+            lst = []
+            feats = []
 
-                x_contours = np.zeros(len(contours))
-                y_contours = np.zeros(len(contours))
+            for p in percentiles:
+                lst.append(p)
+                width = int(image.shape[1] * (a / 100))
+                height = int(image.shape[0] * (a / 100))
+                dim = (width, height)
+                resize = cv2.resize(
+                    this_image, dim, interpolation=cv2.INTER_AREA)
 
-            # First attempt to find the central point of the inner most contour
-            if len(contours) != 0:
-                for k in range(len(contours)):
-                    M = cv2.moments(contours[k])
-                    try:
-                        x_contours[k] = int(M["m10"] / M["m00"])
-                        y_contours[k] = int(M["m01"] / M["m00"])
-                    except ZeroDivisionError:
-                        pass
-                if x0 == -1:
-                    x_diff = x_contours - x_cent
-                    y_diff = y_contours - y_cent
+                if failed:
+                    contours = []
                 else:
-                    x_diff = x_contours - x0
-                    y_diff = y_contours - y0
+                    thresh = np.percentile(resize[resize > 0], p)
+                    contours, hierarchy = find_contours(resize, thresh)
 
-                # Will try to find the CLOSEST contour to the central one
-                r_diff = np.sqrt(x_diff**2 + y_diff**2)
+                    x_contours = np.zeros(len(contours))
+                    y_contours = np.zeros(len(contours))
 
-                ind = np.argmin(r_diff)
-
-                if x0 == -1:
-                    x0 = x_contours[ind]
-                    y0 = y_contours[ind]
-
-                c = contours[ind]
-
-                params = get_ellipse_leastsq(c, this_image)
-                # Params return in this order:
-                # residual, x0, y0, maj_axis, min_axis, theta
-                if np.any(np.isnan(params)):
-                    failed = True
-                else:
-                    if params[3] == 0 or params[4] == 0:
-                        aspect = 1
+                # First attempt to find the central point of the inner most contour
+                if len(contours) != 0:
+                    for k in range(len(contours)):
+                        M = cv2.moments(contours[k])
+                        try:
+                            x_contours[k] = int(M["m10"] / M["m00"])
+                            y_contours[k] = int(M["m01"] / M["m00"])
+                        except ZeroDivisionError:
+                            pass
+                    if x0 == -1:
+                        x_diff = x_contours - x_cent
+                        y_diff = y_contours - y_cent
                     else:
-                        aspect = params[4] / params[3]
+                        x_diff = x_contours - x0
+                        y_diff = y_contours - y0
 
-                    if aspect < 1:
-                        aspect = 1 / aspect
-                    if aspect > 100:
-                        aspect = 1
+                    # Will try to find the CLOSEST contour to the central one
+                    r_diff = np.sqrt(x_diff**2 + y_diff**2)
 
-                    new_params = params[:3] + [aspect] + [params[-1]]
-                    feats.append(new_params)
-            else:
-                failed = True
-                failure_message = "No contour found"
+                    ind = np.argmin(r_diff)
 
-            if failed:
-                feats.append([np.nan] * 5)
-                logging_tools.log(failure_message)
+                    if x0 == -1:
+                        x0 = x_contours[ind]
+                        y0 = y_contours[ind]
 
-        # Now we have the leastsq value, x0, y0, aspect_ratio, theta for each 
-        # sigma
-        # Normalise things relative to the highest threshold value
-        # If there were problems with any sigma levels, set all values to NaNs
-        if np.any(np.isnan(feats)):
-            return [np.nan] * 4 * len(self.percentiles)
-        else:
-            max_ind = np.argmax(self.percentiles)
+                    c = contours[ind]
 
-            residuals = []
-            dist_to_centre = []
-            aspect = []
-            theta = []
+                    # Minimum of 5 points are needed to draw a unique ellipse
+                    if len(c) < 5:
+                        break
 
-            x0_max_sigma = feats[max_ind][1]
-            y0_max_sigma = feats[max_ind][2]
-            aspect_max_sigma = feats[max_ind][3]
-            theta_max_sigma = feats[max_ind][4]
+                    params = get_ellipse_leastsq(c, resize)
 
-            for n in range(len(feats)):
-                prms = feats[n]
-                residuals.append(prms[0])
-                if prms[1] == 0 or prms[2] == 0:
-                    r = 0
+                    # Check whether or not the outermost ellipse extends
+                    # beyond the image
+                    if self.check_for_extended_ellipses and p == percentiles[-1]:
+                        check, window = check_extending_ellipses(
+                            resize, thresh)
+                        if check:
+                            new_window.append(window)
+                            warning_open_ellipses.append(1)
+                        else:
+                            new_window.append(int(window[1]))
+                            warning_open_ellipses.append(0)
+
+                    # Params return in this order:
+                    # residual, x0, y0, maj_axis, min_axis, theta
+                    if np.any(np.isnan(params)):
+                        failed = True
+                    else:
+                        if params[3] == 0 or params[4] == 0:
+                            aspect = 1
+                        else:
+                            aspect = params[4] / params[3]
+
+                        if aspect < 1:
+                            aspect = 1 / aspect
+                        if aspect > 100:
+                            aspect = 1
+
+                        new_params = params[:3] + [aspect] + [params[-1]]
+                        feats.append(new_params)
+
                 else:
-                    x_diff = prms[1] - x0_max_sigma
-                    y_diff = prms[2] - y0_max_sigma
-                    r = np.sqrt((x_diff)**2 + (y_diff)**2)
-                dist_to_centre.append(r)
-                aspect.append(prms[3] / aspect_max_sigma)
-                theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
-                # Because there's redundancy about which way an ellipse 
-                # is aligned, we always take the acute angle
-                if theta_diff > 90:
-                    theta_diff -= 90
-                theta.append(theta_diff)
+                    failed = True
+                    failure_message = "No contour found"
 
-            return np.hstack((residuals, dist_to_centre, aspect, theta))
+                if failed:
+                    feats.append([np.nan] * 5)
+                    logging_tools.log(failure_message)
 
+                # Now we have the leastsq value, x0, y0, aspect_ratio,
+                # theta for each sigma
+                # Normalise things relative to the highest threshold value
+                # If there were problems with any sigma levels,
+                # set all values to NaNs
+                if np.any(np.isnan(feats)):
+                    return [np.nan] * len(self.feat_labs) * len(self.percentiles)
+                else:
+                    max_ind = np.argmax(self.percentiles)
+
+                    residuals = []
+                    dist_to_centre = []
+                    aspect = []
+                    theta = []
+                    maj = []
+
+                    x0_max_sigma = feats[max_ind][1]
+                    y0_max_sigma = feats[max_ind][2]
+                    aspect_max_sigma = feats[max_ind][3]
+                    theta_max_sigma = feats[max_ind][4]
+
+                    for n in range(len(feats)):
+                        prms = feats[n]
+                        residuals.append(prms[0])
+                        if prms[1] == 0 or prms[2] == 0:
+                            r = 0
+                        else:
+                            x_diff = prms[1] - x0_max_sigma
+                            y_diff = prms[2] - y0_max_sigma
+                            r = np.sqrt((x_diff)**2 + (y_diff)**2)
+                        dist_to_centre.append(r)
+                        aspect.append(prms[3] / aspect_max_sigma)
+                        theta_diff = np.abs(prms[4] - theta_max_sigma) % 360
+
+                        # Because there's redundancy about which way an ellipse
+                        # is aligned, we always take the acute angle
+                        if theta_diff > 90:
+                            theta_diff -= 90
+                        theta.append(theta_diff)
+                        maj.append(prms[3])
+                        features = np.hstack(
+                            (residuals, dist_to_centre, aspect, theta, maj))
+
+            if len(lst) == len(percentiles):
+                break
+            if a == self.upper_limit:
+                features = [np.nan] * \
+                    len(self.feat_labs) * len(self.percentiles)
+
+        if self.check_for_extended_ellipses:
+            features = np.append(features, warning_open_ellipses)
+            features = np.append(features, new_window)
+
+        return features
 
 class HuMomentsFeatures(PipelineStage):
-    def __init__(self, sigma_levels=[1, 2, 3, 4, 5], channel=None, 
+    def __init__(self, sigma_levels=[1, 2, 3, 4, 5], channel=None,
                  central_contour=False, **kwargs):
         """
         Computes the Hu moments for the contours at specified levels in an
@@ -415,7 +565,7 @@ class HuMomentsFeatures(PipelineStage):
             image
         """
 
-        super().__init__(sigma_levels=sigma_levels, channel=channel, 
+        super().__init__(sigma_levels=sigma_levels, channel=channel,
                          central_contour=central_contour, **kwargs)
 
         self.sigma_levels = sigma_levels
@@ -468,7 +618,6 @@ class HuMomentsFeatures(PipelineStage):
 
             for c in contours:
                 # Only take the contour in the centre of the image
-
                 if x0 == -1:
                     # We haven't set which contour we're going to look at
                     # default to the largest

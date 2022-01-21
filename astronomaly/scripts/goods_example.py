@@ -6,7 +6,7 @@ from astronomaly.feature_extraction import shape_features
 from astronomaly.dimensionality_reduction import pca
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import tsne_plot
 import os
 import pandas as pd
 
@@ -43,14 +43,14 @@ for f in fls:
         break
 
 if not found_fits:
+    data_link = "https://archive.stsci.edu/pub/hlsp/goods/v2/" + \
+                "h_sb_sect23_v2.0_drz_img.fits "
     # No data to run on!
     print('No data found to run on, downloading some GOODS-S data...')
-    os.system(
-        "wget " + # noqa
-        "https://archive.stsci.edu/pub/hlsp/goods/v2/" +
-        "h_sb_sect23_v2.0_drz_img.fits " + 
-        "-P " + image_dir 
-        )
+    print('If wget is slow, try downloading the data directly from this link:')
+    print(data_link)
+    print()
+    os.system("wget " + data_link + "-P " + image_dir)
     print('GOODS-S data downloaded.')
 
 
@@ -88,15 +88,15 @@ def run_pipeline():
 
     """
     image_dataset = image_reader.ImageDataset(
-            directory=image_dir,
-            window_size=window_size, output_dir=output_dir, plot_square=False,
-            transform_function=image_transform_function,
-            display_transform_function=display_transform_function,
-            plot_cmap=plot_cmap,
-            catalogue=catalogue,
-            band_prefixes=band_prefixes,
-            bands_rgb=bands_rgb
-            ) # noqa
+        directory=image_dir,
+        window_size=window_size, output_dir=output_dir, plot_square=False,
+        transform_function=image_transform_function,
+        display_transform_function=display_transform_function,
+        plot_cmap=plot_cmap,
+        catalogue=catalogue,
+        band_prefixes=band_prefixes,
+        bands_rgb=bands_rgb
+        )  # noqa
 
     if feature_method == 'psd':
         pipeline_psd = power_spectrum.PSD_Features(
@@ -113,7 +113,7 @@ def run_pipeline():
     features = features_original.copy()
 
     if dim_reduction == 'pca':
-        pipeline_pca = pca.PCA_Decomposer(force_rerun=False, 
+        pipeline_pca = pca.PCA_Decomposer(force_rerun=False,
                                           output_dir=output_dir,
                                           threshold=0.95)
         features = pipeline_pca.run(features_original)
@@ -133,7 +133,7 @@ def run_pipeline():
 
     try:
         df = pd.read_csv(
-            os.path.join(output_dir, 'ml_scores.csv'), 
+            os.path.join(output_dir, 'ml_scores.csv'),
             index_col=0,
             dtype={'human_label': 'int'})
         df.index = df.index.astype('str')
@@ -147,14 +147,14 @@ def run_pipeline():
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, output_dir=output_dir)
 
-    pipeline_tsne = tsne.TSNE_Plot(
+    pipeline_tsne = tsne_plot.TSNE_Plot(
         force_rerun=False,
         output_dir=output_dir,
         perplexity=50)
     t_plot = pipeline_tsne.run(features.loc[anomalies.index])
 
-    return {'dataset': image_dataset, 
-            'features': features, 
+    return {'dataset': image_dataset,
+            'features': features,
             'anomaly_scores': anomalies,
-            'visualisation': t_plot, 
+            'visualisation': t_plot,
             'active_learning': pipeline_active_learning}

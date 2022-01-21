@@ -10,6 +10,7 @@ from skimage.transform import resize
 import cv2
 from astronomaly.base.base_dataset import Dataset
 from astronomaly.base import logging_tools
+from astronomaly.utils import utils
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
@@ -35,7 +36,7 @@ def convert_array_to_image(arr, plot_cmap='hot'):
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
-        plt.imshow(arr, cmap=plot_cmap)
+        plt.imshow(arr, cmap=plot_cmap, origin='lower')
         output = io.BytesIO()
         FigureCanvas(fig).print_png(output)
         plt.close(fig)
@@ -69,7 +70,7 @@ def apply_transform(cutout, transform_function):
 
 
 class AstroImage:
-    def __init__(self, filenames, file_type='fits', fits_index=0, name=''):
+    def __init__(self, filenames, file_type='fits', fits_index=None, name=''):
         """
         Lightweight wrapper for an astronomy image from a fits file
 
@@ -91,9 +92,9 @@ class AstroImage:
         self.hdul_list = []
 
         try:
-            for f in filenames:     
+            for f in filenames:
                 hdul = fits.open(f, memmap=True)
-                self.hdul_list.append(hdul)               
+                self.hdul_list.append(hdul)
 
         except FileNotFoundError:
             raise FileNotFoundError("File", f, "not found")
@@ -138,15 +139,18 @@ class AstroImage:
                             dat = dat[0][0]
                         image = dat[rs:re, cs:ce]
                         break
-                self.metadata = dict(hdul[self.fits_index].header)
-                if self.wcs is None:
-                    self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
             else:
                 dat = hdul[self.fits_index].data
                 if len(dat.shape) > 2:
                     dat = dat[0][0]
                 image = dat[rs:re, cs:ce]
 
+            self.metadata = dict(hdul[self.fits_index].header)
+            if self.wcs is None:
+                self.wcs = WCS(hdul[self.fits_index].header, naxis=2)
+
+            if len(image.shape) > 2 and image.shape[-1] > 3:
+                image = image[:, :, 0]
             if len(image.shape) > 2:
                 image = np.squeeze(image)
             images.append(image)
@@ -157,6 +161,7 @@ class AstroImage:
             self.metadata['NAXIS3'] = image.shape[-1]
         else:
             image = images[0]  # Was just the one image
+
         return image
 
     def get_image_shape(self):
@@ -181,9 +186,8 @@ class AstroImage:
         print("Files closed.")
 
     def _strip_filename(self):
-
         """
-        Tiny utility function to make a nice formatted version of the image 
+        Tiny utility function to make a nice formatted version of the image
         name from the input filename string
 
         Returns
@@ -217,7 +221,7 @@ class AstroImage:
 
 
 class ImageDataset(Dataset):
-    def __init__(self, fits_index=None, window_size=128, window_shift=None, 
+    def __init__(self, fits_index=None, window_size=128, window_shift=None,
                  display_image_size=128, band_prefixes=[], bands_rgb={},
                  transform_function=None, display_transform_function=None,
                  plot_square=False, catalogue=None,
@@ -286,13 +290,13 @@ class ImageDataset(Dataset):
             The colormap with which to plot the image
         """
 
-        super().__init__(fits_index=fits_index, window_size=window_size, 
-                         window_shift=window_shift, 
+        super().__init__(fits_index=fits_index, window_size=window_size,
+                         window_shift=window_shift,
                          display_image_size=display_image_size,
                          band_prefixes=band_prefixes, bands_rgb=bands_rgb,
-                         transform_function=transform_function, 
+                         transform_function=transform_function,
                          display_transform_function=display_transform_function,
-                         plot_square=plot_square, catalogue=catalogue, 
+                         plot_square=plot_square, catalogue=catalogue,
                          plot_cmap=plot_cmap,
                          **kwargs)
         self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
@@ -324,9 +328,9 @@ class ImageDataset(Dataset):
                     extension = '.'.join(k.split('.')[-2:])
                 if extension in self.known_file_types:
                     try:
-                        astro_img = AstroImage(bands_files[k], 
-                                               file_type=extension, 
-                                               fits_index=fits_index, 
+                        astro_img = AstroImage(bands_files[k],
+                                               file_type=extension,
+                                               fits_index=fits_index,
                                                name=k)
                         images[k] = astro_img
 
@@ -352,15 +356,14 @@ class ImageDataset(Dataset):
                     extension = '.'.join(f.split('.')[-2:])
                 if extension in self.known_file_types:
                     try:
-                        astro_img = AstroImage([f], 
-                                               file_type=extension, 
+                        astro_img = AstroImage([f],
+                                               file_type=extension,
                                                fits_index=fits_index)
                         images[astro_img.name] = astro_img
                     except Exception as e:
                         msg = "Cannot read image " + f + "\n \
                             Exception is: " + (str)(e)
                         logging_tools.log(msg, level="ERROR")
-
         if len(list(images.keys())) == 0:
             msg = "No images found, Astronomaly cannot proceed."
             logging_tools.log(msg, level="ERROR")
@@ -383,7 +386,7 @@ class ImageDataset(Dataset):
                 self.window_shift_y = window_shift
         else:
             self.window_shift_x = self.window_size_x
-            self.window_shift_y = self.window_size_y 
+            self.window_shift_y = self.window_size_y
 
         self.images = images
         self.transform_function = transform_function
@@ -403,7 +406,7 @@ class ImageDataset(Dataset):
             self.create_catalogue()
         else:
             self.convert_catalogue_to_metadata()
-            print('A catalogue of ', len(self.metadata), 
+            print('A catalogue of ', len(self.metadata),
                   'sources has been provided.')
 
         if 'original_image' in self.metadata.columns:
@@ -414,7 +417,7 @@ class ImageDataset(Dataset):
                         catalogue.""", level='WARNING')
                     msk = self.metadata.original_image == img
                     self.metadata.drop(self.metadata.index[msk], inplace=True)
-                    print('Catalogue reduced to ', len(self.metadata), 
+                    print('Catalogue reduced to ', len(self.metadata),
                           'sources')
 
         self.index = self.metadata.index.values
@@ -430,12 +433,12 @@ class ImageDataset(Dataset):
             astro_img = self.images[image_name]
             img_shape = astro_img.get_image_shape()
 
-            # Remember, numpy array index of [row, column] 
+            # Remember, numpy array index of [row, column]
             # corresponds to [y, x]
-            xvals = np.arange(self.window_size_x // 2, 
-                              img_shape[1] - self.window_size_x // 2, 
+            xvals = np.arange(self.window_size_x // 2,
+                              img_shape[1] - self.window_size_x // 2,
                               self.window_shift_x)
-            yvals = np.arange(self.window_size_y // 2, 
+            yvals = np.arange(self.window_size_y // 2,
                               img_shape[0] - self.window_size_y // 2,
                               self.window_shift_y)
             X, Y = np.meshgrid(xvals, yvals)
@@ -452,7 +455,7 @@ class ImageDataset(Dataset):
                 'ra': ra,
                 'dec': dec,
                 'peak_flux': [-1] * len(ra)})
-            self.metadata = pd.concat((self.metadata, new_df), 
+            self.metadata = pd.concat((self.metadata, new_df),
                                       ignore_index=True)
         self.metadata.index = self.metadata.index.astype('str')
         print('A catalogue of ', len(self.metadata), 'cutouts has been \
@@ -466,7 +469,7 @@ class ImageDataset(Dataset):
                 logging_tools.log("""If multiple fits images are used the
                                   original_image column must be provided in
                                   the catalogue to identify which image the 
-                                  source belongs to.""", 
+                                  source belongs to.""",
                                   level='ERROR')
 
                 raise ValueError("Incorrect input supplied")
@@ -486,7 +489,7 @@ class ImageDataset(Dataset):
         for c in cols[1:]:
             if c not in self.catalogue.columns:
                 logging_tools.log("""If a catalogue is provided the x and y
-                columns (corresponding to pixel values) must be present""", 
+                columns (corresponding to pixel values) must be present""",
                                   level='ERROR')
 
                 raise ValueError("Incorrect input supplied")
@@ -540,8 +543,8 @@ class ImageDataset(Dataset):
         if invalid_y or invalid_x:
             naxis3_present = 'NAXIS3' in this_image.metadata.keys()
             if naxis3_present and this_image.metadata['NAXIS3'] > 1:
-                shp = [self.window_size_y, 
-                       self.window_size_x, 
+                shp = [self.window_size_y,
+                       self.window_size_x,
                        this_image.metadata['NAXIS3']]
             else:
                 shp = [self.window_size_y, self.window_size_x]
@@ -599,17 +602,20 @@ class ImageDataset(Dataset):
         naxis3_present = 'NAXIS3' in this_image.metadata.keys()
 
         if naxis3_present and this_image.metadata['NAXIS3'] > 1:
-            shp = [tot_size_y, tot_size_x, this_image.metadata['NAXIS3']]
+            if this_image.metadata['NAXIS3'] != 3:
+                shp = [tot_size_y, tot_size_x]
+            else:
+                shp = [tot_size_y, tot_size_x, this_image.metadata['NAXIS3']]
         else:
             shp = [tot_size_y, tot_size_x]
         cutout = np.zeros(shp)
-        # cutout[ystart - ymin:tot_size_y - (ymax - yend), 
-        #        xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend, 
-        #                  
+        # cutout[ystart - ymin:tot_size_y - (ymax - yend),
+        #        xstart - xmin:tot_size_x - (xmax - xend)] = img[ystart:yend,
+        #
         #                                      xstart:xend]
 
         img_data = this_image.get_image_data(ystart, yend, xstart, xend)
-        cutout[ystart - ymin:yend - ymin, 
+        cutout[ystart - ymin:yend - ymin,
                xstart - xmin:xend - xmin] = img_data
         cutout = np.nan_to_num(cutout)
 
@@ -653,9 +659,10 @@ class ImageDataset(Dataset):
 
 
 class ImageThumbnailsDataset(Dataset):
-    def __init__(self, display_image_size=128, transform_function=None, 
-                 display_transform_function=None,
-                 catalogue=None, additional_metadata=None, **kwargs):
+    def __init__(self, display_image_size=128, transform_function=None,
+                 display_transform_function=None, fits_format=False,
+                 catalogue=None, check_corrupt_data=False,
+                 additional_metadata=None, **kwargs):
         """
         Read in a set of images that have already been cut into thumbnails. 
         This would be uncommon with astronomical data but is needed to read a 
@@ -683,6 +690,9 @@ class ImageThumbnailsDataset(Dataset):
             applied to each cutout. The function should take an input 2d array 
             (the cutout) and return an output 2d array. If a list is provided, 
             each function is applied in the order of the list.
+        fits_format : boolean
+            Set to True if the cutouts are in fits format (as opposed to jpeg
+            or png).
         catalogue : pandas.DataFrame or similar
             A catalogue of the positions of sources around which cutouts will
             be extracted. Note that a cutout of size "window_size" will be
@@ -690,22 +700,37 @@ class ImageThumbnailsDataset(Dataset):
             sources. 
         """
 
-        super().__init__(transform_function=transform_function, 
+        super().__init__(transform_function=transform_function,
                          display_image_size=128, catalogue=catalogue,
+                         fits_format=fits_format,
+                         check_corrupt_data=check_corrupt_data,
+                         display_transform_function=display_transform_function,
+                         additional_metadata=additional_metadata,
                          **kwargs)
 
         self.data_type = 'image'
-        self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff']
+        self.known_file_types = ['png', 'jpg', 'jpeg', 'bmp', 'tif', 'tiff',
+                                 'fits', 'fits.fz', 'fits.gz', 'FITS',
+                                 'FITS.fz', 'FITS.gz'
+                                 ]
+
         self.transform_function = transform_function
+        self.check_corrupt_data = check_corrupt_data
+
         if display_transform_function is None:
             self.display_transform_function = self.transform_function
         else:
             self.display_transform_function = display_transform_function
+
         self.display_image_size = display_image_size
+        self.fits_format = fits_format
 
         if catalogue is not None:
             if 'objid' in catalogue.columns:
                 catalogue.set_index('objid')
+                catalogue.index = catalogue.index.astype(
+                    str) + '_' + catalogue.groupby(
+                        level=0).cumcount().astype(str)
             self.metadata = catalogue
         else:
             inds = []
@@ -716,7 +741,7 @@ class ImageThumbnailsDataset(Dataset):
                     inds.append(
                         f.split(os.path.sep)[-1][:-(len(extension) + 1)])
                     file_paths.append(f)
-            self.metadata = pd.DataFrame(index=inds, 
+            self.metadata = pd.DataFrame(index=inds,
                                          data={'filename': file_paths})
 
         self.index = self.metadata.index.values
@@ -739,10 +764,38 @@ class ImageThumbnailsDataset(Dataset):
             Array of image cutout
         """
 
-        filename = self.metadata.loc[idx, 'filename']
-        img = cv2.imread(filename)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        return apply_transform(img, self.transform_function)
+        if self.fits_format:
+            try:
+                filename = self.metadata.loc[idx, 'filename']
+                img = fits.getdata(filename, memmap=True)
+                return apply_transform(img, self.transform_function)
+
+            except TypeError:
+                msg = "TypeError cannot read image: Corrupt file"
+                logging_tools.log(msg, level="ERROR")
+
+                if self.check_corrupt_data:
+                    utils.remove_corrupt_file(
+                        self.index, self.metadata.index, idx)
+                else:
+                    print('Corrupted data: Enable check_corrupt_data.')
+
+            except OSError:
+                msg = "OSError cannot read image: Empty file"
+                logging_tools.log(msg, level="ERROR")
+
+                if self.check_corrupt_data:
+                    utils.remove_corrupt_file(
+                        self.index, self.metadata.index, idx)
+                else:
+                    print('Missing data: Enable check_corrupt_data.')
+
+        else:
+            filename = self.metadata.loc[idx, 'filename']
+            img = cv2.imread(filename)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            return apply_transform(img, self.transform_function)
 
     def get_display_data(self, idx):
         """
@@ -760,10 +813,36 @@ class ImageThumbnailsDataset(Dataset):
             Object ready to be passed directly to the frontend
         """
 
-        filename = self.metadata.loc[idx, 'filename']
-        cutout = cv2.imread(filename)
-        cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
-        print(cutout.shape)
+        if self.fits_format:
+            try:
+                filename = self.metadata.loc[idx, 'filename']
+                cutout = fits.getdata(filename, memmap=True)
+
+            except TypeError:
+                msg = "TypeError cannot read image: Corrupted file"
+                logging_tools.log(msg, level="ERROR")
+
+                if self.check_corrupt_data:
+                    cutout = np.zeros(
+                        [1, self.display_image_size, self.display_image_size], dtype=int)
+                else:
+                    print('Corrupted data: Enable check_corrupt_data.')
+
+            except OSError:
+                msg = "OSError cannot read image: Empty file"
+                logging_tools.log(msg, level="ERROR")
+
+                if self.check_corrupt_data:
+                    cutout = np.zeros(
+                        [1, self.display_image_size, self.display_image_size], dtype=int)
+                else:
+                    print('Missing data: Enable check_corrupt_data.')
+
+        else:
+            filename = self.metadata.loc[idx, 'filename']
+            cutout = cv2.imread(filename)
+            cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
+
         cutout = apply_transform(cutout, self.display_transform_function)
 
         min_edge = min(cutout.shape[:2])
@@ -780,3 +859,48 @@ class ImageThumbnailsDataset(Dataset):
             cutout = resize(cutout, new_shape, anti_aliasing=False)
 
         return convert_array_to_image(cutout)
+
+    def fits_to_png(self, scores):
+        """
+        Simple function that outputs png files from the input fits files
+
+        Parameters
+        ----------
+        Scores : string
+            Score of sample
+
+        Returns
+        -------
+        png : image object
+            Images are created and saved in the output folder
+        """
+
+        for i in range(len(scores)):
+            idx = scores.index[i]
+
+            filename = self.metadata.loc[idx, 'filenames']
+            flux = self.metadata.loc[idx, 'peak_flux']
+            for root, directories, f_names in os.walk(self.directory):
+                if filename in f_names:
+                    file_path = os.path.join(root, filename)
+
+            output_path = os.path.join(self.output_dir, 'PNG', 'Anomaly Score')
+
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+
+            data = fits.getdata(file_path, memmap=True)
+
+            if len(np.shape(data)) > 2:
+                one = data[0, :, :]
+                two = data[1, :, :]
+                three = data[2, :, :]
+                data = np.dstack((three, two, one))
+                transformed_image = apply_transform(
+                    data, self.display_transform_function)
+            else:
+                transformed_image = apply_transform(
+                    data, self.display_transform_function)
+
+            plt.imsave(output_path+'/AS:'+'%.6s' % scores.score[i]+'_NAME:'+str(
+                idx)+'_FLUX:'+'%.4s' % flux+'.png', transformed_image)

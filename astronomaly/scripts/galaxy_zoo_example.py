@@ -4,7 +4,7 @@ from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import umap_plot
 import os
 import pandas as pd
 import zipfile
@@ -16,7 +16,7 @@ image_dir = os.path.join(data_dir, 'GalaxyZooSubset', '')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', '')
+    data_dir, 'astronomaly_output', 'galaxy_zoo', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -117,17 +117,16 @@ def run_pipeline():
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, output_dir=output_dir)
 
-    # We use TSNE for visualisation which is run in the same way as other parts
+    # We use UMAP for visualisation which is run in the same way as other parts
     # of the pipeline.
-    pipeline_tsne = tsne.TSNE_Plot(
+    pipeline_umap = umap_plot.UMAP_Plot(
         force_rerun=False,
-        output_dir=output_dir,
-        perplexity=100)
-    t_plot = pipeline_tsne.run(features)
+        output_dir=output_dir)
+    vis_plot = pipeline_umap.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
     return {'dataset': image_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
-            'visualisation': t_plot, 
+            'visualisation': vis_plot, 
             'active_learning': pipeline_active_learning}

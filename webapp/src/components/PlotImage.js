@@ -1,5 +1,5 @@
 import React from 'react';
-import PinchZoomPan from "react-responsive-pinch-zoom-pan";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 /**
  * Displays the image of a particular object.
@@ -28,11 +28,11 @@ export class PlotImage extends React.Component{
       this.getImage(this.props.id);
       return (
         <div style={{width:"100%", height:"100%",display: 'flex',  justifyContent:'center', alignItems:'center'}}>
-        <div>
-          <PinchZoomPan position="center" maxScale={10} zoomButtons={false}>
+        <TransformWrapper>
+          <TransformComponent>
             <img id="img" src=""/>
-          </PinchZoomPan>
-        </div>
+          </TransformComponent>
+        </TransformWrapper>
         </div>
       )
     }
