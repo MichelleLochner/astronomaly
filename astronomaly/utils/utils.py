@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import astropy
+from astropy.table import Table
+from astropy.wcs import WCS
 import os
 import pandas as pd
 import numpy as np
@@ -13,13 +15,13 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
                              read_csv_kwargs={},
                              colnames={}):
     """
-    Converts a pybdsf fits file to a pandas dataframe to be given
+    Converts a pybdsf fits/srl file to a pandas dataframe to be given
     directly to an ImageDataset object.
 
     Parameters
     ----------
-    catalogue_files : string
-        Pybdsf catalogue in fits table format 
+    catalogue_file : string
+        Pybdsf catalogue in fits table format or srl using csv separators
     image_file:
         The image corresponding to this catalogue (to extract pixel information
         and naming information)
@@ -47,15 +49,16 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
     if 'Isl_id' not in colnames:
         colnames['Isl_id'] = 'Isl_id'
 
-    if 'csv' in catalogue_file:
+    try:
         catalogue = pd.read_csv(catalogue_file, **read_csv_kwargs)
         cols = list(catalogue.columns)
         for i in range(len(cols)):
             cols[i] = cols[i].strip()
             cols[i] = cols[i].strip('#')
         catalogue.columns = cols
-    else:
-        dat = astropy.table.Table(astropy.io.fits.getdata(catalogue_file))
+    except UnicodeDecodeError:
+        # If it's not a text file it's probably a fits file
+        dat = Table(astropy.io.fits.getdata(catalogue_file))
         catalogue = dat.to_pandas()
 
     if remove_point_sources:
@@ -73,7 +76,7 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
     hdul = astropy.io.fits.open(image_file)
     original_image = image_file.split(os.path.sep)[-1]
 
-    w = astropy.wcs.WCS(hdul[0].header, naxis=2)
+    w = WCS(hdul[0].header, naxis=2)
 
     x, y = w.wcs_world2pix(np.array(catalogue.RA), np.array(catalogue.DEC), 1)
 
@@ -419,7 +422,7 @@ def create_png_output(image_dataset, number_of_images, data_dir):
         pil_image = Image.open(sample)
 
         pil_image.save(os.path.join(
-            out_dir, str(name.split('.fits')[0])+'.png'))
+            out_dir, str(name.split('.fits')[0]) + '.png'))
 
 
 def remove_corrupt_file(met, ind, idx):
