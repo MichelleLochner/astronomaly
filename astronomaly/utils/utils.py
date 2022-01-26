@@ -62,6 +62,8 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
         catalogue = dat.to_pandas()
 
     if remove_point_sources:
+        # Just in case there's extra white space in this column
+        catalogue.S_Code = catalogue.S_Code.str.strip()
         catalogue = catalogue[catalogue[colnames['S_Code']] != 'S']
 
     if merge_islands:
