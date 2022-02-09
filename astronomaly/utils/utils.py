@@ -433,7 +433,6 @@ def convert_tractor_catalogue(catalogue_file, image_file, image_name=''):
         dataframe[name] = data
 
     old_catalogue = pd.DataFrame(dataframe)
-    hdul = astropy.io.fits.open(image_file)
 
     if len(image_name) == 0:
         original_image = image_file.split(os.path.sep)[-1]

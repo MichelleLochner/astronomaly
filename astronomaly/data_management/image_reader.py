@@ -824,7 +824,8 @@ class ImageThumbnailsDataset(Dataset):
 
                 if self.check_corrupt_data:
                     cutout = np.zeros(
-                        [1, self.display_image_size, self.display_image_size], dtype=int)
+                        [1, self.display_image_size, self.display_image_size],
+                        dtype=int)
                 else:
                     print('Corrupted data: Enable check_corrupt_data.')
 
@@ -834,7 +835,8 @@ class ImageThumbnailsDataset(Dataset):
 
                 if self.check_corrupt_data:
                     cutout = np.zeros(
-                        [1, self.display_image_size, self.display_image_size], dtype=int)
+                        [1, self.display_image_size, self.display_image_size],
+                        dtype=int)
                 else:
                     print('Missing data: Enable check_corrupt_data.')
 
@@ -902,5 +904,6 @@ class ImageThumbnailsDataset(Dataset):
                 transformed_image = apply_transform(
                     data, self.display_transform_function)
 
-            plt.imsave(output_path+'/AS:'+'%.6s' % scores.score[i]+'_NAME:'+str(
-                idx)+'_FLUX:'+'%.4s' % flux+'.png', transformed_image)
+            plt.imsave(output_path + '/AS:' + '%.6s' % scores.score[i] + 
+                       '_NAME:' + str(idx) + 
+                       '_FLUX:' + '%.4s' % flux + '.png', transformed_image)
