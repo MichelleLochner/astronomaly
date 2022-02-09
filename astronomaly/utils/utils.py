@@ -7,15 +7,19 @@ import pandas as pd
 import numpy as np
 import xlsxwriter
 from PIL import Image
+import json
 
 
 def convert_pybdsf_catalogue(catalogue_file, image_file,
                              remove_point_sources=False,
                              merge_islands=False,
+                             min_components=0,
+                             adaptive_size=False,
+                             islands_file='',
                              read_csv_kwargs={},
                              colnames={}):
     """
-    Converts a pybdsf fits/srl file to a pandas dataframe to be given
+    Converts a pybdsf fits/srl/gaul file to a pandas dataframe to be given
     directly to an ImageDataset object.
 
     Parameters
@@ -29,7 +33,22 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
         If true will remove all sources with an S_Code of 'S'
     merge_islands: bool, optional
         If true, will locate all sources belonging to a particular island and
-        merge them, maintaining only the brightest source
+        merge them, using the centre of mass as the new source centre
+    min_components: int, optional
+        If greater than zero, not only will point sources be removed but also
+        islands containing fewer than min_components Gaussians. The catalogue
+        will then use the centre of mass of the island as the source's centre.
+        This effectively enforces merge_islands to be true and forces the 
+        source identifier key to the Isl_id.
+    adaptive_size: bool, optional
+        If true, will include a size column in the output catalogue to indicate
+        the expected size of the source (in pixels). This requires the island 
+        contours to be saved as a json file which must be provided.
+    islands_file : string, optional
+        A json file containing the output of the island[idx].contour paramter
+        when running pybdsf from python. This should be a dictionary with the
+        island index as key and the contour (a list of x values and a list of
+        y values) as value.
     read_csv_kwargs: dict, optional
         Will pass these directly to panda's read_csv function to allow reading
         in of a variety of file structures (e.g. different delimiters)
@@ -61,35 +80,81 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
         dat = Table(astropy.io.fits.getdata(catalogue_file))
         catalogue = dat.to_pandas()
 
+    # Output catalogue in Astronomaly format
+    new_catalogue = pd.DataFrame()
+
+    if min_components > 0:
+        isl_id, ncnts = np.unique(catalogue.Isl_id, return_counts=True)
+        # Selects only islands with min_components or more
+        isl_id = isl_id[ncnts >= min_components] 
+        catalogue = catalogue[np.in1d(catalogue.Isl_id, isl_id)]
+        merge_islands = True
+
     if remove_point_sources:
         # Just in case there's extra white space in this column
         catalogue.S_Code = catalogue.S_Code.str.strip()
         catalogue = catalogue[catalogue[colnames['S_Code']] != 'S']
 
+    if adaptive_size and not merge_islands:
+        raise ValueError("""Adaptive sizing cannot be used unless      
+                            merge_islands is True.""")
+
+    if adaptive_size and islands_file == "":
+        raise ValueError("""If adaptive sizing is requested, the islands_file
+                            parameter, containing the island contours, 
+                            must be provided""")
+
     if merge_islands:
-        inds = []
-        for isl in np.unique(catalogue[colnames['Isl_id']]):
+        colnames['source_identifier'] = 'Isl_id'
+        isl_inds = np.unique(catalogue[colnames['Isl_id']])
+        new_peak_flux = []
+        new_ra = []
+        new_dec = []
+        for isl in isl_inds:
             msk = catalogue[colnames['Isl_id']] == isl
-            selection = catalogue[msk][colnames['Peak_flux']]
-            ind = catalogue[msk].index[selection.argmax()]
-            inds.append(ind)
-        catalogue = catalogue.loc[inds]
+            ra_vals = catalogue[msk]['RA']
+            dec_vals = catalogue[msk]['DEC']
+            flux_vals = catalogue[msk][colnames['Peak_flux']]
+            new_peak_flux.append(flux_vals.max())
+            new_ra.append(ra_vals.mean())
+            new_dec.append(dec_vals.mean())
+
+        new_catalogue['objid'] = isl_inds
+        new_catalogue['ra'] = new_ra
+        new_catalogue['dec'] = new_dec
+        new_catalogue['peak_flux'] = new_peak_flux
+
+    if 'objid' not in new_catalogue.columns:
+        # Means we haven't run merge_islands so this isn't setup yet
+        new_catalogue['objid'] = catalogue[colnames['source_identifier']]
+        new_catalogue['peak_flux'] = catalogue[colnames['Peak_flux']]
+        new_catalogue['ra'] = catalogue.RA
+        new_catalogue['dec'] = catalogue.DEC
 
     hdul = astropy.io.fits.open(image_file)
     original_image = image_file.split(os.path.sep)[-1]
 
     w = WCS(hdul[0].header, naxis=2)
-
-    x, y = w.wcs_world2pix(np.array(catalogue.RA), np.array(catalogue.DEC), 1)
-
-    new_catalogue = pd.DataFrame()
-    new_catalogue['objid'] = catalogue[colnames['source_identifier']]
-    new_catalogue['original_image'] = [original_image] * len(new_catalogue)
-    new_catalogue['peak_flux'] = catalogue[colnames['Peak_flux']]
+    x, y = w.wcs_world2pix(np.array(new_catalogue.ra), 
+                           np.array(new_catalogue.dec), 1)
     new_catalogue['x'] = x
     new_catalogue['y'] = y
-    new_catalogue['ra'] = catalogue.RA
-    new_catalogue['dec'] = catalogue.DEC
+    new_catalogue['original_image'] = [original_image] * len(new_catalogue)
+
+    if adaptive_size:
+        with open(islands_file, 'r') as fl_obj:
+            isl_contours = json.load(fl_obj)
+        sizes = []
+        for isl in isl_inds:
+            contours = isl_contours[str(isl)]
+            xvals = contours[0]
+            yvals = contours[1]
+            x0 = new_catalogue[new_catalogue.objid == isl]['x'].values
+            y0 = new_catalogue[new_catalogue.objid == isl]['y'].values
+            xmax = max(np.max(xvals) - x0, x0 - np.min(xvals))
+            ymax = max(np.max(yvals) - y0, y0 - np.min(yvals))
+            sizes.append(max(xmax, ymax) * 2)
+        new_catalogue['island_size'] = sizes
 
     new_catalogue.drop_duplicates(subset='objid', inplace=True)
     return new_catalogue
