@@ -96,13 +96,13 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
         catalogue = catalogue[catalogue[colnames['S_Code']] != 'S']
 
     if adaptive_size and not merge_islands:
-        raise ValueError("""Adaptive sizing cannot be used unless      
-                            merge_islands is True.""")
+        raise ValueError("Adaptive sizing cannot be used unless "
+                         "merge_islands is True.")
 
     if adaptive_size and islands_file == "":
-        raise ValueError("""If adaptive sizing is requested, the islands_file
-                            parameter, containing the island contours, 
-                            must be provided""")
+        raise ValueError("If adaptive sizing is requested, the islands_file "
+                         "parameter, containing the island contours, "
+                         "must be provided")
 
     if merge_islands:
         colnames['source_identifier'] = 'Isl_id'
@@ -149,12 +149,12 @@ def convert_pybdsf_catalogue(catalogue_file, image_file,
             contours = isl_contours[str(isl)]
             xvals = contours[0]
             yvals = contours[1]
-            x0 = new_catalogue[new_catalogue.objid == isl]['x'].values
-            y0 = new_catalogue[new_catalogue.objid == isl]['y'].values
+            x0 = new_catalogue[new_catalogue.objid == isl]['x'].values[0]
+            y0 = new_catalogue[new_catalogue.objid == isl]['y'].values[0]
             xmax = max(np.max(xvals) - x0, x0 - np.min(xvals))
             ymax = max(np.max(yvals) - y0, y0 - np.min(yvals))
-            sizes.append(max(xmax, ymax) * 2)
-        new_catalogue['island_size'] = sizes
+            sizes.append(int(max(xmax, ymax) * 2))
+        new_catalogue['obj_size'] = sizes
 
     new_catalogue.drop_duplicates(subset='objid', inplace=True)
     return new_catalogue

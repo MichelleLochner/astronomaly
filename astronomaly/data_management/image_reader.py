@@ -222,7 +222,9 @@ class AstroImage:
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None,
-                 display_image_size=128, band_prefixes=[], bands_rgb={},
+                 display_image_size=128, adapative_sizing=False,
+                 min_window_size=128,
+                 band_prefixes=[], bands_rgb={},
                  transform_function=None, display_transform_function=None,
                  plot_square=False, catalogue=None,
                  plot_cmap='hot', **kwargs):
@@ -258,10 +260,23 @@ class ImageDataset(Dataset):
             set for an autoencoder. If an integer is provided, the shift will 
             be the same in both directions. Otherwise a list of
             [window_shift_x, window_shift_y] is expected.
-        display_image_size : The size of the image to be displayed on the
+        display_image_size : int, optional
+            The size of the image to be displayed on the
             web page. If the image is smaller than this, it will be
             interpolated up to the higher number of pixels. If larger, it will
             be downsampled.
+        adaptive_sizing : Boolean, optional
+            Allows the size of the window to be adapted based on the size of 
+            the object. Requires an "obj_size" column in the catalogue. This 
+            should be the desired window width in pixels. Note that a minimum
+            window size can also be provided to provide a lower limit for the
+            adaptive sizing. We currently only support a single number for
+            the size so all cutouts will be square. The different sized images 
+            will be resized into window_size.
+        min_window_size : int, optional
+            When used with adapative_sizing, this provides a lower limit for
+            the window size (to avoid tiny sources made of very few pixels 
+            being blown up). Default is 128 pixels, set to 0 to allow all sizes
         band_prefixes : list
             Allows you to specify a prefix for an image which corresponds to a
             band identifier. This has to be a prefix and the rest of the image
@@ -293,6 +308,8 @@ class ImageDataset(Dataset):
         super().__init__(fits_index=fits_index, window_size=window_size,
                          window_shift=window_shift,
                          display_image_size=display_image_size,
+                         adapative_sizing=adapative_sizing,
+                         min_window_size=min_window_size,
                          band_prefixes=band_prefixes, bands_rgb=bands_rgb,
                          transform_function=transform_function,
                          display_transform_function=display_transform_function,
@@ -387,6 +404,22 @@ class ImageDataset(Dataset):
         else:
             self.window_shift_x = self.window_size_x
             self.window_shift_y = self.window_size_y
+
+        if adapative_sizing:
+            err = False
+            if catalogue is None:
+                err = True
+            else:
+                if 'obj_size' not in catalogue.columns:
+                    err = True
+            if err:
+                err_msg = ("To use adaptive sizing, a catalogue must be "
+                           "provided with a 'obj_size' column.")
+                logging_tools.log(err_msg, level='ERROR')
+                raise(ValueError(err_msg))
+
+        self.adaptive_sizing = adapative_sizing
+        self.min_window_size = min_window_size
 
         self.images = images
         self.transform_function = transform_function
@@ -500,6 +533,8 @@ class ImageDataset(Dataset):
             cols.append('dec')
         if 'peak_flux' in self.catalogue.columns:
             cols.append('peak_flux')
+        if 'obj_size' in self.catalogue.columns:
+            cols.append('obj_size')
 
         met = {}
         for c in cols:
@@ -530,8 +565,15 @@ class ImageDataset(Dataset):
         original_image = self.metadata.loc[idx, 'original_image']
         this_image = self.images[original_image]
 
-        x_wid = self.window_size_x // 2
-        y_wid = self.window_size_y // 2
+        if self.adaptive_sizing:
+            wid = self.metadata.loc[idx, 'obj_size']
+            if wid < self.min_window_size:
+                wid = self.min_window_size
+            x_wid = wid // 2
+            y_wid = wid // 2
+        else:
+            x_wid = self.window_size_x // 2
+            y_wid = self.window_size_y // 2
 
         y_start = y0 - y_wid
         y_end = y0 + y_wid
@@ -551,6 +593,11 @@ class ImageDataset(Dataset):
             cutout = np.ones((shp)) * np.nan
         else:
             cutout = this_image.get_image_data(y_start, y_end, x_start, x_end)
+
+        if self.adaptive_sizing:
+            new_shape = (self.window_size_x, self.window_size_y)
+            cutout = resize(cutout, new_shape, anti_aliasing=False)
+
         if self.metadata.loc[idx, 'peak_flux'] == -1:
             if np.any(np.isnan(cutout)):
                 flx = -1
@@ -585,19 +632,29 @@ class ImageDataset(Dataset):
         x0 = self.metadata.loc[idx, 'x']
         y0 = self.metadata.loc[idx, 'y']
 
+        if self.adaptive_sizing:
+            sz = self.metadata.loc[idx, 'obj_size']
+            if sz < self.min_window_size:
+                sz = self.min_window_size
+            this_window_size_x = sz
+            this_window_size_y = sz
+        else:
+            this_window_size_x = self.window_size_x
+            this_window_size_y = self.window_size_y
+
         factor = 1.5
-        xmin = (int)(x0 - self.window_size_x * factor)
-        xmax = (int)(x0 + self.window_size_x * factor)
-        ymin = (int)(y0 - self.window_size_y * factor)
-        ymax = (int)(y0 + self.window_size_y * factor)
+        xmin = (int)(x0 - this_window_size_x * factor)
+        xmax = (int)(x0 + this_window_size_x * factor)
+        ymin = (int)(y0 - this_window_size_y * factor)
+        ymax = (int)(y0 + this_window_size_y * factor)
 
         xstart = max(xmin, 0)
         xend = min(xmax, this_image.metadata['NAXIS1'])
 
         ystart = max(ymin, 0)
         yend = min(ymax, this_image.metadata['NAXIS2'])
-        tot_size_x = int(2 * self.window_size_x * factor)
-        tot_size_y = int(2 * self.window_size_y * factor)
+        tot_size_x = int(2 * this_window_size_x * factor)
+        tot_size_y = int(2 * this_window_size_y * factor)
 
         naxis3_present = 'NAXIS3' in this_image.metadata.keys()
 
@@ -629,8 +686,8 @@ class ImageDataset(Dataset):
             cutout = new_cutout
 
         if self.plot_square:
-            offset_x = (tot_size_x - self.window_size_x) // 2
-            offset_y = (tot_size_y - self.window_size_y) // 2
+            offset_x = (tot_size_x - this_window_size_x) // 2
+            offset_y = (tot_size_y - this_window_size_y) // 2
             x1 = offset_x
             x2 = tot_size_x - offset_x
             y1 = offset_y
