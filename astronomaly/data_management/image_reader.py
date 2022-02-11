@@ -222,7 +222,7 @@ class AstroImage:
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None,
-                 display_image_size=128, adapative_sizing=False,
+                 display_image_size=128, adaptive_sizing=False,
                  min_window_size=128,
                  band_prefixes=[], bands_rgb={},
                  transform_function=None, display_transform_function=None,
@@ -308,7 +308,7 @@ class ImageDataset(Dataset):
         super().__init__(fits_index=fits_index, window_size=window_size,
                          window_shift=window_shift,
                          display_image_size=display_image_size,
-                         adapative_sizing=adapative_sizing,
+                         adaptive_sizing=adaptive_sizing,
                          min_window_size=min_window_size,
                          band_prefixes=band_prefixes, bands_rgb=bands_rgb,
                          transform_function=transform_function,
@@ -405,7 +405,7 @@ class ImageDataset(Dataset):
             self.window_shift_x = self.window_size_x
             self.window_shift_y = self.window_size_y
 
-        if adapative_sizing:
+        if adaptive_sizing:
             err = False
             if catalogue is None:
                 err = True
@@ -418,7 +418,7 @@ class ImageDataset(Dataset):
                 logging_tools.log(err_msg, level='ERROR')
                 raise(ValueError(err_msg))
 
-        self.adaptive_sizing = adapative_sizing
+        self.adaptive_sizing = adaptive_sizing
         self.min_window_size = min_window_size
 
         self.images = images
