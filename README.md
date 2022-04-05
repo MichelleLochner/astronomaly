@@ -19,14 +19,33 @@ Astronomaly is being actively developed and may contain bugs or instabilities! I
 Clone or download the Astronomaly repository:<br>
 `git clone https://github.com/MichelleLochner/astronomaly/`
 
-Navigate to the Astronomaly folder. If you use conda, create a new environment:<br>
+Navigate to the Astronomaly folder. 
+
+### If you use virtualenv and pip do this::
+
+Make sure you've installed <a href="https://virtualenv.pypa.io/en/latest/installation.html">virtualenv</a> to create virtual environments with native python.
+
+Create the virtual environment: <br>
+`virtualenv venv_astronomaly` 
+
+Activate the environment: <br>
+`source venv_astronomaly/bin/activate`
+
+Install required packages: <br>
+`pip install -r requirements.txt`
+
+### If you use anaconda, do this instead::
+
+Create a new environment:<br>
 `conda env create -f astronomaly_env.yml` 
 
 Don't forget to activate the environment:<br>
 `activate astronomaly`
 
+### Installing and running Astronomaly:
+
 Install the code:<br>
-`python setup.py install`
+`pip install .`
 
 Run the Galaxy Zoo example:<br>
 `python astronomaly/frontend/run_server.py astronomaly/scripts/galaxy_zoo_example.py`
@@ -34,10 +53,6 @@ Run the Galaxy Zoo example:<br>
 After running, you should see output tell you to open your browser at a particular address, usually http://127.0.0.1:5000/.
 
 Explore the web interface!
-
-(Note: if you prefer to use pip, you can use the following but a virtual environment is strongly recommended to avoid conflicting with your native installation:<br>
-`pip install -r requirements.txt`)
-
 
 ## Documentation
 
