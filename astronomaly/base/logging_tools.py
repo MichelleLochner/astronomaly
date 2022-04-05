@@ -154,7 +154,8 @@ def check_if_inputs_same(class_name, local_variables):
 
     if len(flname) == 0 or not os.path.exists(flname):
         # Log file doesn't exist yet
-        return False, 0  # different args, meaningless checksum. Must return two args.
+        # different args, meaningless checksum. Must return two args.
+        return False, 0
 
     else:
         fl = open(flname)

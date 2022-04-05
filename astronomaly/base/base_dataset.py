@@ -1,6 +1,4 @@
 import os
-import logging
-
 from astronomaly.base import logging_tools
 
 
@@ -28,7 +26,6 @@ class Dataset(object):
             './' 
         """
         self.data_type = None
-        logging.debug('Begin base dataset init')
 
         if 'filename' in kwargs:
             filename = kwargs['filename']
@@ -62,16 +59,15 @@ class Dataset(object):
         # Handles automatic file reading and writing
         if 'output_dir' in kwargs:
             self.output_dir = kwargs['output_dir']
-            logging.debug('Setting output dir from kwargs to ', self.output_dir)
         else:
             self.output_dir = './'
 
-        # This allows the automatic logging every time this class is 
+        # This allows the automatic logging every time this class is
         # instantiated (i.e. every time this pipeline stage
-        # is run). That means any class that inherits from this base class 
+        # is run). That means any class that inherits from this base class
         # will have automated logging.
 
-        logging_tools.setup_logger(log_directory=self.output_dir, 
+        logging_tools.setup_logger(log_directory=self.output_dir,
                                    log_filename='astronomaly.log')
 
         class_name = type(locals()['self']).__name__

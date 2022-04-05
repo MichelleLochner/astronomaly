@@ -4,7 +4,7 @@ from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import shape_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne
+from astronomaly.visualisation import umap_plot
 import os
 import pandas as pd
 import zipfile
@@ -16,7 +16,7 @@ image_dir = os.path.join(data_dir, 'GalaxyZooSubset', '')
 
 # Where output should be stored
 output_dir = os.path.join(
-    data_dir, 'astronomaly_output', '')
+    data_dir, 'astronomaly_output', 'galaxy_zoo', '')
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -62,21 +62,10 @@ def run_pipeline():
         run the human-in-the-loop learning when requested
 
     """
-    # catalog = pd.read_csv('/media/walml/beta1/galaxy_zoo/gz2/kaggle/training_solutions_rev1.csv')[2400:]
-    catalog = pd.read_csv('/media/walml/beta1/galaxy_zoo/gz2/kaggle/training_solutions_rev1.csv')
-    # print(catalog.head())
-    catalog['objid'] = catalog['GalaxyID'].astype(str)
-    # base_png_dir = '/media/walml/beta1/galaxy_zoo/gz2/kaggle/images_training_rev1'
-    base_png_dir = '/home/walml/Downloads/images_training_rev1'
-    catalog['png_loc'] = catalog['objid'].apply(lambda x: os.path.join(base_png_dir, str(x) + '.jpg'))
-    assert os.path.isfile(catalog.iloc[0]['png_loc'])
-    catalog['filename'] = catalog['png_loc']
-
-    # requires objid and filename columns
 
     # This creates the object that manages the data
     image_dataset = image_reader.ImageThumbnailsDataset(
-        catalogue=catalog, output_dir=output_dir, 
+        directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
         display_transform_function=display_transform_function
     )
@@ -90,15 +79,11 @@ def run_pipeline():
     # Actually runs the feature extraction
     features = pipeline_ellipse.run_on_dataset(image_dataset)
 
-
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set
     pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
                                             output_dir=output_dir)
     features = pipeline_scaler.run(features)
-
-    # features.to_parquet('gz2_kaggle_ellipse_features.parquet')  # index will be GalaxyID/objid
-    exit()
 
     # The actual anomaly detection is called in the same way by creating an
     # Iforest pipeline object then running it
@@ -132,19 +117,16 @@ def run_pipeline():
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, output_dir=output_dir)
 
-    # We use TSNE for visualisation which is run in the same way as other parts
+    # We use UMAP for visualisation which is run in the same way as other parts
     # of the pipeline.
-    pipeline_tsne = tsne.TSNE_Plot(
+    pipeline_umap = umap_plot.UMAP_Plot(
         force_rerun=False,
-        output_dir=output_dir,
-        perplexity=100)
-    t_plot = pipeline_tsne.run(features)
+        output_dir=output_dir)
+    vis_plot = pipeline_umap.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
     return {'dataset': image_dataset, 
             'features': features, 
             'anomaly_scores': anomalies,
-            'visualisation': t_plot, 
+            'visualisation': vis_plot, 
             'active_learning': pipeline_active_learning}
-
-run_pipeline()

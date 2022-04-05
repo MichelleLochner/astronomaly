@@ -69,7 +69,20 @@ def get_metadata():
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_metadata(idx)
-        logging.debug('metadata: {}'.format(output))
+        return json.dumps(output)
+    else:
+        return ""
+
+
+@app.route('/getcoordinates', methods=["POST"])
+def get_coordinates():
+    """
+    Serves the coordinates (if available) for a particular object in string
+    format, separated by a comma
+    """
+    if request.method == "POST":
+        idx = str(request.get_json())
+        output = controller.get_coordinates(idx)
         return json.dumps(output)
     else:
         return ""
@@ -96,10 +109,8 @@ def get_features():
     """
     if request.method == "POST":
         idx = str(request.get_json())
-        logging.debug('features idx: {}'.format(idx))
         output = controller.get_features(idx)
         output = json.dumps(output)
-        logging.debug('features: {}'.format(output))
         return output
     else:
         return ""
@@ -127,9 +138,23 @@ def get_image():
     if request.method == "POST":
         idx = str(request.get_json())
         output = controller.get_display_data(idx)
-        if output == None:
+        if output is None:
             return ""
         return Response(output.getvalue(), mimetype='image/png')
+    else:
+        return ""
+
+
+@app.route('/getColumns', methods=["GET", "POST"])
+def get_available_columns():
+    """
+    Tells the frontend whether or not active learning has been run so that it 
+    can display the appropriate options when selecting which column to colour 
+    by
+    """  
+    if request.method == "POST":
+        output = controller.get_active_learning_columns()
+        return json.dumps(output)
     else:
         return ""
 
@@ -140,14 +165,11 @@ def get_visualisation():
     Serves the data to be displayed on the visualisation tab
     """
     if request.method == "POST":
-        data = request.get_json()
-        column = data['column']
-        if data['method'] == 'tsne':  # this is deprecated, I am using umap now and it's identical - replace with 2D or similar?
-            output = controller.get_visualisation_data(color_by_column=column) # TODO allow selection via React
-            js = json.dumps(output)
-            return js
-        else:
-            raise ValueError('Method {} not recognized'.format(data['method']))
+        color_by_column = request.get_json()
+        output = controller.get_visualisation_data(
+            color_by_column=color_by_column)
+        js = json.dumps(output)
+        return js
 
 
 @app.route('/retrain', methods=["GET", "POST"])
@@ -155,7 +177,16 @@ def retrain():
     """
     Calls the human-in-the-loop learning
     """
-    controller.run_active_learning()
+    res = controller.run_active_learning()
+    return json.dumps(res)
+
+
+@app.route('/deletelabels', methods=["GET", "POST"])
+def delete_labels():
+    """
+    Deletes the existing labels allowing the user to start again
+    """
+    controller.delete_labels()
     return json.dumps("success")
 
 
@@ -169,7 +200,6 @@ def sort_data():
         if column == "random":
             controller.randomise_ml_scores()
         else:
-            logging.info('Sorting by {} column'.format(column))
             controller.sort_ml_scores(column)
         return json.dumps("success")
 
@@ -238,4 +268,4 @@ if __name__ == "__main__":
     print('##### Astronomaly server now running #####')
     print('Open this link in your browser:', host)
     print()
-    app.run(debug=True)
+    app.run()

@@ -23,7 +23,7 @@ export class ObjectDisplayer extends React.PureComponent{
         }
 
         return(
-            <Card raised={true} style={{overflow: 'auto'}}>
+            <Card raised={true} style={{maxHeight: 200, overflow: 'auto'}}>
                 <CardHeader title={this.props.title}>
                 </CardHeader>     
                 <Divider />     

@@ -34,13 +34,6 @@ docs/_build/
 
 .vscode/*
 
-node_modules
+node_modules*
 
 .idea/*
-
-*.png
-*.pickle
-*.csv
-*.pdf
-
-.ipynb_checkpoints
