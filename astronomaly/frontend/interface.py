@@ -1,9 +1,8 @@
 import numpy as np
-import pandas as pd
 import os
 import importlib
 import sys
-import logging
+
 
 class Controller:
     def __init__(self, pipeline_file):
@@ -29,6 +28,13 @@ class Controller:
         self.module_name = None
         self.active_learning = None
         self.current_index = 0  # Index in the anomalies list
+        # A dictionary to be used by the frontend for column names when 
+        # colouring the visualisation plot
+        self.column_name_dict = {
+            'score': 'Raw anomaly score',
+            'trained_score': 'Active learning score',
+            'predicted_user_score': 'Predicted user score'
+        }
 
         self.set_pipeline_script(pipeline_file)
 
@@ -75,8 +81,8 @@ class Controller:
         """
         Simply calls the underlying Dataset's function to return display data.
         """
+
         try:
-            logging.debug('dataset is {}'.format(type(self.dataset)))
             return self.dataset.get_display_data(idx)
         except KeyError:
             return None
@@ -85,8 +91,6 @@ class Controller:
         """
         Returns the features of instance given by index idx.
         """
-        logging.info('getting features from idx {}'.format(idx))
-    
         try:
             out_dict = dict(zip(self.features.columns.astype('str'), 
                                 self.features.loc[idx].values))
@@ -112,21 +116,13 @@ class Controller:
         label : int
             Human-assigned label
         """
-        # confusingly, human_label should be part of anomaly_scores
+
         ml_df = self.anomaly_scores
-        # if 'human_label' not in ml_df.columns:
-        #     ml_df['human_label'] = np.nan
-        # if 'acquiisition' not in ml_df.columns:
-        #     ml_df['acquisition'] = np.nan
-
-        # actually assign the label
-        if label < -.1:  # == -1 may have weird behaviour?
-            label = np.nan  # id of "no button", and hence label of no button, is -1. I prefer nan within backend.
+        if 'human_label' not in ml_df.columns:
+            ml_df['human_label'] = [-1] * len(ml_df)
         ml_df.loc[idx, 'human_label'] = label
+        ml_df = ml_df.astype({'human_label': 'int'})
 
-        # update the saved csv
-        # TODO would be much faster/more natural as sqlite db
-        # even better would be to have *only* the human labels stored here as e.g. key/value pairs
         self.active_learning.save(
             ml_df, os.path.join(self.active_learning.output_dir, 
                                 'ml_scores.csv'), file_format='csv')
@@ -136,15 +132,45 @@ class Controller:
         Runs the selected active learning algorithm.
         """
 
-        features_with_labels = pd.concat([self.features, self.anomaly_scores], axis=1, join='inner')
-        # ideally would pass separately, but the too-general base class only allows for one 'data' argument
-        active_learning_output = self.active_learning.run(features_with_labels)  # for me, a df with scores, trained_scores, human_label, acquisition, same index as self.features etc
+        has_no_labels = 'human_label' not in self.anomaly_scores.columns
+        labels_unset = np.sum(self.anomaly_scores['human_label'] != -1) == 0
+        if has_no_labels or labels_unset:
+            print("Active learning requested but no training labels "
+                  "have been applied.")
+            return "failed"
+        else:
+            pipeline_active_learning = self.active_learning
+            features_with_labels = \
+                pipeline_active_learning.combine_data_frames(
+                    self.features, self.anomaly_scores)
+            active_output = pipeline_active_learning.run(features_with_labels)
 
-        # optionally by this with AnomalyTab.js. For me, will be the same as data['score] (but more up-to-date, potentially)
-        for col in ['score', 'trained_score', 'human_label', 'acquisition']:
-            if col in active_learning_output.columns.values:
-                self.anomaly_scores[col] = active_learning_output[col]
+            # This is safer than pd.combine which always makes new columns
+            for col in active_output.columns:
+                self.anomaly_scores[col] = \
+                    active_output.loc[self.anomaly_scores.index, col]
+            return "success"
 
+    def delete_labels(self):
+        """
+        Allows the user to delete all the labels they've applied and start 
+        again
+        """
+        print('Delete labels called')
+        if 'human_label' in self.anomaly_scores.columns:
+            self.anomaly_scores['human_label'] = -1
+        print('All user-applied labels have been reset to -1 (i.e. deleted)')
+
+    def get_active_learning_columns(self):
+        """
+        Checks if active learning has been run and returns appropriate columns
+        to use in plotting
+        """
+        out_dict = {}
+        for col in self.anomaly_scores.columns:
+            if col in self.column_name_dict.keys():
+                out_dict[col] = self.column_name_dict[col]
+        return out_dict
 
     def get_visualisation_data(self, color_by_column=''):
         """
@@ -154,39 +180,38 @@ class Controller:
         ----------
         color_by_column : str, optional
             If given, the points on the plot will be coloured by this column so
-            for instance, more anomalous objects are brighter.
+            for instance, more anomalous objects are brighter. Current options
+            are: 'score' (raw ML anomaly score), 'trained_score' (score after
+            active learning) and 'user_predicted_score' (the regressed values
+            of the human applied labels)
 
         Returns
         -------
         dict
             Formatting visualisation plot data
         """
-        visualisation = self.visualisation  # i.e. the visualisation= part of the run pipeline dict
-
-        if visualisation is not None:
-            if len(color_by_column) == 0:
-                # everything will be the same colour
-                visualisation['color'] = [0.5] * len(visualisation)
-            else:  # color by that column
-                logging.info('Colouring by {}'.format(color_by_column))
-                visualisation['color'] = \
-                    self.anomaly_scores.loc[visualisation.index, 
+        clst = self.visualisation
+        if clst is not None:
+            if color_by_column == '':
+                # Column would have already been checked by frontend
+                cols = [0.5] * len(clst)
+                clst['color'] = cols
+            else:
+                clst['color'] = \
+                    self.anomaly_scores.loc[clst.index, 
                                             color_by_column]
-                if color_by_column == 'acquisition':
-                    # https://codereview.stackexchange.com/questions/185785/scale-numpy-array-to-certain-range
-                    visualisation['color'] = np.interp(visualisation['color'], (visualisation['color'].min(), visualisation['color'].max()), (0, 5))  # simple hack to scale to 0-5 range
             out = []
-            visualisation.sort_values('color')
-            for idx in visualisation.index:
-                dat = visualisation.loc[idx].values
+            clst = clst.sort_values('color')
+            for idx in clst.index:
+                dat = clst.loc[idx].values
                 out.append({'id': (str)(idx), 
                             'x': '{:f}'.format(dat[0]), 
                             'y': '{:f}'.format(dat[1]),
                             'opacity': '0.5', 
-                            'color': '{:f}'.format(visualisation.loc[idx, 'color'])})
+                            'color': '{:f}'.format(clst.loc[idx, 'color'])})
+
             return out
         else:
-            logging.warning('No visualisation passed')
             return None
 
     def get_original_id_from_index(self, ind):
@@ -253,6 +278,28 @@ class Controller:
                     pass
             return out_dict
         except KeyError:
+            return {}
+
+    def get_coordinates(self, idx):
+        """
+        If available, will return the coordinates of the requested object in
+        object format, ready to pass on to another website like simbad
+
+        Parameters
+        ----------
+        idx : str
+            Index of the object
+
+        Returns
+        -------
+        dict
+            Coordinates
+        """
+        met = self.dataset.metadata
+        if 'ra' in met and 'dec' in met:
+            return {'ra': str(met.loc[idx, 'ra']),
+                    'dec': str(met.loc[idx, 'dec'])}
+        else:
             return {}
 
     def randomise_ml_scores(self):
