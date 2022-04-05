@@ -76,19 +76,14 @@ class ScoreConverter(PipelineStage):
         if self.lower_is_weirder:
             scores = -scores
 
-        scores = rescale_array(scores, self.new_min, self.new_max)
+        scores = (self.new_max - self.new_min) * (scores - scores.min()) / \
+            (scores.max() - scores.min()) + self.new_min
+
+        if self.convert_integer:
+            scores = round(scores)
+
         return scores
 
-# refactored for use elsewhere
-def rescale_array(array, new_min, new_max, convert_integer=False):
-
-        rescaled = (new_max - new_min) * (array - array.min()) / \
-            (array.max() - array.min()) + new_min
-
-        if convert_integer:
-            rescaled = round(rescaled)
-
-        return rescaled
 
 class NeighbourScore(PipelineStage):
     def __init__(self, min_score=0.1, max_score=5, alpha=1, **kwargs):
@@ -141,9 +136,11 @@ class NeighbourScore(PipelineStage):
             The final anomaly score for each instance, penalised by the
             predicted user score as required.
         """
-        return weight_by_distance(nearest_neighbour_distance, user_score, anomaly_score, min_score=self.min_score, max_score=self.max_score, alpha=self.alpha)
 
-
+        f_u = self.min_score + 0.85 * (user_score / self.max_score)
+        d0 = nearest_neighbour_distance / np.mean(nearest_neighbour_distance)
+        dist_penalty = np.exp(d0 * self.alpha)
+        return anomaly_score * np.tanh(dist_penalty - 1 + np.arctanh(f_u))
 
     def compute_nearest_neighbour(self, features_with_labels):
         """
@@ -162,14 +159,19 @@ class NeighbourScore(PipelineStage):
         array
             Distance of each instance to its nearest labelled neighbour.
         """
-        features = features_with_labels.drop(columns=['human_label', 'score', 'trained_score', 'acquisition'], errors='ignore')  # may not all be present
-
-        label_mask = ~pd.isna(features_with_labels['human_label'])
+        features = features_with_labels.drop(columns=['human_label', 'score'])
+        # print(features)
+        label_mask = features_with_labels['human_label'] != -1
         labelled = features.loc[features_with_labels.index[label_mask]].values
         features = features.values
 
-        return get_distances(labelled, features)
-
+        mytree = cKDTree(labelled)
+        distances = np.zeros(len(features))
+        for i in range(len(features)):
+            dist = mytree.query(features[i])[0]
+            distances[i] = dist
+        # print(labelled)
+        return distances
 
     def train_regression(self, features_with_labels):
         """
@@ -189,9 +191,9 @@ class NeighbourScore(PipelineStage):
         array
             The predicted user score for each instance.
         """
-        label_mask = ~pd.isna(features_with_labels['human_label'])
+        label_mask = features_with_labels['human_label'] != -1
         inds = features_with_labels.index[label_mask]
-        features = features_with_labels.drop(columns=['human_label', 'score', 'trained_score', 'acquisition'], errors='ignore')
+        features = features_with_labels.drop(columns=['human_label', 'score'])
         reg = RandomForestRegressor(n_estimators=100)
         reg.fit(features.loc[inds], 
                 features_with_labels.loc[inds, 'human_label'])
@@ -199,6 +201,11 @@ class NeighbourScore(PipelineStage):
         fitted_scores = reg.predict(features)
         return fitted_scores
 
+    def combine_data_frames(self, features, ml_df):
+        """
+        Convenience function to correctly combine dataframes.
+        """
+        return pd.concat((features, ml_df), axis=1, join='inner')
 
     def _execute_function(self, features_with_labels):
         """
@@ -219,63 +226,10 @@ class NeighbourScore(PipelineStage):
         """
         distances = self.compute_nearest_neighbour(features_with_labels)
         regressed_score = self.train_regression(features_with_labels)
-        # combine weighted towards regressed score where distances are small and vica versa
         trained_score = self.anom_func(distances, 
                                        regressed_score, 
                                        features_with_labels.score.values)
-        # df with features.index as index and trained_score column
-        # I will replace with gp that gives trained_score
-        return pd.DataFrame(data=trained_score, 
+        dat = np.column_stack(([regressed_score, trained_score]))
+        return pd.DataFrame(data=dat, 
                             index=features_with_labels.index, 
-                            columns=['trained_score'])
-
-# refactored to use in ml_comparison.py
-def weight_by_distance(nearest_neighbor_distance, user_score, anomaly_score, min_score, max_score, alpha):
-    # u^tilde
-    f_u = min_score + 0.85 * (user_score / max_score)  # e2 = 0.85
-    # d0 = euclidean distance in feature space to a labelled neighbour
-    # d = mean d0 for whole dataset
-    d0 = nearest_neighbor_distance / np.mean(nearest_neighbor_distance)  # mostly 0-1 with a few outliers dragging the mean up
-    # d0 = nearest_neighbor_distance / np.median(nearest_neighbor_distance)  # median might work better with outliers?
-    
-    # clip before exponentiating might work better, some are huge
-    # d0 = np.clip(d0, 0, 10)
-
-    dist_penalty = np.exp(d0 * alpha)  # around 1.5 to 2
-    
-    # might work better to drop the exponential
-    # dist_penalty = d0 * alpha
-
-    # arctanh f_u around 1
-    # eqn 1. Close to 2, becomes 1, and most are ~2
-    # will always be <= 1 i.e. user votes will only ever downweight isolationforest results
-    user_weights = np.tanh(dist_penalty - 1 + np.arctanh(f_u))  
-    return anomaly_score * user_weights  
-
-def get_distances(labelled_points, query_points):
-    # returns list of distances between query point[i] and closest labelled point, for all i
-    # TODO modified by mike to exclude distance to self
-
-    # for whatever reason, this breaks everything
-
-    # tree = cKDTree(labelled_points)
-    # distances = np.zeros(len(query_points))
-    # for i in range(len(query_points)):
-    #     distances_to_query_point, _ = tree.query(query_points[i], k=3)
-    #     if distances_to_query_point[0] == 0:  # distance to itself
-    #         dist = distances_to_query_point[1]
-    #     else:
-    #         dist = distances_to_query_point[0]
-    #     distances[i] = dist
-    # # print(labelled_points)
-    # return distances
-
-    # stick to the original
-
-    mytree = cKDTree(labelled_points)
-    distances = np.zeros(len(query_points))
-    for i in range(len(query_points)):
-        dist = mytree.query(query_points[i])[0]
-        distances[i] = dist
-    # print(labelled_points)
-    return distances
+                            columns=['predicted_user_score', 'trained_score'])
