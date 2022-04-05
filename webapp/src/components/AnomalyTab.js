@@ -1,23 +1,28 @@
 import React from 'react';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
-// import {makeStyles } from '@material-ui/core/styles';
-import {createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles'
+import {createTheme, MuiThemeProvider } from '@material-ui/core/styles'
 import { blue, indigo, green, grey } from '@material-ui/core/colors';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
+import { MenuItem } from '@material-ui/core';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
-import { MenuItem, Icon } from '@material-ui/core';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import IconButton from '@material-ui/core/IconButton';
 import SkipNext from '@material-ui/icons/SkipNext';
 import SkipPrevious from '@material-ui/icons/SkipPrevious';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Tooltip from '@material-ui/core/Tooltip';
 
-const muiTheme = createMuiTheme({ palette: {primary: {main:grey[300]},
+const muiTheme = createTheme({ palette: {primary: {main:grey[300]},
                                             secondary:{main:indigo[500]} }})
                                             
 
@@ -33,11 +38,14 @@ export class AnomalyTab extends React.Component {
     this.handleSortBy = this.handleSortBy.bind(this);
     this.changeSortBy = this.changeSortBy.bind(this);
     this.handleRetrainButton = this.handleRetrainButton.bind(this);
+    this.handleDeleteLabelsButton = this.handleDeleteLabelsButton.bind(this);
+    this.handleDialogClose = this.handleDialogClose.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
     this.updateOriginalID = this.updateOriginalID.bind(this);
     this.getLightCurve = this.getLightCurve.bind(this);
     this.updateObjectData = this.updateObjectData.bind(this);
     this.getMetadata = this.getMetadata.bind(this);
+    this.getCoordinates = this.getCoordinates.bind(this);
     this.getFeatures = this.getFeatures.bind(this);
     this.getRawFeatures = this.getRawFeatures.bind(this);
     this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
@@ -47,7 +55,7 @@ export class AnomalyTab extends React.Component {
     this.getCurrentListIndex = this.getCurrentListIndex.bind(this);
     this.setCurrentListIndex = this.setCurrentListIndex.bind(this);
 
-    this.state = {id:-1,  // this is where the -1's are coming, by default. id of no button is -1, and so no button selected posts label:id=-1
+    this.state = {id:-1,
                  max_id:0,
                  img_src:'',
                  original_id:'-1',
@@ -55,15 +63,19 @@ export class AnomalyTab extends React.Component {
                  raw_features_data:{data:[],categories:[]},
                  features:{},
                  metadata:{},
+                 search_cds:'',
+                 search_das:'',
                  button_colors:{"0": "primary",
                                 "1": "primary",
                                 "2": "primary",
                                 "3": "primary",
                                 "4": "primary",
                                 "5": "primary"},
-                 sortby:"score",  // change default sort here
-                 training: false};
+                 sortby:"score",
+                 training: false,
+                 dialog_open: false};
     
+    // this.getImage(this.state.id);
   }
 
   
@@ -77,22 +89,17 @@ export class AnomalyTab extends React.Component {
     let newID;
     if (whichButton=="forward"){
       newID = this.state.id+1;
-      if (newID >= this.state.max_id) {
-        newID = this.state.max_id - 1
-      }
+      if (newID >= this.state.max_id) {newID = this.state.max_id - 1}
     }
-    else {  // back button
+    else {
       newID = this.state.id-1;
-      if (newID<0) {
-        newID=0
-      }
+      if (newID<0) {newID=0}
     }
 
     this.setState({id:newID}, this.updateOriginalID(newID));
-
+    // this.getImage(newID);
   }
 
-  // listen for keyboard strokes to update human label number or move left/right
   handleKeyDown(e){
     const whichKey = e.key;
     const allowed_keys = ["0", "1", "2", "3", "4", "5"];
@@ -161,7 +168,7 @@ export class AnomalyTab extends React.Component {
   }
 
   handleRetrainButton(e) {
-    this.setState({training:true})  // so frontend knows to wait, I assume
+    this.setState({training:true})
     fetch("/retrain", {
       method: 'POST',
       headers: {
@@ -169,46 +176,54 @@ export class AnomalyTab extends React.Component {
       },
       body: JSON.stringify('retrain')
     })
-    .then((res) => {this.setState({sortby:"trained_score", training:false});
-                    this.changeSortBy("trained_score")})
+    .then((res) => {return res.json()})
+    .then((res) => {
+      if (res == "success") {
+        this.setState({sortby:"trained_score", training:false});
+        this.changeSortBy("trained_score")
+      }
+      else {
+        this.setState({training:false})
+      }
+    })
     .catch(console.log)
+  }
+
+  handleDeleteLabelsButton(e) {
+    this.setState({dialog_open:true});
+  }
+
+  handleDialogClose(e) {
+    if (e.currentTarget.id == "dialog_yes") {
+      fetch("/deletelabels", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify('deletelabels')
+      })
+      .then((res) => {this.setState({sortby:"score", dialog_open:false})})
+      .then((res) => this.changeSortBy("score"))
+      .then((res) => this.resetButtonColors())
+      .catch(console.log)}
+    else {
+      this.setState({dialog_open:false})}
   }
 
   /**
    * Allows the user to label objects based on relevance
-   * primary by default, secondary for the keyed (selected) button
-   * e.currentTarget basically is "this"?
    * @param {event} e 
    */
-  handleScoreButtonClick(e){
-    
-    this.changeButtonColor(e.currentTarget.id);
-    // post new human label to server
-    fetch("/label", {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json'
-      },
-      // id is -1 by default i.e. when no button selected. interface.set_human_label will convert to nan
-      body: JSON.stringify({'id':this.state.original_id, 'label':e.currentTarget.id})  
-    })
-    .then((res) => {this.getMetadata(this.state.original_id)})
-    .catch(console.log)
-
-  }
-
-
-  changeButtonColor(button_id) {  // button id = key for which button to change e.g. "2". Does not include "-1".
-    let new_colors = this.state.button_colors;  // initial colors for each button
+  changeButtonColor(button_id) {
+    let new_colors = this.state.button_colors;
     for (const key in new_colors) {
-      new_colors[key] = "primary";  // set all of them to primary, and ignore new colors - only using the keys?!
+      new_colors[key] = "primary";
     }
-    if (button_id !== "-1") {  // set specified button to "secondary" color (i.e. selected)
+    if (button_id !== "-1") {
       new_colors[button_id] = "secondary";
     }
     this.setState({button_colors: new_colors});
   }
-
 
   resetButtonColors() {
     let new_colors = this.state.button_colors;
@@ -217,7 +232,22 @@ export class AnomalyTab extends React.Component {
     }
     this.setState({button_colors: new_colors});
   }
+   handleScoreButtonClick(e){
+    // console.log(e.currentTarget.color);
+    // e.currentTarget.color = "secondary";
+    
+    this.changeButtonColor(e.currentTarget.id);
+    fetch("/label", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({'id':this.state.original_id, 'label':e.currentTarget.id})
+    })
+    .then((res) => {this.getMetadata(this.state.original_id)})
+    .catch(console.log)
 
+  }
 
   /**
    * Tells the backend to reorder the data according to a different scoring 
@@ -246,6 +276,7 @@ export class AnomalyTab extends React.Component {
       this.getRawFeatures(newOriginalId)
     this.getFeatures(newOriginalId);
     this.getMetadata(newOriginalId);
+    this.getCoordinates(newOriginalId);
     this.setCurrentListIndex();
   }
 
@@ -309,6 +340,28 @@ export class AnomalyTab extends React.Component {
     .then((res) => {this.changeButtonColor(parseInt(this.state.metadata.human_label).toString())})
     .catch(console.log);
   }
+
+  getCoordinates(original_id){
+    fetch("getcoordinates", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(original_id)
+    })
+    .then((res) => {return res.json()})
+    .then((res) => {
+      if(res.ra!=undefined){
+        let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
+                  res.ra + '%2C' + res.dec
+        let search_das = "https://das.datacentral.org.au/das?RA=" + 
+                  res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0"
+        this.setState({search_cds:search_cds, search_das:search_das})
+      }
+    })
+    .catch(console.log);
+  }
+
 
   updateOriginalID(ind){
     fetch("/getindex", {
@@ -384,12 +437,12 @@ export class AnomalyTab extends React.Component {
 
   render() {
     // console.log('Anomaly')
-    // console.log(this.props)
+    // console.log(this.state.search_cds)
       return(
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
-                  <Grid item xs={12}></Grid>  {/* Top bar margin*/}
-
-                  <Grid item container xs={8} justify="center">
+                  <Grid item xs={12}></Grid>
+                  <Grid item container xs={8} justifyContent="center">
+                      {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3} alignItems="center">
                         <Grid item xs={12} align="center">
                           <PlotContainer datatype={this.props.datatype} original_id={this.state.original_id} light_curve_data={this.state.light_curve_data}
@@ -421,7 +474,7 @@ export class AnomalyTab extends React.Component {
                         </Grid>
                       </Grid>
                               
-                        <Grid item xs={12} container justify="center">
+                        <Grid item xs={12} container justifyContent="center">
 
                           <Grid item xs={4}>
                             <Typography variant="overline" display="block">
@@ -434,7 +487,6 @@ export class AnomalyTab extends React.Component {
                         <Grid item xs={12} align="center">
                             <Grid container alignItems="center">
                             <MuiThemeProvider theme={muiTheme}>
-                              {/* please, use a loop/map! TODO */}
                                 <Grid item xs={2}>
                                     <Button variant="contained" color={this.state.button_colors["0"]} onClick={this.handleScoreButtonClick} id="0"> 0 </Button>  
                                 </Grid> 
@@ -458,9 +510,12 @@ export class AnomalyTab extends React.Component {
                             
                         </Grid>
 
-                        <Grid item xs={12} container justify="center" alignItems="center">
+                        <Grid item xs={12} container justifyContent="center" alignItems="center">
+                          {/* <Grid container alignItems="center"> */}
+                            {/* <Grid item xs={1}>
+                            </Grid> */}
                             <Grid item xs={6}>
-                              <Grid container item xs={12} justify="center">
+                              <Grid container item xs={12} justifyContent="center">
                                 <Grid item xs={8}>
                                 <FormControl variant="outlined" fullWidth={true} margin='dense'>
                                   {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
@@ -468,8 +523,6 @@ export class AnomalyTab extends React.Component {
                                     <MenuItem value="score">Raw anomaly score </MenuItem>
                                     <MenuItem value="trained_score">Human retrained score</MenuItem>
                                     <MenuItem value="random">Random</MenuItem>
-                                    {/* not yet showing up sadly */}
-                                    <MenuItem value="acquisition">Acquisition</MenuItem>
                                   </Select>
                                   <FormHelperText>Scoring method to sort by</FormHelperText>
                                 </FormControl>
@@ -477,9 +530,37 @@ export class AnomalyTab extends React.Component {
                                 <Grid item xs={2}></Grid>
                               </Grid>
                             </Grid>
-                            <Grid item xs={2}></Grid>
-                            <Grid item xs={2}>
+                            <Grid item xs={1}></Grid>
+                            <Grid item xs={3}>
                             {this.state.training && <CircularProgress/>}
+                            {!this.state.training && 
+                              <Button variant="contained" color="primary" id="delete_labels" onClick={this.handleDeleteLabelsButton}> 
+                                Delete Labels
+                              </Button> }
+                              <Dialog
+                                open={this.state.dialog_open}
+                                onClose={this.handleDialogClose}
+                                aria-labelledby="alert-dialog-title"
+                                aria-describedby="alert-dialog-description"
+                              >
+                                <DialogTitle id="alert-dialog-title">{"Delete all user labels?"}</DialogTitle>
+                                <DialogContent>
+                                  <DialogContentText id="alert-dialog-description">
+                                    This will permanently delete all the labels that you may have painstakingly applied to the data.
+                                    Are you sure you want to do this?
+                                  </DialogContentText>
+                                </DialogContent>
+                                <DialogActions>
+                                  <Button onClick={this.handleDialogClose} id="dialog_no" color="primary" autoFocus>
+                                    No
+                                  </Button>
+                                  <Button onClick={this.handleDialogClose} id="dialog_yes" color="primary">
+                                    Yes
+                                  </Button>
+                                </DialogActions>
+                              </Dialog>
+
+
                             </Grid>
                             
                             <Grid item xs={2}>
@@ -493,22 +574,39 @@ export class AnomalyTab extends React.Component {
                     </Grid>
                   
 
-                  <Grid item xs={4} container justify="center" alignItems="flex-start"  spacing={5}>
-                    {/* default width 12 */}
-                    {/* <Grid container direction="column" justify="center" alignItems="center" spacing={5}>   */}
-
-                      <Grid item xs={11}>
+                  <Grid item xs={4}>
+                    <Grid container alignItems="flex-start" spacing={5}>
+                      <Grid item xs={8}>
                           <ObjectDisplayer title='Metadata' object={this.state.metadata} />
                       </Grid>
 
-                      <Grid item xs={11}>
+                      <Grid item xs={8}>
                         <ObjectDisplayer title='Features' object={this.state.features} />
                       </Grid>
+                      <Grid item xs={8} >
+                        {(this.state.search_cds.length >0) &&
+                        // Only display if there are coordinates to search by
+                          <Tooltip title="Opens the CDS portal to search for this object in other datasets" sx={{fontSize: 20}}>
+                            <Button variant="contained" color="primary" id="search1" href={this.state.search_cds} target="_blank">
+                              Search by Coordinates (CDS)
+                            </Button> 
+                          </Tooltip>
+                        }
+                      </Grid>
+                        
+                      <Grid item xs={8} >
+                        {(this.state.search_das.length >0) &&
+                          // Only display if there are coordinates to search by
+                          <Tooltip title="Opens DAS which contains extra datasets but requires login">
+                            <Button variant="contained" color="primary" id="search2" href={this.state.search_das} target="_blank">
+                              Search by Coordinates (DAS)
+                            </Button> 
+                          </Tooltip>
+                        }
+                      </Grid>
 
-                    {/* </Grid> */}
+                    </Grid>
                   </Grid>
-
-                  {/* bottom blank row */}
                   <Grid item xs={12}>
                   </Grid>
 
