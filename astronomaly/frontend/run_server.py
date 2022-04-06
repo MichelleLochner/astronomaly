@@ -196,11 +196,14 @@ def sort_data():
     Sorts the data by a requested column
     """
     if request.method == "POST":
-        column = (str)(request.get_json())
+        args = request.get_json()
+        column = (str)(args[0])
+        show_unlabelled_first = args[1]
+
         if column == "random":
             controller.randomise_ml_scores()
         else:
-            controller.sort_ml_scores(column)
+            controller.sort_ml_scores(column, show_unlabelled_first)
         return json.dumps("success")
 
 
