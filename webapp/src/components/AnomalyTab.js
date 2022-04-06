@@ -37,6 +37,7 @@ export class AnomalyTab extends React.Component {
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleSortBy = this.handleSortBy.bind(this);
     this.changeSortBy = this.changeSortBy.bind(this);
+    this.getAvailableColumns = this.getAvailableColumns.bind(this);
     this.handleRetrainButton = this.handleRetrainButton.bind(this);
     this.handleDeleteLabelsButton = this.handleDeleteLabelsButton.bind(this);
     this.handleDialogClose = this.handleDialogClose.bind(this);
@@ -71,6 +72,7 @@ export class AnomalyTab extends React.Component {
                                 "3": "primary",
                                 "4": "primary",
                                 "5": "primary"},
+                 available_columns:{},
                  sortby:"score",
                  training: false,
                  dialog_open: false};
@@ -180,6 +182,7 @@ export class AnomalyTab extends React.Component {
     .then((res) => {
       if (res == "success") {
         this.setState({sortby:"trained_score", training:false});
+        this.getAvailableColumns();
         this.changeSortBy("trained_score")
       }
       else {
@@ -249,6 +252,23 @@ export class AnomalyTab extends React.Component {
 
   }
 
+  /**
+   * Gets available columns to sort the data by
+   */
+  getAvailableColumns(){
+    fetch("/getColumns", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify("")
+    })
+    .then(res => res.json())
+    .then((res) => {
+      this.setState({available_columns:res});
+    })
+    .catch(console.log)
+  }
   /**
    * Tells the backend to reorder the data according to a different scoring 
    * method
@@ -431,13 +451,29 @@ export class AnomalyTab extends React.Component {
     if (this.state.max_id == 0) {
       this.getMaxID();
     }
+    this.getAvailableColumns();
     this.changeSortBy(this.state.sortby);
   }
  
 
   render() {
-    // console.log('Anomaly')
-    // console.log(this.state.search_cds)
+      // Sort by menu
+      let menuItems = [];
+      let column_names = this.state.available_columns;
+      for (const [col, text] of Object.entries(column_names)) {
+          menuItems.push(<MenuItem key={col} value={col}>{text}</MenuItem>)
+      }
+      // Manually add the Random option
+      menuItems.push(<MenuItem key={'random'} value={'random'}>{"Random"}</MenuItem>)
+
+      let sort_by_form = 
+      <FormControl variant="outlined" fullWidth={true}     margin='dense'>
+          <Select id="select" onChange={this.handleSortBy} value={this.state.sortby}>
+            {menuItems}
+          </Select>
+        <FormHelperText>Scoring method to sort by</FormHelperText>
+      </FormControl>
+
       return(
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
                   <Grid item xs={12}></Grid>
@@ -517,15 +553,7 @@ export class AnomalyTab extends React.Component {
                             <Grid item xs={6}>
                               <Grid container item xs={12} justifyContent="center">
                                 <Grid item xs={8}>
-                                <FormControl variant="outlined" fullWidth={true} margin='dense'>
-                                  {/* <InputLabel id="select-label" margin="dense">Sort By</InputLabel> */}
-                                  <Select id="select" onChange={this.handleSortBy} value={this.state.sortby}>
-                                    <MenuItem value="score">Raw anomaly score </MenuItem>
-                                    <MenuItem value="trained_score">Human retrained score</MenuItem>
-                                    <MenuItem value="random">Random</MenuItem>
-                                  </Select>
-                                  <FormHelperText>Scoring method to sort by</FormHelperText>
-                                </FormControl>
+                                  {sort_by_form}
                                 </Grid>
                                 <Grid item xs={2}></Grid>
                               </Grid>

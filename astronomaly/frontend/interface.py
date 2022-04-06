@@ -33,7 +33,9 @@ class Controller:
         self.column_name_dict = {
             'score': 'Raw anomaly score',
             'trained_score': 'Active learning score',
-            'predicted_user_score': 'Predicted user score'
+            'predicted_user_score': 'Predicted user score',
+            'acquisition': 'Acquisition',
+            'human_label': 'Human applied labels'
         }
 
         self.set_pipeline_script(pipeline_file)
