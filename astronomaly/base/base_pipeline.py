@@ -199,6 +199,9 @@ class PipelineStage(object):
         same data. This can allow a much faster user experience avoiding
         rerunning functions unnecessarily.
 
+        Warning - all columns in data not 'human_label' or 'score' are assumed
+        to be features.
+
         Parameters
         ----------
         data : pd.DataFrame

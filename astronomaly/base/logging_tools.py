@@ -154,7 +154,8 @@ def check_if_inputs_same(class_name, local_variables):
 
     if len(flname) == 0 or not os.path.exists(flname):
         # Log file doesn't exist yet
-        return False
+        # different args, meaningless checksum. Must return two args.
+        return False, 0
 
     else:
         fl = open(flname)
@@ -169,11 +170,11 @@ def check_if_inputs_same(class_name, local_variables):
                 kwarg_list = []
 
                 if len(the_list) > 1:
-                    for l in the_list:
-                        if ',' not in l:
-                            kwarg_list.append(l)
+                    for element in the_list:
+                        if ',' not in element:
+                            kwarg_list.append(element)
                         else:
-                            s = l.split(',')
+                            s = element.split(',')
                             if len(s) > 2:
                                 kwarg_list.append(','.join(s[:-1]))
                             else:
