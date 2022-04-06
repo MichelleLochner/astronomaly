@@ -316,18 +316,25 @@ class Controller:
         inds = np.random.permutation(self.anomaly_scores.index)
         self.anomaly_scores = self.anomaly_scores.loc[inds]
 
-    def sort_ml_scores(self, column_to_sort_by='score'):
+    def sort_ml_scores(self, column_to_sort_by='score',
+                       show_unlabelled_first=False):
         """
-        Returns the anomaly scores sorted by a particular column.
+        Returns the anomaly scores sorted by a particular column. If 
+        show_unlabelled_first is True, puts the unlabelled data up front (this
+        is cheaper than reducing the data to only showing the unlabelled data)
         """
         anomaly_scores = self.anomaly_scores
-        if column_to_sort_by in anomaly_scores.columns:
-            if column_to_sort_by == "iforest_score":
-                ascending = True
+        columns = anomaly_scores.columns
+
+        if column_to_sort_by in columns:
+            if show_unlabelled_first and 'human_label' in columns:
+                anomaly_scores.sort_values(
+                    ['human_label', column_to_sort_by], 
+                    inplace=True, 
+                    ascending=[True, False])
             else:
-                ascending = False
-            anomaly_scores.sort_values(column_to_sort_by, inplace=True, 
-                                       ascending=ascending)
+                anomaly_scores.sort_values(
+                    column_to_sort_by, inplace=True, ascending=False)
         else:
             print("Requested column not in ml_scores dataframe")
 

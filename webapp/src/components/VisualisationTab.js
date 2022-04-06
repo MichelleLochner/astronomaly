@@ -3,6 +3,7 @@ import Grid from '@material-ui/core/Grid';
 import Tooltip from '@material-ui/core/Tooltip';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
+import Typography from '@material-ui/core/Typography';
 import { MenuItem } from '@material-ui/core';
 import Select from '@material-ui/core/Select';
 import {PlotContainer} from './PlotContainer.js'
@@ -257,14 +258,18 @@ export class VisualisationTab extends React.Component {
             <FormHelperText>Scoring method to colour by</FormHelperText>
           </FormControl>
 
-          let htext = ""
           if (Object.keys(this.state.available_columns).length < 2) {
-            htext = "Some options only available after running active learning" }
+            let htext = "Some options only available after running active learning"
           
-          dropdown = 
-          <Tooltip title={htext} sx={{fontSize: 20}}>
-              {form}
-          </Tooltip>
+            dropdown = 
+            <Tooltip title={<Typography>{htext}</Typography>}>
+                {form}
+            </Tooltip>
+          }
+          else {
+            dropdown = form
+          }
+          
 
         }
         return(

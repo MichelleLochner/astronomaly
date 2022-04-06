@@ -8,6 +8,9 @@ import TextField from '@material-ui/core/TextField';
 import Select from '@material-ui/core/Select';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
+import Switch from '@material-ui/core/Switch';
+import FormGroup from '@material-ui/core/FormGroup';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
 import { MenuItem } from '@material-ui/core';
 import {ObjectDisplayer} from './ObjectDisplayer.js';
 import {PlotContainer} from './PlotContainer.js'
@@ -37,6 +40,7 @@ export class AnomalyTab extends React.Component {
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleSortBy = this.handleSortBy.bind(this);
     this.changeSortBy = this.changeSortBy.bind(this);
+    this.handleUnlabelledSwitch = this.handleUnlabelledSwitch.bind(this);
     this.getAvailableColumns = this.getAvailableColumns.bind(this);
     this.handleRetrainButton = this.handleRetrainButton.bind(this);
     this.handleDeleteLabelsButton = this.handleDeleteLabelsButton.bind(this);
@@ -74,6 +78,7 @@ export class AnomalyTab extends React.Component {
                                 "5": "primary"},
                  available_columns:{},
                  sortby:"score",
+                 unlabelled_first: false,
                  training: false,
                  dialog_open: false};
     
@@ -166,7 +171,13 @@ export class AnomalyTab extends React.Component {
   handleSortBy(e){
     const sortByColumn = e.target.value;
     this.setState({sortby:sortByColumn});
-    this.changeSortBy(sortByColumn);
+    this.changeSortBy(sortByColumn, this.state.unlabelled_first);
+  }
+
+  handleUnlabelledSwitch(e){
+    const unlabelled_first = e.target.checked;
+    this.setState({unlabelled_first:unlabelled_first});
+    this.changeSortBy(this.state.sortby, unlabelled_first);
   }
 
   handleRetrainButton(e) {
@@ -274,13 +285,14 @@ export class AnomalyTab extends React.Component {
    * method
    * @param {string} columnName
    */
-  changeSortBy(columnName){
+  changeSortBy(columnName, unlabelled_first){
+    let args = [columnName, unlabelled_first];
     fetch("/sort", {
       method: 'POST',
       headers: {
           'Content-Type': 'application/json'
       },
-      body: JSON.stringify(columnName)
+      body: JSON.stringify(args)
     })
     .then(res => res.json())
     .then((data) => {
@@ -452,7 +464,7 @@ export class AnomalyTab extends React.Component {
       this.getMaxID();
     }
     this.getAvailableColumns();
-    this.changeSortBy(this.state.sortby);
+    this.changeSortBy(this.state.sortby, this.state.unlabelled_first);
   }
  
 
@@ -550,7 +562,7 @@ export class AnomalyTab extends React.Component {
                           {/* <Grid container alignItems="center"> */}
                             {/* <Grid item xs={1}>
                             </Grid> */}
-                            <Grid item xs={6}>
+                            <Grid item xs={4}>
                               <Grid container item xs={12} justifyContent="center">
                                 <Grid item xs={8}>
                                   {sort_by_form}
@@ -558,8 +570,21 @@ export class AnomalyTab extends React.Component {
                                 <Grid item xs={2}></Grid>
                               </Grid>
                             </Grid>
-                            <Grid item xs={1}></Grid>
-                            <Grid item xs={3}>
+
+                            <Grid item xs={4}>
+                            <Tooltip 
+                              title={<Typography>Pushes all labelled data to the end of the list, prioritising the objects you have not yet seen</Typography>} placement="top">
+                                <FormGroup>
+                                  <FormControlLabel control={
+                                    <Switch color="primary"
+                                    checked={this.state.unlabelled_first}
+                                    onChange={this.handleUnlabelledSwitch}/>} 
+                                  label="Show unlabelled objects first" />
+                                </FormGroup>
+                              </Tooltip>
+                            </Grid>
+
+                            <Grid item xs={2}>
                             {this.state.training && <CircularProgress/>}
                             {!this.state.training && 
                               <Button variant="contained" color="primary" id="delete_labels" onClick={this.handleDeleteLabelsButton}> 
