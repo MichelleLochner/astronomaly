@@ -387,7 +387,7 @@ export class AnomalyTab extends React.Component {
         let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
                   res.ra + '%2C' + res.dec
         let search_das = "https://das.datacentral.org.au/das?RA=" + 
-                  res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0"
+                  res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0&CAT=0"
         this.setState({search_cds:search_cds, search_das:search_das})
       }
     })
