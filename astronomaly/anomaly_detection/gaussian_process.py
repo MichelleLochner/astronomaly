@@ -61,7 +61,6 @@ class GaussianProcess(PipelineStage):
         else:
             kernel = RBF() + WhiteKernel()
             self.estimator = GaussianProcessRegressor(kernel=kernel)
-
             self.estimator.fit(X_labelled, y_labelled)
             scores, std = self.estimator.predict(features, return_std=True)
 
@@ -82,7 +81,7 @@ class GaussianProcess(PipelineStage):
         """
         return pd.concat((features, ml_df), axis=1, join='inner')
 
-    def _execute_function(self, anomalies):
+    def _execute_function(self, features_with_labels):
         """
         Does the work in actually running estimator.
 
@@ -98,7 +97,11 @@ class GaussianProcess(PipelineStage):
             anomaly scores. 
 
         """
-        features_with_labels = self.combine_data_frames(
-            self.features, anomalies)
+
+        num_labels = (features_with_labels['human_label'] != -1).sum()
+        print(f'Running GP regression with {num_labels} training points')
         gp_output = self.update(features_with_labels)
+        # print('GP min max',
+        #       gp_output.trained_score.min(),
+        #       gp_output.trained_score.max())
         return gp_output
