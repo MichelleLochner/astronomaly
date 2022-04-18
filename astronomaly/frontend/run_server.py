@@ -181,6 +181,16 @@ def retrain():
     return json.dumps(res)
 
 
+@app.route('/openViewer', methods=["GET", "POST"])
+def open_viewer():
+    """
+    Runs the local fits viewer (such as ds9)
+    """
+    idx = request.get_json()
+    res = controller.open_local_fits_viewer(idx)
+    return json.dumps(res)
+
+
 @app.route('/deletelabels', methods=["GET", "POST"])
 def delete_labels():
     """

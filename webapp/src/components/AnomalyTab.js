@@ -43,6 +43,7 @@ export class AnomalyTab extends React.Component {
     this.handleUnlabelledSwitch = this.handleUnlabelledSwitch.bind(this);
     this.getAvailableColumns = this.getAvailableColumns.bind(this);
     this.handleRetrainButton = this.handleRetrainButton.bind(this);
+    this.handleViewerButton = this.handleViewerButton.bind(this);
     this.handleDeleteLabelsButton = this.handleDeleteLabelsButton.bind(this);
     this.handleDialogClose = this.handleDialogClose.bind(this);
     this.handleScoreButtonClick = this.handleScoreButtonClick.bind(this);
@@ -200,6 +201,18 @@ export class AnomalyTab extends React.Component {
         this.setState({training:false})
       }
     })
+    .catch(console.log)
+  }
+
+  handleViewerButton(e) {
+    fetch("/openViewer", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(this.state.original_id)
+    })
+    .then((res) => {return res.json()})
     .catch(console.log)
   }
 
@@ -639,7 +652,7 @@ export class AnomalyTab extends React.Component {
                       <Grid item xs={8} >
                         {(this.state.search_cds.length >0) &&
                         // Only display if there are coordinates to search by
-                          <Tooltip title="Opens the CDS portal to search for this object in other datasets" sx={{fontSize: 20}}>
+                          <Tooltip title={<Typography>Opens the CDS portal to search for this object in other datasets</Typography>}>
                             <Button variant="contained" color="primary" id="search1" href={this.state.search_cds} target="_blank">
                               Search by Coordinates (CDS)
                             </Button> 
@@ -650,9 +663,19 @@ export class AnomalyTab extends React.Component {
                       <Grid item xs={8} >
                         {(this.state.search_das.length >0) &&
                           // Only display if there are coordinates to search by
-                          <Tooltip title="Opens DAS which contains extra datasets but requires login">
+                          <Tooltip title={<Typography>Opens DAS which contains extra datasets but requires login</Typography>}>
                             <Button variant="contained" color="primary" id="search2" href={this.state.search_das} target="_blank">
                               Search by Coordinates (DAS)
+                            </Button> 
+                          </Tooltip>
+                        }
+                      </Grid>
+
+                      <Grid item xs={8} >
+                        { 
+                         <Tooltip title={<Typography>Opens the image in your system's local fits viewer (you can set the command in your script)</Typography>}>
+                            <Button variant="contained" color="primary" id="fits_viewer_button" onClick={this.handleViewerButton}>
+                              Open with Local Viewer
                             </Button> 
                           </Tooltip>
                         }
