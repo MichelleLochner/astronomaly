@@ -71,6 +71,7 @@ export class AnomalyTab extends React.Component {
                  metadata:{},
                  search_cds:'',
                  search_das:'',
+                 using_fits:false,
                  button_colors:{"0": "primary",
                                 "1": "primary",
                                 "2": "primary",
@@ -200,6 +201,21 @@ export class AnomalyTab extends React.Component {
       else {
         this.setState({training:false})
       }
+    })
+    .catch(console.log)
+  }
+
+  checkFitsFile(e) {
+    fetch("/checkFits", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify("")
+    })
+    .then(res => res.json())
+    .then((res) => {
+      this.setState({using_fits:res});
     })
     .catch(console.log)
   }
@@ -477,6 +493,7 @@ export class AnomalyTab extends React.Component {
       this.getMaxID();
     }
     this.getAvailableColumns();
+    this.checkFitsFile();
     this.changeSortBy(this.state.sortby, this.state.unlabelled_first);
   }
  
@@ -672,7 +689,8 @@ export class AnomalyTab extends React.Component {
                       </Grid>
 
                       <Grid item xs={8} >
-                        { 
+                        {(this.state.using_fits) &&
+                          // Only display if these are fits files
                          <Tooltip title={<Typography>Opens the image in your system's local fits viewer (you can set the command in your script)</Typography>}>
                             <Button variant="contained" color="primary" id="fits_viewer_button" onClick={this.handleViewerButton}>
                               Open with Local Viewer

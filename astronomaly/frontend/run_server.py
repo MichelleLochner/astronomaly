@@ -181,6 +181,16 @@ def retrain():
     return json.dumps(res)
 
 
+@app.route('/checkFits', methods=["GET", "POST"])
+def check_fits():
+    """
+    Checks if we're using fits files to decide whether or not to display the
+    open viewer button
+    """
+    res = controller.check_if_fits_file()
+    return json.dumps(res)
+
+
 @app.route('/openViewer', methods=["GET", "POST"])
 def open_viewer():
     """
