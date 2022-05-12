@@ -2,6 +2,7 @@ import numpy as np
 import os
 import importlib
 import sys
+import subprocess
 
 
 class Controller:
@@ -152,6 +153,19 @@ class Controller:
                 self.anomaly_scores[col] = \
                     active_output.loc[self.anomaly_scores.index, col]
             return "success"
+
+    def open_local_fits_viewer(self, idx):
+        idx = str(idx)
+        metadata = self.dataset.metadata
+        original_image = metadata.loc[idx, 'original_image']
+        filename = self.dataset.images[original_image].filenames[0]
+        # what if this is a multiband image with multiple files?
+        x = metadata.loc[idx, 'x']
+        y = metadata.loc[idx, 'y']
+        cmd = f'ds9 {filename} -zscale -pan to {x} {y} physical'
+        subprocess.Popen(cmd, 
+                         cwd=os.getcwd(), 
+                         shell=True)
 
     def delete_labels(self):
         """
