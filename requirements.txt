@@ -2,6 +2,7 @@ pip>=20.2.2
 astropy>=4.0.1
 feets>=0.4
 flask>=1.1.2
+markupsafe==2.0.1 # Needed until flask can handle more recent version
 matplotlib>=3.3.1
 numpy>=1.19.1
 opencv-python>=4.4
