@@ -154,6 +154,16 @@ class Controller:
                     active_output.loc[self.anomaly_scores.index, col]
             return "success"
 
+    def check_if_fits_file(self):
+        """
+        Runs a quick check to see if we're working with fits data to decide 
+        whether or not to display the "open with local viewer" button
+        """
+        if 'original_image' in self.dataset.metadata:
+            return True
+        else:
+            return False
+
     def open_local_fits_viewer(self, idx):
         idx = str(idx)
         metadata = self.dataset.metadata
