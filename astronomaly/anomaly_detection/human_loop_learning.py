@@ -1,6 +1,8 @@
 from astronomaly.base.base_pipeline import PipelineStage
 from astronomaly.base import logging_tools
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import WhiteKernel, RBF
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
@@ -86,7 +88,8 @@ class ScoreConverter(PipelineStage):
 
 
 class NeighbourScore(PipelineStage):
-    def __init__(self, min_score=0.1, max_score=5, alpha=1, **kwargs):
+    def __init__(self, min_score=0.1, max_score=5, alpha=1, 
+                 regression_algorithm='RF', **kwargs):
         """
         Computes a new anomaly score based on what the user has labelled,
         allowing anomalous but boring objects to be rejected. This function
@@ -100,19 +103,28 @@ class NeighbourScore(PipelineStage):
 
         Parameters
         ----------
-        min_score : float
+        min_score : float, optional
             The lowest user score possible (must be greater than zero)
-        max_score : float
+        max_score : float, optional
             The highest user score possible
-        alpha : float
+        alpha : float, optional
             A scaling factor of how much to "trust" the predicted user scores.
             Should be close to one but is a tuning parameter.
+        regression_algorithm : string, optional
+            Which algorithm to use to predict the user scores. Note that these
+            algorithms just use sensible defaults and can't be tuned at the 
+            moment. Possible algorithms:
+            'RF' - random forest
+            'GP' - Gaussian process
         """
-        super().__init__(min_score=min_score, max_score=max_score, alpha=alpha, 
+        super().__init__(min_score=min_score, max_score=max_score,
+                         alpha=alpha, 
+                         regression_algorithm=regression_algorithm, 
                          **kwargs)
         self.min_score = min_score
         self.max_score = max_score
         self.alpha = alpha
+        self.regression_algorithm = regression_algorithm
 
     def anom_func(self, nearest_neighbour_distance, user_score, anomaly_score):
         """
@@ -188,18 +200,33 @@ class NeighbourScore(PipelineStage):
 
         Returns
         -------
-        array
-            The predicted user score for each instance.
+        dict
+            Dictionary containing the predicted user score for each instance
+            and, if applicable for the regression algorithm, an estimate of
+            the uncertainty that can be used as an aquisition score.
         """
         label_mask = features_with_labels['human_label'] != -1
         inds = features_with_labels.index[label_mask]
         features = features_with_labels.drop(columns=['human_label', 'score'])
-        reg = RandomForestRegressor(n_estimators=100)
-        reg.fit(features.loc[inds], 
-                features_with_labels.loc[inds, 'human_label'])
+        X_labelled = features.loc[inds]
+        y_labelled = features_with_labels.loc[inds, 'human_label']
 
-        fitted_scores = reg.predict(features)
-        return fitted_scores
+        return_dict = {}
+
+        if self.regression_algorithm == 'RF':
+            reg = RandomForestRegressor(n_estimators=100)
+            reg.fit(X_labelled, y_labelled)
+            fitted_scores = reg.predict(features)
+        else:
+            kernel = RBF() + WhiteKernel()
+            reg = GaussianProcessRegressor(kernel=kernel)
+            reg.fit(X_labelled, y_labelled)
+            fitted_scores, std = reg.predict(features, return_std=True)
+            return_dict['std'] = std
+
+        return_dict['score'] = fitted_scores
+
+        return return_dict
 
     def combine_data_frames(self, features, ml_df):
         """
@@ -225,11 +252,24 @@ class NeighbourScore(PipelineStage):
 
         """
         distances = self.compute_nearest_neighbour(features_with_labels)
-        regressed_score = self.train_regression(features_with_labels)
+        regression_output = self.train_regression(features_with_labels)
+
+        regressed_score = regression_output['score']
         trained_score = self.anom_func(distances, 
                                        regressed_score, 
                                        features_with_labels.score.values)
-        dat = np.column_stack(([regressed_score, trained_score]))
-        return pd.DataFrame(data=dat, 
-                            index=features_with_labels.index, 
-                            columns=['predicted_user_score', 'trained_score'])
+
+        if 'std' in regression_output.keys():   
+            std = regression_output['std']
+            dat = np.column_stack(([regressed_score, trained_score, std]))
+            return pd.DataFrame(data=dat, 
+                                index=features_with_labels.index, 
+                                columns=['predicted_user_score',
+                                         'trained_score', 
+                                         'acquisition'])
+        else:
+            dat = np.column_stack(([regressed_score, trained_score]))
+            return pd.DataFrame(data=dat, 
+                                index=features_with_labels.index, 
+                                columns=['predicted_user_score', 
+                                         'trained_score'])
