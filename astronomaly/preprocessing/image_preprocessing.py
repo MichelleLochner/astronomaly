@@ -465,7 +465,7 @@ def image_transform_zscale(img, contrast=0.05):
         Shifted image
 
     """
-
+    img = np.nan_to_num(img)
     zscale = ZScaleInterval(contrast=contrast)
     z1, z2 = zscale.get_limits(img)
     adj_img_arr = img.copy()
