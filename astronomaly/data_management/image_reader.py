@@ -16,7 +16,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # n
 import matplotlib.pyplot as plt  # noqa: E402
 
 
-def convert_array_to_image(arr, plot_cmap='hot'):
+def convert_array_to_image(arr, plot_cmap='hot', interpolation='bicubic'):
     """
     Function to convert an array to a png image ready to be served on a web
     page.
@@ -25,6 +25,10 @@ def convert_array_to_image(arr, plot_cmap='hot'):
     ----------
     arr : np.ndarray
         Input image
+    plot_cmap : str, optional
+        Which colourmap to use
+    interpolation : str, optional
+        Allows interpolation so low res images don't look so blocky
 
     Returns
     -------
@@ -36,7 +40,8 @@ def convert_array_to_image(arr, plot_cmap='hot'):
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
         fig.add_axes(ax)
-        plt.imshow(arr, cmap=plot_cmap, origin='lower')
+        plt.imshow(arr, cmap=plot_cmap, origin='lower',
+                   interpolation=interpolation)
         output = io.BytesIO()
         FigureCanvas(fig).print_png(output)
         plt.close(fig)
@@ -227,7 +232,9 @@ class ImageDataset(Dataset):
                  band_prefixes=[], bands_rgb={},
                  transform_function=None, display_transform_function=None,
                  plot_square=False, catalogue=None,
-                 plot_cmap='hot', **kwargs):
+                 plot_cmap='hot', 
+                 image_interpolation='bicubic',
+                 **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
         paths (absolute). Inherits from Dataset class.
@@ -303,6 +310,9 @@ class ImageDataset(Dataset):
             the original cutout when the image is displayed in the webapp.
         plot_cmap : str, optional
             The colormap with which to plot the image
+        interpolation : str, optional
+            Allows interpolation in the display image so low res images don't
+            look so blocky
         """
 
         super().__init__(fits_index=fits_index, window_size=window_size,
@@ -315,6 +325,7 @@ class ImageDataset(Dataset):
                          display_transform_function=display_transform_function,
                          plot_square=plot_square, catalogue=catalogue,
                          plot_cmap=plot_cmap,
+                         image_interpolation=image_interpolation,
                          **kwargs)
         self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
                                  'FITS', 'FITS.fz', 'FITS.gz']
@@ -430,6 +441,7 @@ class ImageDataset(Dataset):
 
         self.plot_square = plot_square
         self.plot_cmap = plot_cmap
+        self.image_interpolation = image_interpolation
         self.catalogue = catalogue
         self.display_image_size = display_image_size
         self.band_prefixes = band_prefixes
@@ -712,7 +724,8 @@ class ImageDataset(Dataset):
                 new_shape.append(cutout.shape[-1])
             cutout = resize(cutout, new_shape, anti_aliasing=False)
 
-        return convert_array_to_image(cutout, plot_cmap=self.plot_cmap)
+        return convert_array_to_image(cutout, plot_cmap=self.plot_cmap,
+                                      interpolation=self.image_interpolation)
 
 
 class ImageThumbnailsDataset(Dataset):
