@@ -288,7 +288,8 @@ class Controller:
         ml_df = self.anomaly_scores
 
         try:
-            out_dict = {}
+            # Include the index by default
+            out_dict = {'index': idx}
             if len(include_keywords) != 0:
                 cols = include_keywords
             else:
