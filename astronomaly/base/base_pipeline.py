@@ -294,6 +294,13 @@ class PipelineStage(object):
                     print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
 
+                # Drop any image that's all zeros or all NaNs since it contains
+                # no data
+                all_same = np.all(input_instance == input_instance[0])
+                all_nan = np.all(np.isnan(input_instance))
+                if all_same or all_nan:
+                    input_instance = None
+
                 if input_instance is None:
                     none_msg = "Input sample is None, skipping sample"
                     logging_tools.log(none_msg, level='WARNING')
