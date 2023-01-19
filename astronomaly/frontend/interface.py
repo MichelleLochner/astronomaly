@@ -334,17 +334,27 @@ class Controller:
         else:
             return {}
 
-    def randomise_ml_scores(self):
+    def randomise_ml_scores(self, show_unlabelled_first):
         """
-        Returns the anomaly scores in a random order
+        Puts the anomaly scores in a random order. If 
+        show_unlabelled_first is True, puts the unlabelled data up front.
         """
-        inds = np.random.permutation(self.anomaly_scores.index)
-        self.anomaly_scores = self.anomaly_scores.loc[inds]
+        if show_unlabelled_first:
+            self.anomaly_scores.sort_values('human_label', inplace=True)
+            msk = self.anomaly_scores.human_label == -1
+            inds_unlbl = np.random.permutation(self.anomaly_scores[msk].index)
+            msk = self.anomaly_scores.human_label != -1
+            inds_lbl = np.random.permutation(self.anomaly_scores[msk].index)
+            inds = list(inds_unlbl) + list(inds_lbl)
+            self.anomaly_scores = self.anomaly_scores.loc[inds]
+        else:
+            inds = np.random.permutation(self.anomaly_scores.index)
+            self.anomaly_scores = self.anomaly_scores.loc[inds]
 
     def sort_ml_scores(self, column_to_sort_by='score',
                        show_unlabelled_first=False):
         """
-        Returns the anomaly scores sorted by a particular column. If 
+        Sorts the anomaly scores by a particular column. If 
         show_unlabelled_first is True, puts the unlabelled data up front (this
         is cheaper than reducing the data to only showing the unlabelled data)
         """

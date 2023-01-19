@@ -221,7 +221,7 @@ def sort_data():
         show_unlabelled_first = args[1]
 
         if column == "random":
-            controller.randomise_ml_scores()
+            controller.randomise_ml_scores(show_unlabelled_first)
         else:
             controller.sort_ml_scores(column, show_unlabelled_first)
         return json.dumps("success")
