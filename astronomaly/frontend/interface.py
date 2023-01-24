@@ -358,18 +358,26 @@ class Controller:
         show_unlabelled_first is True, puts the unlabelled data up front (this
         is cheaper than reducing the data to only showing the unlabelled data)
         """
-        anomaly_scores = self.anomaly_scores
-        columns = anomaly_scores.columns
+        columns = self.anomaly_scores.columns
+        print('Sort by called')
 
         if column_to_sort_by in columns:
             if show_unlabelled_first and 'human_label' in columns:
-                anomaly_scores.sort_values(
+                self.anomaly_scores.sort_values(
                     ['human_label', column_to_sort_by], 
                     inplace=True, 
                     ascending=[True, False])
             else:
-                anomaly_scores.sort_values(
-                    column_to_sort_by, inplace=True, ascending=False)
+                if column_to_sort_by == 'human_label':
+                    # Also order the index alphabetically to make it easier to
+                    # look at specific objects
+                    self.anomaly_scores.rename_axis('Index', inplace=True)
+                    self.anomaly_scores.sort_values(
+                        [column_to_sort_by, 'Index'], 
+                        inplace=True, ascending=[False, True])
+                else:
+                    self.anomaly_scores.sort_values(
+                        column_to_sort_by, inplace=True, ascending=False)
         else:
             print("Requested column not in ml_scores dataframe")
 
