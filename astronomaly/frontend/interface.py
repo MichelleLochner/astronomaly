@@ -359,7 +359,6 @@ class Controller:
         is cheaper than reducing the data to only showing the unlabelled data)
         """
         columns = self.anomaly_scores.columns
-        print('Sort by called')
 
         if column_to_sort_by in columns:
             if show_unlabelled_first and 'human_label' in columns:
