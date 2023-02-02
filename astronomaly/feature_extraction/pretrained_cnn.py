@@ -101,7 +101,6 @@ class CNN_Features(PipelineStage):
             # Make a copy of this channel to all others
             image = np.stack((image,) * 3, axis=-1)
 
-        print('image shape', image.shape)
         processed_image = self.transforms(image)
         # Add the extra alpha channel the nets expect
         processed_image = torch.unsqueeze(processed_image, 0)
