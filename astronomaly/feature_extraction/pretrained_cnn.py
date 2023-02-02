@@ -99,11 +99,8 @@ class CNN_Features(PipelineStage):
         image = (image * 255).astype(np.uint8)
         if len(image.shape) == 2:  # Greyscale
             # Make a copy of this channel to all others
-            image = np.stack((image,) * 3, axis=0)
-        else:
-            # If this is read with numpy, it's channels last which is not 
-            # what torch expects
-            image = np.moveaxis(image, -1, 0)
+            image = np.stack((image,) * 3, axis=-1)
+
         print('image shape', image.shape)
         processed_image = self.transforms(image)
         # Add the extra alpha channel the nets expect
