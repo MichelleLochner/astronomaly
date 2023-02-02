@@ -104,7 +104,7 @@ class CNN_Features(PipelineStage):
             # If this is read with numpy, it's channels last which is not 
             # what torch expects
             image = np.moveaxis(image, -1, 0)
-
+        print('image shape', image.shape)
         processed_image = self.transforms(image)
         # Add the extra alpha channel the nets expect
         processed_image = torch.unsqueeze(processed_image, 0)
