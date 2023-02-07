@@ -39,7 +39,6 @@ def split_lc(lc_data, max_gap):
         progress = id_n / len(unq_ids)
         progress = progress * 100
 
-        # print('Concatinating {}%'.format(progress))
         lc = lc_data[lc_data['ID'] == ids]
 
         if 'filters' in lc.columns:
@@ -287,20 +286,52 @@ class LightCurveDataset(Dataset):
 
                 # ============Multiple brightness columns======================
                 try:
+                    # We'll have to duplicate these if there are multiple
+                    # flux/mag columns
+                    id_values = standard_data['ID']
+                    time_values = standard_data['time']
+                    if 'labels' in standard_data.keys():
+                        label_values = standard_data['labels']
+                    else:
+                        label_values = []
+
                     for i in range(len(self.data_dict[data_col])):
-                        # The case where there are no error columns
-                        standard_data.update({data_col + str(i + 1):
-                                             data.iloc[:, 
-                                             self.data_dict[data_col][i]]})
+                        curr_band = data.iloc[:, self.data_dict[data_col][i]]
+
+                        # We have to skip the first time to avoid double
+                        # counting
+                        if i != 0:
+                            standard_data['ID'] = np.concatenate(
+                                (standard_data['ID'], id_values))
+                            standard_data['time'] = np.concatenate(
+                                (standard_data['time'], time_values))
+                            if 'labels' in standard_data.keys():
+                                standard_data['labels'] = np.concatenate(
+                                    (standard_data['labels'], label_values))
+                        filter_values = np.array([i] * len(curr_band))
+                        if 'filters' not in standard_data.keys():
+                            standard_data['filters'] = filter_values
+                        else:
+                            standard_data['filters'] = np.concatenate(
+                                (standard_data['filters'], filter_values))
+                        if data_col not in standard_data.keys():
+                            standard_data[data_col] = curr_band
+                        else:
+                            standard_data[data_col] = np.concatenate(
+                                (standard_data[data_col], curr_band))
 
                         # The case where there are brightness error columns
                         if data_col + '_err' in self.data_dict.keys():
                             # Updating the standard dictionary to include the
                             # brightness_errors
-                            key = data_col + '_error' + str(i + 1)
-                            err_col = self.data_dict[data_col + '_err'][i]
-                            val = data.iloc[:, err_col]
-                            standard_data.update({key: val})
+                            err_col_name = data_col + '_err'
+                            err_col = self.data_dict[err_col_name][i]
+                            band_err = data.iloc[:, err_col]
+                            if err_col_name not in standard_data.keys():
+                                standard_data[err_col_name] = band_err
+                            else:
+                                standard_data[err_col_name] = np.concatenate(
+                                    (standard_data[err_col_name], band_err))
 
                 #  =================Single brightness Column===================
                 #  ============================================================
@@ -328,11 +359,6 @@ class LightCurveDataset(Dataset):
             # Convert flux to mag
             if convert_flux is True:
                 lc = convert_flux_to_mag(lc, mag_ref)
-        # elif 'mag' not in lc.columns:
-        #     # THIS IS TEMPORARY, ESSENTIAL FOR PLOTTING
-        #     # *** May need to update plotting code ***
-        #     lc['mag'] = lc.flux
-        #     lc['mag_error'] = lc.flux_error
 
         if split_lightcurves:
             # Split the light curve into chunks

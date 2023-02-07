@@ -294,10 +294,14 @@ class PipelineStage(object):
                     print(n, 'instances completed')
                 input_instance = dataset.get_sample(i)
 
-                # Drop any image that's all zeros or all NaNs since it contains
-                # no data
-                all_same = np.all(input_instance == input_instance[0])
-                all_nan = np.all(np.isnan(input_instance))
+                # Drop any object that's all zeros or all NaNs since it
+                # contains no data
+                try:
+                    all_same = np.all(input_instance == input_instance[0])
+                    all_nan = np.all(np.isnan(input_instance))
+                except KeyError:  # This is a dataframe not an array
+                    all_same = np.all(input_instance == input_instance.iloc[0])
+                    all_nan = np.all(pd.isna(input_instance))
                 if all_same or all_nan:
                     input_instance = None
 
