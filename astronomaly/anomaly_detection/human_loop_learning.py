@@ -148,7 +148,10 @@ class NeighbourScore(PipelineStage):
             The final anomaly score for each instance, penalised by the
             predicted user score as required.
         """
-
+        # It can happen that the predicted user score may be slightly above
+        # the max score. We'll just clip as necessary
+        user_score[user_score > self.max_score] = self.max_score
+        user_score[user_score < self.min_score] = self.min_score
         f_u = self.min_score + 0.85 * (user_score / self.max_score)
         d0 = nearest_neighbour_distance / np.mean(nearest_neighbour_distance)
         dist_penalty = np.exp(d0 * self.alpha)
