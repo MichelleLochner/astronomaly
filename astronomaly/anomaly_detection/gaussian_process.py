@@ -2,6 +2,8 @@ import pickle
 from os import path
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
+from scipy.special import ndtr
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, RBF
 from astronomaly.base.base_pipeline import PipelineStage
@@ -9,7 +11,7 @@ from astronomaly.base.base_pipeline import PipelineStage
 
 class GaussianProcess(PipelineStage):
 
-    def __init__(self, features, **kwargs):
+    def __init__(self, features, ei_tradeoff=0.5, **kwargs):
         """
         Runs a Gaussian process regression algorithm to automatically find 
         regions of interest without first running an anomaly detection 
@@ -21,12 +23,16 @@ class GaussianProcess(PipelineStage):
             The features on which the Gaussian process will be run. The human 
             labels can only be provided at runtime, but the features are not 
             expected to change.
+        ei_tradeoff : float, optional
+            The expected improvement trade off. Balances exploration against
+            exploitation. Default is 0.5. 
 
         """
-        super().__init__(features=features, **kwargs)
+        super().__init__(features=features, ei_tradeoff=ei_tradeoff, **kwargs)
 
         self.estimator = None
         self.features = features
+        self.ei_tradeoff = ei_tradeoff
 
     def save_estimator(self):
         """
@@ -36,6 +42,25 @@ class GaussianProcess(PipelineStage):
         if self.estimator is not None:
             f = open(path.join(self.output_dir, 'gp_estimator.pickle'), 'wb')
             pickle.dump(self.estimator, f)
+
+    def EI(self, mean, std, max_val):
+        """
+        Calculates the expected improvement to use as an acquisition function.
+        Same as used in Walmsley et al. 2021. Code taken from 
+        https://modal-python.readthedocs.io/en/latest/_modules/modAL/acquisition.html#max_EI
+
+        Parameters
+        ----------
+        mean : np.array
+            The predicted mean from the GP
+        std : np.array
+            The standard deviation from the GP
+        max_val : float
+            The current maximum user score seen so far
+        """
+        tradeoff = self.ei_tradeoff
+        z = (mean - max_val - tradeoff) / std
+        return (mean - max_val - tradeoff) * ndtr(z) + std * norm.pdf(z)
 
     def update(self, data):
         feature_cols = [col for col in data.columns.values if col not in
@@ -57,12 +82,15 @@ class GaussianProcess(PipelineStage):
         # Allow the possibility of starting cold (no labels yet)
         if len(y_labelled) == 0:
             scores = [1] * len(data)
-            std = [1] * len(data)
+            acq = [1] * len(data)
         else:
             kernel = RBF() + WhiteKernel()
             self.estimator = GaussianProcessRegressor(kernel=kernel)
             self.estimator.fit(X_labelled, y_labelled)
             scores, std = self.estimator.predict(features, return_std=True)
+            max_val = np.max(y_labelled)
+
+            acq = self.EI(scores, std, max_val)
 
             if self.save_output:  # from PipelineStage superclass
                 self.save_estimator()
@@ -71,7 +99,7 @@ class GaussianProcess(PipelineStage):
         # also post-human
         return pd.DataFrame(
             index=features.index, 
-            data=np.stack([scores, scores, std], axis=1),  
+            data=np.stack([scores, scores, acq], axis=1),  
             columns=['score', 'trained_score', 'acquisition']
         )
 
