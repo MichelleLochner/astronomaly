@@ -103,7 +103,7 @@ class Feets_Features(PipelineStage):
 
                 if cl == 'mag_err' or cl == 'flux_err':
                     available_columns.append('error')
-            print(current_lc_columns)
+
             # Creates the feature extractor
             fs = feets.FeatureSpace(data=available_columns,
                                     exclude=self.exclude_features)
@@ -123,11 +123,12 @@ class Feets_Features(PipelineStage):
                     for col in current_lc_columns:
                         lc_columns.append(filter_lc[col])
 
+                    empty_flux = lc_columns[1].sum() == 0
                     # Accounts for light curves that do not have some filters
-                    if len(filter_lc.ID) != 0:
+                    # or all flux/mag values are zero
+                    if len(filter_lc.ID) != 0 and not empty_flux:
                         # Checking the number of points in the light curve
                         if len(filter_lc.ID) >= 5:
-                            print(*lc_columns)
                             features, values = fs.extract(*lc_columns)
 
                             new_labels = [f + '_' + passbands[i]
