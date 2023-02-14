@@ -85,10 +85,10 @@ class Feets_Features(PipelineStage):
                 logging_tools.log(msg, level='WARNING')
 
             if self.compute_on_mags is True and 'mag' in lc_data.columns:
-                standard_lc_columns = ['time', 'mag', 'mag_error']
+                standard_lc_columns = ['time', 'mag', 'mag_err']
 
             else:
-                standard_lc_columns = ['time', 'flux', 'flux_error']
+                standard_lc_columns = ['time', 'flux', 'flux_err']
 
             current_lc_columns = [cl for cl in standard_lc_columns
                                   if cl in lc_data.columns]
@@ -101,9 +101,9 @@ class Feets_Features(PipelineStage):
                 if cl == 'mag' or cl == 'flux':
                     available_columns.append('magnitude')
 
-                if cl == 'mag_error' or cl == 'flux_error':
+                if cl == 'mag_err' or cl == 'flux_err':
                     available_columns.append('error')
-
+            print(current_lc_columns)
             # Creates the feature extractor
             fs = feets.FeatureSpace(data=available_columns,
                                     exclude=self.exclude_features)
@@ -127,6 +127,7 @@ class Feets_Features(PipelineStage):
                     if len(filter_lc.ID) != 0:
                         # Checking the number of points in the light curve
                         if len(filter_lc.ID) >= 5:
+                            print(*lc_columns)
                             features, values = fs.extract(*lc_columns)
 
                             new_labels = [f + '_' + passbands[i]

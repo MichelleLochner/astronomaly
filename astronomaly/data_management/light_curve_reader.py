@@ -341,7 +341,7 @@ class LightCurveDataset(Dataset):
                     standard_data.update({data_col: val})
 
                     if data_col + '_err' in self.data_dict.keys():
-                        key = data_col + '_error'
+                        key = data_col + '_err'
                         val = data.iloc[:, self.data_dict[data_col + '_err']]
                         standard_data.update({key: val})
 
