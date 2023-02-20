@@ -27,13 +27,15 @@ export class PlotImage extends React.Component{
     render() {
       this.getImage(this.props.id);
       return (
-        <div style={{width:"100%", height:"100%",display: 'flex',  justifyContent:'center', alignItems:'center'}}>
+        
         <TransformWrapper>
           <TransformComponent>
-            <img id="img" src=""/>
+          <div style={{width:"100%", height:"100%",display: 'flex',  justifyContent:'center', alignItems:'center'}}>
+            <img id="img" src="" style={{width:"70%"}}/>
+            </div>
           </TransformComponent>
         </TransformWrapper>
-        </div>
+        
       )
     }
   }
