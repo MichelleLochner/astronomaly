@@ -914,6 +914,10 @@ class ImageThumbnailsDataset(Dataset):
             filename = self.metadata.loc[idx, 'filename']
             cutout = cv2.imread(filename)
             cutout = cv2.cvtColor(cutout, cv2.COLOR_BGR2RGB)
+            # Because we're usually working with data in numpy arrays and 
+            # not normally png images, we need to flip them to align with
+            # how Astronomaly displays them in the front end
+            cutout = np.flip(cutout, axis=0)
 
         cutout = apply_transform(cutout, self.display_transform_function)
 
