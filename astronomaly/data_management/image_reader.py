@@ -227,13 +227,13 @@ class AstroImage:
 
 class ImageDataset(Dataset):
     def __init__(self, fits_index=None, window_size=128, window_shift=None,
-                 display_image_size=128, adaptive_sizing=False,
+                 display_image_size=None, adaptive_sizing=False,
                  min_window_size=128,
                  band_prefixes=[], bands_rgb={},
                  transform_function=None, display_transform_function=None,
                  plot_square=False, catalogue=None,
                  plot_cmap='hot', 
-                 image_interpolation='bicubic',
+                 display_interpolation=None,
                  **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
@@ -267,11 +267,18 @@ class ImageDataset(Dataset):
             set for an autoencoder. If an integer is provided, the shift will 
             be the same in both directions. Otherwise a list of
             [window_shift_x, window_shift_y] is expected.
-        display_image_size : int, optional
+        display_image_size : None or int
             The size of the image to be displayed on the
             web page. If the image is smaller than this, it will be
             interpolated up to the higher number of pixels. If larger, it will
-            be downsampled.
+            be downsampled. If None, will default to the existing width of the
+            image.
+        display_interpolation : None or str
+            Passed to matplotlib imshow. If you are displaying images at a 
+            similar size to their native resolution interpolation isn't usually
+            necessary. But if they are being upsampled with a larger 
+            display_image_size, 'bicubic' will allow for a smoother looking 
+            image.
         adaptive_sizing : Boolean, optional
             Allows the size of the window to be adapted based on the size of 
             the object. Requires an "obj_size" column in the catalogue. This 
@@ -325,7 +332,7 @@ class ImageDataset(Dataset):
                          display_transform_function=display_transform_function,
                          plot_square=plot_square, catalogue=catalogue,
                          plot_cmap=plot_cmap,
-                         image_interpolation=image_interpolation,
+                         display_interpolation=display_interpolation,
                          **kwargs)
         self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
                                  'FITS', 'FITS.fz', 'FITS.gz']
@@ -441,7 +448,7 @@ class ImageDataset(Dataset):
 
         self.plot_square = plot_square
         self.plot_cmap = plot_cmap
-        self.image_interpolation = image_interpolation
+        self.display_interpolation = display_interpolation
         self.catalogue = catalogue
         self.display_image_size = display_image_size
         self.band_prefixes = band_prefixes
@@ -713,6 +720,10 @@ class ImageDataset(Dataset):
 
         min_edge = min(cutout.shape[:2])
         max_edge = max(cutout.shape[:2])
+
+        if self.display_image_size is None:
+            self.display_image_size = max(cutout.shape)
+
         if max_edge != self.display_image_size:
             new_max = self.display_image_size
             new_min = int(min_edge * new_max / max_edge)
@@ -722,14 +733,15 @@ class ImageDataset(Dataset):
                 new_shape = [new_max, new_min]
             if len(cutout.shape) > 2:
                 new_shape.append(cutout.shape[-1])
-            cutout = resize(cutout, new_shape, anti_aliasing=False)
+            cutout = resize(cutout, new_shape, anti_aliasing=True)
 
         return convert_array_to_image(cutout, plot_cmap=self.plot_cmap,
-                                      interpolation=self.image_interpolation)
+                                      interpolation=self.display_interpolation)
 
 
 class ImageThumbnailsDataset(Dataset):
-    def __init__(self, display_image_size=128, transform_function=None,
+    def __init__(self, display_image_size=None, display_interpolation=None, 
+                 transform_function=None,
                  display_transform_function=None, fits_format=False,
                  catalogue=None, check_corrupt_data=False,
                  additional_metadata=None, **kwargs):
@@ -751,10 +763,18 @@ class ImageThumbnailsDataset(Dataset):
             explicitly given.
         output_dir : str
             The directory to save the log file and all outputs to. Defaults to
-        display_image_size : The size of the image to be displayed on the
+        display_image_size : None or int
+            The size of the image to be displayed on the
             web page. If the image is smaller than this, it will be
             interpolated up to the higher number of pixels. If larger, it will
-            be downsampled.
+            be downsampled. If None, will default to the existing width of the
+            image.
+        display_interpolation : None or str
+            Passed to matplotlib imshow. If you are displaying images at a 
+            similar size to their native resolution interpolation isn't usually
+            necessary. But if they are being upsampled with a larger 
+            display_image_size, 'bicubic' will allow for a smoother looking 
+            image.
         transform_function : function or list, optional
             The transformation function or list of functions that will be 
             applied to each cutout. The function should take an input 2d array 
@@ -771,7 +791,9 @@ class ImageThumbnailsDataset(Dataset):
         """
 
         super().__init__(transform_function=transform_function,
-                         display_image_size=128, catalogue=catalogue,
+                         display_image_size=display_image_size, 
+                         display_interpolation=display_interpolation,
+                         catalogue=catalogue,
                          fits_format=fits_format,
                          check_corrupt_data=check_corrupt_data,
                          display_transform_function=display_transform_function,
@@ -793,6 +815,7 @@ class ImageThumbnailsDataset(Dataset):
             self.display_transform_function = display_transform_function
 
         self.display_image_size = display_image_size
+        self.display_interpolation = display_interpolation
         self.fits_format = fits_format
 
         if catalogue is not None:
@@ -893,9 +916,10 @@ class ImageThumbnailsDataset(Dataset):
                 logging_tools.log(msg, level="ERROR")
 
                 if self.check_corrupt_data:
-                    cutout = np.zeros(
-                        [1, self.display_image_size, self.display_image_size],
-                        dtype=int)
+                    sz = self.display_image_size
+                    if sz is None:
+                        sz = 256  # Just set to a sensible default
+                    cutout = np.zeros([1, sz, sz], dtype=int)
                 else:
                     print('Corrupted data: Enable check_corrupt_data.')
 
@@ -904,9 +928,10 @@ class ImageThumbnailsDataset(Dataset):
                 logging_tools.log(msg, level="ERROR")
 
                 if self.check_corrupt_data:
-                    cutout = np.zeros(
-                        [1, self.display_image_size, self.display_image_size],
-                        dtype=int)
+                    sz = self.display_image_size
+                    if sz is None:
+                        sz = 256  # Just set to a sensible default
+                    cutout = np.zeros([1, sz, sz], dtype=int)
                 else:
                     print('Missing data: Enable check_corrupt_data.')
 
@@ -921,6 +946,9 @@ class ImageThumbnailsDataset(Dataset):
 
         cutout = apply_transform(cutout, self.display_transform_function)
 
+        if self.display_image_size is None:
+            self.display_image_size = max((cutout.shape[0], cutout.shape[1]))
+
         min_edge = min(cutout.shape[:2])
         max_edge = max(cutout.shape[:2])
         if max_edge != self.display_image_size:
@@ -932,9 +960,10 @@ class ImageThumbnailsDataset(Dataset):
                 new_shape = [new_max, new_min]
             if len(cutout.shape) > 2:
                 new_shape.append(cutout.shape[-1])
-            cutout = resize(cutout, new_shape, anti_aliasing=False)
+            cutout = resize(cutout, new_shape, anti_aliasing=True)
 
-        return convert_array_to_image(cutout)
+        return convert_array_to_image(cutout, 
+                                      interpolation=self.display_interpolation)
 
     def fits_to_png(self, scores):
         """
