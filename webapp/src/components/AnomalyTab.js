@@ -519,7 +519,7 @@ export class AnomalyTab extends React.Component {
       return(
               <Grid component='div' container spacing={3} onKeyDown={this.handleKeyDown} tabIndex="0">
                   <Grid item xs={12}></Grid>
-                  <Grid item container xs={8} justifyContent="center">
+                  <Grid item container xs={6} justifyContent="center" >
                       {/* <MakePlot plot={this.props.plot}/> */}
                       <Grid container spacing={3} alignItems="center">
                         <Grid item xs={12} align="center">

@@ -67,7 +67,8 @@ def run_pipeline():
     image_dataset = image_reader.ImageThumbnailsDataset(
         directory=image_dir, output_dir=output_dir, 
         transform_function=image_transform_function,
-        display_transform_function=display_transform_function
+        display_transform_function=display_transform_function,
+        display_image_size=424
     )
 
     # Creates a pipeline object for feature extraction

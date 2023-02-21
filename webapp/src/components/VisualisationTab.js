@@ -274,12 +274,12 @@ export class VisualisationTab extends React.Component {
         }
         return(
             <Grid component='div' container spacing={3} direction={'column'}>
-              <Grid item lg={12} xl={12}>
+              <Grid item xs={12}>
                   <div></div>
               </Grid>
 
-              <Grid item lg={12} xl={12} container direction = {'row'}>
-                <Grid item lg={6} xl={4} container spacing={10} direction={'column'}>
+              <Grid item xs={12} container direction = {'row'}>
+                <Grid item xs={5} container spacing={10} direction={'column'}>
                   <Grid item>
                       <div></div>
                   </Grid>
@@ -291,7 +291,7 @@ export class VisualisationTab extends React.Component {
                   </Grid>
                 </Grid>
 
-                <Grid item lg={6} xl={4} container spacing={1} direction={'column'} justifyContent={"center"}>
+                <Grid item xs={5} container spacing={1} direction={'column'} justifyContent={"center"}>
                   <Grid item style={{textAlign: "center"}}>
                   <h1> Object ID: {this.state.displayData.id}</h1>
                   </Grid>
@@ -306,7 +306,7 @@ export class VisualisationTab extends React.Component {
                 </Grid>
               </Grid>
 
-              <Grid item lg={12} xl={12}>
+              <Grid item xs={12}>
                   <div></div>
               </Grid>
             </Grid>
