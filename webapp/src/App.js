@@ -157,7 +157,7 @@ class App extends React.Component {
         <ThemeProvider theme={theme}>
           <AppBar position="static" color="default">
             <Grid container>
-              <Grid item xs={10}>
+              <Grid item xs={8}>
                 <Tabs 
                   value={this.state.tabNumber}
                   onChange={this.handleChange}
