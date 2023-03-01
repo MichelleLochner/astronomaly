@@ -2,7 +2,7 @@ from astronomaly.base.base_pipeline import PipelineStage
 from astronomaly.base import logging_tools
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import WhiteKernel, RBF
+from sklearn.gaussian_process.kernels import WhiteKernel, Matern
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
@@ -217,11 +217,11 @@ class NeighbourScore(PipelineStage):
         return_dict = {}
 
         if self.regression_algorithm == 'RF':
-            reg = RandomForestRegressor(n_estimators=100)
+            reg = RandomForestRegressor(n_estimators=200)
             reg.fit(X_labelled, y_labelled)
             fitted_scores = reg.predict(features)
         else:
-            kernel = RBF() + WhiteKernel()
+            kernel = Matern() + WhiteKernel()
             reg = GaussianProcessRegressor(kernel=kernel)
             reg.fit(X_labelled, y_labelled)
             fitted_scores, std = reg.predict(features, return_std=True)

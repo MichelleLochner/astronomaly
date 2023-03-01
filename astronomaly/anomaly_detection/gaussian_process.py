@@ -5,7 +5,7 @@ import pandas as pd
 from scipy.stats import norm
 from scipy.special import ndtr
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import WhiteKernel, RBF
+from sklearn.gaussian_process.kernels import WhiteKernel, Matern
 from astronomaly.base.base_pipeline import PipelineStage
 
 
@@ -84,7 +84,7 @@ class GaussianProcess(PipelineStage):
             scores = [1] * len(data)
             acq = [1] * len(data)
         else:
-            kernel = RBF() + WhiteKernel()
+            kernel = Matern() + WhiteKernel()
             self.estimator = GaussianProcessRegressor(kernel=kernel)
             self.estimator.fit(X_labelled, y_labelled)
             scores, std = self.estimator.predict(features, return_std=True)

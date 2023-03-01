@@ -6,20 +6,20 @@ from os import path
 
 
 class IforestAlgorithm(PipelineStage):
-    def __init__(self, contamination='auto', **kwargs):
+    def __init__(self, n_estimators=200, **kwargs):
         """
         Runs sklearn's isolation forest anomaly detection algorithm and returns
         the anomaly score for each instance.
 
         Parameters
         ----------
-        contamination : string or float, optional
-            Hyperparameter to pass to IsolationForest. 'auto' is recommended
+        n_estimators : int, optional
+            Hyperparameter to pass to IsolationForest.
 
         """
-        super().__init__(contamination=contamination, **kwargs)
+        super().__init__(n_estimators=n_estimators, **kwargs)
 
-        self.contamination = contamination
+        self.n_estimators = n_estimators
 
         self.iforest_obj = None
 
@@ -50,7 +50,8 @@ class IforestAlgorithm(PipelineStage):
             anomaly scores. More negative is more anomalous.
 
         """
-        iforest = IsolationForest(contamination=self.contamination)
+        iforest = IsolationForest(n_estimators=self.n_estimators,       
+                                  bootstrap=True)
         iforest.fit(features)
 
         scores = iforest.decision_function(features)

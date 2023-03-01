@@ -6,24 +6,20 @@ from os import path
 
 
 class LOF_Algorithm(PipelineStage):
-    def __init__(self, contamination='auto', n_neighbors=20, **kwargs):
+    def __init__(self, n_neighbors=50, **kwargs):
         """
         Runs sklearn's local outlier factor anomaly detection algorithm and 
         returns the anomaly score for each instance.
 
         Parameters
         ----------
-        contamination : string or float, optional
-            Hyperparameter to pass to LOF. 'auto' is recommended
         n_neighbors : int
             Hyperparameter to pass to LOF. Fairly sensitive to the amount of 
             data in the dataset.
 
         """
-        super().__init__(
-            contamination=contamination, n_neighbors=n_neighbors, **kwargs)
+        super().__init__(n_neighbors=n_neighbors, **kwargs)
 
-        self.contamination = contamination
         self.n_neighbors = n_neighbors
 
         self.algorithm_obj = None
@@ -56,7 +52,6 @@ class LOF_Algorithm(PipelineStage):
 
         """
         self.algorithm_obj = LocalOutlierFactor(
-            contamination=self.contamination, 
             n_neighbors=self.n_neighbors, 
             novelty=False)
 
