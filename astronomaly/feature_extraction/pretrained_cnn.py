@@ -7,13 +7,7 @@ try:
     from torchvision import transforms
 except ImportError:
     err_string = "pytorch and torchvision must be installed to use this module"
-    raise ImportError(err_string)
-
-try:
-    from zoobot.pytorch.training import finetune
-    zoobot_available = True
-except ImportError:
-    zoobot_available = False
+    raise ImportError(err_string)  
 
 
 class CNN_Features(PipelineStage):
@@ -49,7 +43,13 @@ class CNN_Features(PipelineStage):
                                 std=[0.229, 0.224, 0.225])]
 
         if model_choice == 'zoobot':
-            if not zoobot_available:
+            try:
+                from zoobot.pytorch.training import finetune
+            except Exception as e:
+                print('Error when importing zoobot:')
+                print(e)
+                print()
+
                 err_string = "Please install zoobot to use this model: "
                 err_string += "https://github.com/mwalmsley/zoobot"
                 raise ImportError(err_string)
