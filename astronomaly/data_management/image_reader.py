@@ -240,7 +240,7 @@ class ImageDataset(Dataset):
                  plot_square=False, catalogue=None,
                  plot_cmap='hot', 
                  display_interpolation=None,
-                 suppress_printing=False
+                 suppress_printing=False,
                  **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
@@ -374,11 +374,12 @@ class ImageDataset(Dataset):
                     extension = '.'.join(k.split('.')[-2:])
                 if extension in self.known_file_types:
                     try:
+                        sp = suppress_printing  # Keeps line short
                         astro_img = AstroImage(bands_files[k],
                                                file_type=extension,
                                                fits_index=fits_index,
                                                name=k,
-                                               suppress_printing=suppress_printing)
+                                               suppress_printing=sp)
                         images[k] = astro_img
 
                     except Exception as e:
@@ -403,10 +404,11 @@ class ImageDataset(Dataset):
                     extension = '.'.join(f.split('.')[-2:])
                 if extension in self.known_file_types:
                     try:
+                        sp = suppress_printing  # Keeps line short
                         astro_img = AstroImage([f],
                                                file_type=extension,
                                                fits_index=fits_index,
-                                               suppress_printing=suppress_printing)
+                                               suppress_printing=sp)
                         images[astro_img.name] = astro_img
                     except Exception as e:
                         msg = "Cannot read image " + f + "\n \
