@@ -75,7 +75,8 @@ def apply_transform(cutout, transform_function):
 
 
 class AstroImage:
-    def __init__(self, filenames, file_type='fits', fits_index=None, name=''):
+    def __init__(self, filenames, file_type='fits', fits_index=None, 
+                 name='', suppress_printing=False):
         """
         Lightweight wrapper for an astronomy image from a fits file
 
@@ -84,11 +85,16 @@ class AstroImage:
         filenames : list of files
             Filename of fits file to be read. Can be length one if there's only
             one file or multiple if there are multiband images
-        fits_index : integer
+        fits_index : integer, optional
             Which HDU object in the list to work with
-
+        name : string, optional
+            Allows overwriting of default image naming (which uses a filename)
+        suppress_printing : bool, optional
+            Allows you to suppress output, which can be useful if you run this
+            many times
         """
-        print('Reading image data from %s...' % filenames[0])
+        if not suppress_printing:
+            print('Reading image data from %s...' % filenames[0])
         self.filenames = filenames
         self.file_type = file_type
         self.metadata = {}
@@ -111,8 +117,8 @@ class AstroImage:
             self.name = self._strip_filename()
         else:
             self.name = name
-
-        print('Done!')
+        if not suppress_printing:
+            print('Done!')
 
     def get_image_data(self, row_start, row_end, col_start, col_end):
         """Returns the image data from a fits HDUlist object
@@ -234,6 +240,7 @@ class ImageDataset(Dataset):
                  plot_square=False, catalogue=None,
                  plot_cmap='hot', 
                  display_interpolation=None,
+                 suppress_printing=False
                  **kwargs):
         """
         Read in a set of images either from a directory or from a list of file
@@ -320,6 +327,9 @@ class ImageDataset(Dataset):
         interpolation : str, optional
             Allows interpolation in the display image so low res images don't
             look so blocky
+        suppress_printing : bool, optional
+            Allows you to suppress output, which can be useful if you run this
+            many times but is not recommended for first time calls.
         """
 
         super().__init__(fits_index=fits_index, window_size=window_size,
@@ -333,6 +343,7 @@ class ImageDataset(Dataset):
                          plot_square=plot_square, catalogue=catalogue,
                          plot_cmap=plot_cmap,
                          display_interpolation=display_interpolation,
+                         suppress_printing=suppress_printing,
                          **kwargs)
         self.known_file_types = ['fits', 'fits.fz', 'fits.gz',
                                  'FITS', 'FITS.fz', 'FITS.gz']
@@ -366,7 +377,8 @@ class ImageDataset(Dataset):
                         astro_img = AstroImage(bands_files[k],
                                                file_type=extension,
                                                fits_index=fits_index,
-                                               name=k)
+                                               name=k,
+                                               suppress_printing=suppress_printing)
                         images[k] = astro_img
 
                     except Exception as e:
@@ -393,7 +405,8 @@ class ImageDataset(Dataset):
                     try:
                         astro_img = AstroImage([f],
                                                file_type=extension,
-                                               fits_index=fits_index)
+                                               fits_index=fits_index,
+                                               suppress_printing=suppress_printing)
                         images[astro_img.name] = astro_img
                     except Exception as e:
                         msg = "Cannot read image " + f + "\n \
@@ -464,13 +477,15 @@ class ImageDataset(Dataset):
         if 'original_image' in self.metadata.columns:
             for img in np.unique(self.metadata.original_image):
                 if img not in images.keys():
-                    logging_tools.log('Image ' + img + """ found in catalogue 
-                        but not in provided image data. Removing from 
-                        catalogue.""", level='WARNING')
                     msk = self.metadata.original_image == img
                     self.metadata.drop(self.metadata.index[msk], inplace=True)
-                    print('Catalogue reduced to ', len(self.metadata),
-                          'sources')
+                    if not suppress_printing:
+                        logging_tools.log(f"Image {img} found in catalogue "
+                                          "but not in provided image "
+                                          "data. Removing from "
+                                          "catalogue.", level='WARNING')
+                        print("Catalogue reduced "
+                              f"to {len(self.metadata)} sources")
 
         self.index = self.metadata.index.values
 
