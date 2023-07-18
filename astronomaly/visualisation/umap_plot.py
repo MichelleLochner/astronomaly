@@ -9,7 +9,7 @@ from astronomaly.base import logging_tools
 class UMAP_Plot(PipelineStage):
     # https://umap-learn.readthedocs.io/en/latest/api.html
     def __init__(self, min_dist=0.1, n_neighbors=15, max_samples=2000,
-                 shuffle=False, **kwargs):
+                 metric='euclidean', shuffle=False, **kwargs):
         """
         Computes a UMAP visualisation of the data
 
@@ -30,6 +30,14 @@ class UMAP_Plot(PipelineStage):
             result in more global views of the manifold, while smaller values
             result in more local data being preserved. In general values
             should be in the range 2 to 100.
+        metric: string (optional, default 'euclidean')
+            (Taken from UMAP documentation)
+            The metric to use to compute distances in high dimensional space.
+            If a string is passed it must match a valid predefined metric. If 
+            a general metric is required a function that takes two 1d arrays 
+            and returns a float can be provided. For performance purposes it 
+            is required that this be a numba jit’d function. Valid string 
+            metrics include: euclidean, manhattan, chebyshev, minkowski...
         max_samples : int, optional
             Limits the computation to this many samples (by default 2000). Will
             be the first 2000 samples if shuffle=False. This is very useful as
@@ -39,11 +47,13 @@ class UMAP_Plot(PipelineStage):
             False
         """
         super().__init__(min_dist=min_dist, n_neighbors=n_neighbors,
-                         max_samples=max_samples, shuffle=shuffle, **kwargs)
+                         metric=metric, max_samples=max_samples, 
+                         shuffle=shuffle, **kwargs)
         self.max_samples = max_samples
         self.shuffle = shuffle
         self.min_dist = min_dist
         self.n_neighbors = n_neighbors
+        self.metric = metric
 
     def _execute_function(self, features):
         """
@@ -76,7 +86,7 @@ class UMAP_Plot(PipelineStage):
             features = features.loc[inds]
 
         reducer = umap.UMAP(n_components=2, min_dist=self.min_dist,
-                            n_neighbors=self.n_neighbors)
+                            metric=self.metric, n_neighbors=self.n_neighbors)
         logging_tools.log('Beginning umap transform')
         reduced_embed = reducer.fit_transform(features)
         logging_tools.log('umap transform complete')
