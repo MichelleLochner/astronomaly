@@ -49,6 +49,20 @@ def get_index():
         return ""
 
 
+@app.route('/searchObjID', methods=["POST"])
+def search_original_id():
+    """
+    Searches for the original id and, if it exists in the index, returns the
+    corresponding position in the current ordered list.
+    """
+    if request.method == "POST":
+        object_name = request.get_json()
+        ind = controller.get_index_from_original_id(object_name)
+        return json.dumps(str(ind))
+    else:
+        return ""
+
+
 @app.route('/getdatatype', methods=["POST"])
 def get_data_type():
     """

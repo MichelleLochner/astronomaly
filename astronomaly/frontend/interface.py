@@ -265,6 +265,26 @@ class Controller:
         this_ind = list(self.anomaly_scores.index)[ind]
         return this_ind
 
+    def get_index_from_original_id(self, objid):
+        """
+        Does the reverse of get_original_id_from_index and returns the 
+        corresponding position of the object given its name.
+
+        Parameters
+        ----------
+        str
+            The actual object id
+
+        Returns
+        -------
+        ind : int
+            The position in an array
+        """
+        if objid in self.anomaly_scores.index:
+            return np.where(self.anomaly_scores.index == objid)[0][0]
+        else:
+            return -1
+
     def get_metadata(self, idx, exclude_keywords=[], include_keywords=[]):
         """
         Returns the metadata for an instance in a format ready for display.

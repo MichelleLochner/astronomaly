@@ -55,6 +55,7 @@ export class AnomalyTab extends React.Component {
     this.getFeatures = this.getFeatures.bind(this);
     this.getRawFeatures = this.getRawFeatures.bind(this);
     this.handleChangeIndexChange = this.handleChangeIndexChange.bind(this);
+    this.handleSearchID = this.handleSearchID.bind(this);
     this.doNothing = this.doNothing.bind(this);
     this.changeButtonColor = this.changeButtonColor.bind(this);
     this.getMaxID = this.getMaxID.bind(this);
@@ -65,6 +66,7 @@ export class AnomalyTab extends React.Component {
                  max_id:0,
                  img_src:'',
                  original_id:'-1',
+                 requested_id:'',
                  light_curve_data:{data:[],errors:[]},
                  raw_features_data:{data:[],categories:[]},
                  features:{},
@@ -162,6 +164,35 @@ export class AnomalyTab extends React.Component {
     }
   }
 
+   /**
+   * Called when user manually searches by object name (as opposed to list 
+   * index).
+   * @param {event} e 
+   */
+    handleSearchID(e){
+        const value = e.currentTarget.value;
+        console.log('value', value);
+        
+
+        fetch("/searchObjID", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(value)
+            })
+        .then(res => res.json())
+        .then((data) => {
+        let newID = parseInt(data);
+        if (newID!=-1) 
+            {
+            this.setState({id:newID}, this.updateOriginalID(newID));
+            }
+        })
+        .catch(console.log)
+        e.stopPropagation();
+    }
+  
   doNothing(e) {
     e.stopPropagation();
   }
@@ -535,14 +566,28 @@ export class AnomalyTab extends React.Component {
                             </IconButton>
                           </Grid>
 
-                          <Grid item xs={3}>
+                          <Grid item xs={1}>
                           </Grid>
                           <Grid item xs={2}>
                             <TextField id="chooseNumber" value={this.state.id} type="number" fullWidth={false} 
                             inputProps={{style:{textAlign:"center"}}} FormHelperTextProps={{style:{textAlign:"center"}}}
-                            onChange={this.handleChangeIndexChange} onKeyDown={this.doNothing} helperText="Index" />
+                            onChange={this.handleChangeIndexChange} onKeyDown={this.doNothing} helperText="Index in list" />
                           </Grid>
-                          <Grid item xs={3}>
+                          <Grid item xs={1}>
+                          </Grid>
+                          <Grid item xs={2} >
+                            <Tooltip title={<Typography>Jump to a specific object using its name</Typography>}>
+                                <TextField id="indexSearchBox" 
+                                    value={this.state.original_id}
+                                    type="string" fullWidth={false} 
+                                    inputProps={{style:{textAlign:"center"}}} FormHelperTextProps={{style:{textAlign:"center"}}}
+                                    onChange={this.handleSearchID} 
+                                    onKeyDown={this.doNothing} 
+                                    helperText="Object name" 
+                                />
+                            </Tooltip>
+                            </Grid>
+                            <Grid item xs={1}>
                           </Grid>
                           <Grid item xs={2} align="center">
                             {/* <Button variant="contained" id="forward" onClick={this.handleForwardBackwardClick}> F </Button>  */}
@@ -698,7 +743,6 @@ export class AnomalyTab extends React.Component {
                           </Tooltip>
                         }
                       </Grid>
-
                     </Grid>
                   </Grid>
                   <Grid item xs={12}>
