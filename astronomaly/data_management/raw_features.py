@@ -70,13 +70,13 @@ class RawFeatures(Dataset):
 
         # Force string index because it's safer
         self.features.index = self.features.index.astype('str')
-        self.labels.index = self.labels.index.astype('str')
 
         print('Done!')
 
         self.data_type = 'raw_features'
 
         if len(labels) != 0:
+            self.labels.index = self.labels.index.astype('str')
             self.metadata = self.labels
         else:
             self.metadata = pd.DataFrame(data=[], 
