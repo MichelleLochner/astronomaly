@@ -3,6 +3,8 @@ import os
 import importlib
 import sys
 import subprocess
+### TEMP ###
+import pandas as pd
 
 
 class Controller:
@@ -38,6 +40,14 @@ class Controller:
             'acquisition': 'Acquisition',
             'human_label': 'Human applied labels'
         }
+
+        #### TEMP ####
+        output_dir_full = ("/home/michelle/BigData/Anomaly/astronomaly_output/"
+              "images/MGCLS_full/")
+        self.labels = pd.read_csv(output_dir_full + 'ml_scores_combined_hand_labelled_2023_08_22.csv', index_col=0)
+        print('Labels read in:', len(self.labels))
+        #################
+
 
         self.set_pipeline_script(pipeline_file)
 
@@ -86,6 +96,20 @@ class Controller:
         """
 
         try:
+            #### TEMP ####
+            if idx in self.labels.index:
+                label = self.labels.loc[idx, 'human_label']
+                tag = self.labels.loc[idx, 'class']
+                print(idx, 'label:', label, 'tag:', tag)
+            else:
+                print(idx, 'NO LABEL')
+            if 'human_label' in self.anomaly_scores.columns:
+                num_labels = (self.anomaly_scores.human_label != -1).sum()
+                if num_labels % 10 == 0:
+                    print("-----------------")
+                    print(num_labels, "labelled, retrain now")
+                    print("-----------------")
+            ##############
             return self.dataset.get_display_data(idx)
         except KeyError:
             return None
