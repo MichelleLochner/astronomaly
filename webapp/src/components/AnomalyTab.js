@@ -227,16 +227,16 @@ export class AnomalyTab extends React.Component {
       if (res == "success") {
         
         //   ############ ORIGINAL ################
-        // this.setState({sortby:"trained_score", training:false});
-        // this.getAvailableColumns();
-        // this.changeSortBy("trained_score")
+        this.setState({sortby:"trained_score", training:false});
+        this.getAvailableColumns();
+        this.changeSortBy("trained_score")
         //   ############################
         //   ############ TEMP ################
-        this.setState({sortby:"acquisition", training:false});
-        this.getAvailableColumns();
-        let unlabelled_first = true;
-        this.setState({unlabelled_first:unlabelled_first});
-        this.changeSortBy(this.state.sortby, unlabelled_first);
+        // this.setState({sortby:"acquisition", training:false});
+        // this.getAvailableColumns();
+        // let unlabelled_first = true;
+        // this.setState({unlabelled_first:unlabelled_first});
+        // this.changeSortBy(this.state.sortby, unlabelled_first);
         //   ############################
       }
       else {
@@ -455,7 +455,7 @@ export class AnomalyTab extends React.Component {
     .then((res) => {
       if(res.ra!=undefined){
         let search_cds = "http://cdsportal.u-strasbg.fr/?target=" + 
-                  res.ra + '%2C' + res.dec
+                  res.ra + ", " + res.dec
         let search_das = "https://das.datacentral.org.au/das?RA=" + 
                   res.ra + '&DEC=' + res.dec +"&FOV=2.0&ERR=10.0&CAT=0"
         this.setState({search_cds:search_cds, search_das:search_das})
