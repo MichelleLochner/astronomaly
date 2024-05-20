@@ -62,7 +62,7 @@ def fit_ellipse(contour, image, return_params=False, filled=True):
         thickness = -1
         y_npix = image.shape[0]
         x_npix = image.shape[1]
-        ellipse_arr = np.zeros([y_npix, x_npix], dtype=np.float)
+        ellipse_arr = np.zeros([y_npix, x_npix], dtype='float')
     else:
         thickness = 1
         ellipse_arr = image.copy()
@@ -130,7 +130,7 @@ def get_ellipse_leastsq(contour, image):
     y_npix = image.shape[0]
     x_npix = image.shape[1]
 
-    contour_arr = np.zeros([y_npix, x_npix], dtype=np.float)
+    contour_arr = np.zeros([y_npix, x_npix], dtype='float')
     cv2.drawContours(contour_arr, [contour], 0, (1, 1, 1), thickness)
 
     ellipse_arr, params = fit_ellipse(contour, image, return_params=True)
@@ -255,7 +255,7 @@ def check_extending_ellipses(img, threshold, return_params=False):
     new_width = width * 3
     new_height = height * 3
 
-    blank_canvas = np.zeros((new_width, new_height), dtype=np.float)
+    blank_canvas = np.zeros((new_width, new_height), dtype='float')
 
     contours, hierarchy = find_contours(img, threshold)
 
