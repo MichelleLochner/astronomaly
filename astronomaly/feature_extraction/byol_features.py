@@ -129,6 +129,7 @@ class BYOL_Features(PipelineStage):
             base_learning_rate=base_learning_rate,
             n_epochs=n_epochs,
             batch_size=batch_size,
+            model_output_file_root=model_output_file_root,
             augmentation_params=augmentation_params,
             **kwargs)
 
