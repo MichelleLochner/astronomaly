@@ -509,3 +509,33 @@ def remove_corrupt_file(met, ind, idx):
 
     ind = np.delete(ind, np.where(ind == idx))
     met = np.delete(met, np.where(met == idx))
+
+def pca_based_initial_selection(features, N):
+    """
+    Protege requires an initial sample to obtain user scores for. This sorts 
+    the features by the first column (assuming it corresponds to the first
+    principal component) and then selects N sources (usually 10) equally spaced
+    across this feature.
+
+    Parameters
+    ----------
+    features : pd.DataFrame
+        The features to select sources from. Assumed to already by PCA reduced.
+    N : int
+        The number of initial sources to select
+    """
+    # Initial sort using PCA
+    sorted_features = features.sort_values(features.columns[0])
+    selected_inds = np.linspace(
+        0, len(sorted_features)-1, N, dtype='int')
+    selected_inds = sorted_features.index[selected_inds]
+
+    # Just gets it into the format Astronomaly expects
+    anomalies = pd.DataFrame(
+        [0]*len(sorted_features), 
+        index=sorted_features.index,
+        columns=['score'])
+    anomalies.loc[selected_inds] = 5
+    anomalies = anomalies.sort_values('score', ascending=False)
+
+    return anomalies
