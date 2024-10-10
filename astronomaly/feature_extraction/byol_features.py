@@ -115,9 +115,9 @@ class BYOL_Features(PipelineStage):
                 "aug_random_crop_min": 0.8,
                 "aug_random_crop_max": 1,
                 "aug_random_crop_p": 1,
-                "aug_blurring_p": 0,
-                "aug_blurring_kernel": 3,
-                "aug_jiggle_p": 0,
+                "aug_blurring_p": 0.1,
+                "aug_blurring_kernel": 15,
+                "aug_jiggle_p": 0.8,
                 "aug_jiggle_amount": 0.5
             }
         """
@@ -155,9 +155,9 @@ class BYOL_Features(PipelineStage):
             "aug_random_crop_min": 0.8,
             "aug_random_crop_max": 1,
             "aug_random_crop_p": 1,
-            "aug_blurring_p": 0,
-            "aug_blurring_kernel": 3,
-            "aug_jiggle_p": 0,
+            "aug_blurring_p": 0.1,
+            "aug_blurring_kernel": 15,
+            "aug_jiggle_p": 0.8,
             "aug_jiggle_amount": 0.5
         }
         aug_params = default_augmentation_params
