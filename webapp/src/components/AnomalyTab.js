@@ -224,20 +224,15 @@ export class AnomalyTab extends React.Component {
     })
     .then((res) => {return res.json()})
     .then((res) => {
-      if (res == "success") {
-        
-        //   ############ ORIGINAL ################
-        this.setState({sortby:"trained_score", training:false});
+      if (res["status"] == "success") {
+        let column_to_sort_by = res["column_to_sort_by"];
+        let unlabelled_first = res["show_unlabelled_first"];
+        this.setState({
+            sortby:column_to_sort_by, 
+            training:false, 
+            unlabelled_first:unlabelled_first});
         this.getAvailableColumns();
-        this.changeSortBy("trained_score")
-        //   ############################
-        //   ############ TEMP ################
-        // this.setState({sortby:"acquisition", training:false});
-        // this.getAvailableColumns();
-        // let unlabelled_first = true;
-        // this.setState({unlabelled_first:unlabelled_first});
-        // this.changeSortBy(this.state.sortby, unlabelled_first);
-        //   ############################
+        this.changeSortBy(column_to_sort_by, unlabelled_first);
       }
       else {
         this.setState({training:false})

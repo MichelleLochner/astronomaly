@@ -140,7 +140,7 @@ class Controller:
         if has_no_labels or labels_unset:
             print("Active learning requested but no training labels "
                   "have been applied.")
-            return "failed"
+            return {"status":"failed"}
         else:
             pipeline_active_learning = self.active_learning
             features_with_labels = \
@@ -152,7 +152,12 @@ class Controller:
             for col in active_output.columns:
                 self.anomaly_scores[col] = \
                     active_output.loc[self.anomaly_scores.index, col]
-            return "success"
+            sort_by = pipeline_active_learning.column_to_sort_by
+            unlab = pipeline_active_learning.show_unlabelled_first
+            return {
+                "status": "success",
+                "column_to_sort_by": sort_by,
+                "show_unlabelled_first": unlab}
 
     def check_if_fits_file(self):
         """
