@@ -44,7 +44,7 @@ image_transform_function = [
 display_transform_function = [
     image_preprocessing.image_transform_scale]
 
-force_rerun = True
+force_rerun = False
 # Either 'pca' or 'random' for initial sample for protege
 initial_sorting = 'pca' 
 
@@ -103,30 +103,10 @@ def run_pipeline():
     features_original = pipeline_byol.run_on_dataset(image_dataset)
 
     pipeline_pca = pca.PCA_Decomposer(
-        force_rerun=force_rerun, output_dir=output_dir, threshold=0.95)
+        force_rerun=force_rerun, output_dir=output_dir, threshold=0.85)
     features = pipeline_pca.run(features_original)
+    print('Features shape', features.shape)
 
-    # Now we rescale the features using the same procedure of first creating
-    # the pipeline object, then running it on the feature set
-    # pipeline_scaler = scaling.FeatureScaler(force_rerun=False,
-    #                                         output_dir=output_dir)
-    # features = pipeline_scaler.run(features)
-
-    # The actual anomaly detection is called in the same way by creating an
-    # Iforest pipeline object then running it
-    # pipeline_iforest = isolation_forest.IforestAlgorithm(
-    #     force_rerun=force_rerun, output_dir=output_dir)
-    # anomalies = pipeline_iforest.run(features)
-
-    # We convert the scores onto a range of 0-5
-    # pipeline_score_converter = human_loop_learning.ScoreConverter(
-    #     force_rerun=force_rerun, output_dir=output_dir)
-    # anomalies = pipeline_score_converter.run(anomalies)
-
-    # This is the active learning object that will be run on demand by the
-    # frontend 
-    # pipeline_active_learning = human_loop_learning.NeighbourScore(
-    #     alpha=1, output_dir=output_dir)
 
     # Get initial sample of sources for Protege to ask the user for scoring
     anomalies = pca_based_initial_selection(features, 10)
@@ -136,7 +116,7 @@ def run_pipeline():
         anomalies.loc[rand_inds, 'score'] = 5
 
 
-    # Protege
+    # # Protege
     pipeline_active_learning = protege.GaussianProcess(
         features, output_dir=output_dir, force_rerun=force_rerun, ei_tradeoff=3
     )
