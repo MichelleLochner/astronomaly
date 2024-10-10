@@ -89,7 +89,9 @@ class ScoreConverter(PipelineStage):
 
 class NeighbourScore(PipelineStage):
     def __init__(self, min_score=0.1, max_score=5, alpha=1, 
-                 regression_algorithm='RF', **kwargs):
+                 regression_algorithm='RF', 
+                 column_to_sort_by='trained_score',
+                 show_unlabelled_first=True, **kwargs):
         """
         Computes a new anomaly score based on what the user has labelled,
         allowing anomalous but boring objects to be rejected. This function
@@ -116,6 +118,11 @@ class NeighbourScore(PipelineStage):
             moment. Possible algorithms:
             'RF' - random forest
             'GP' - Gaussian process
+        column_to_sort_by : str, optional
+            The column to sort the sources by after training. Default for 
+            Protege is 'acquisition'.
+        show_unlabelled_first : bool, optional
+            If True, unlabelled sources will be shown first. Default is True.
         """
         super().__init__(min_score=min_score, max_score=max_score,
                          alpha=alpha, 
@@ -125,6 +132,8 @@ class NeighbourScore(PipelineStage):
         self.max_score = max_score
         self.alpha = alpha
         self.regression_algorithm = regression_algorithm
+        self.column_to_sort_by = column_to_sort_by
+        self.show_unlabelled_first = show_unlabelled_first
 
     def anom_func(self, nearest_neighbour_distance, user_score, anomaly_score):
         """

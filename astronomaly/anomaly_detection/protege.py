@@ -11,7 +11,9 @@ from astronomaly.base.base_pipeline import PipelineStage
 
 class GaussianProcess(PipelineStage):
 
-    def __init__(self, features, ei_tradeoff=0.5, **kwargs):
+    def __init__(
+        self, features, ei_tradeoff=0.5, column_to_sort_by='acquisition',
+        show_unlabelled_first=True, **kwargs):
         """
         Runs a Gaussian process regression algorithm to automatically find 
         regions of interest without first running an anomaly detection 
@@ -26,13 +28,19 @@ class GaussianProcess(PipelineStage):
         ei_tradeoff : float, optional
             The expected improvement trade off. Balances exploration against
             exploitation. Default is 0.5. 
-
+        column_to_sort_by : str, optional
+            The column to sort the sources by after training. Default for 
+            Protege is 'acquisition'.
+        show_unlabelled_first : bool, optional
+            If True, unlabelled sources will be shown first. Default is True.
         """
         super().__init__(features=features, ei_tradeoff=ei_tradeoff, **kwargs)
 
         self.estimator = None
         self.features = features
         self.ei_tradeoff = ei_tradeoff
+        self.column_to_sort_by = column_to_sort_by
+        self.show_unlabelled_first = show_unlabelled_first
 
     def save_estimator(self):
         """
