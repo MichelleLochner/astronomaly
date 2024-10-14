@@ -225,6 +225,11 @@ class LightCurveDataset(Dataset):
         self.filter_colors = filter_colors
         self.convert_flux = convert_flux
         self.plot_column = plot_column
+        if self.delim_whitespace:
+            # For some reason pandas deprecated delim_whitespace
+            self.sep = '\s+' 
+        else:
+            self.sep = ','
 
     #         ================================================================
     #                         Reading the light curve data
@@ -232,7 +237,7 @@ class LightCurveDataset(Dataset):
 
         # The case where there is one file
         data = pd.read_csv(self.files[0], skiprows=self.header_nrows,
-                           delim_whitespace=self.delim_whitespace, header=None)
+                           sep=self.sep, header=None)
 
         # The case for multiple files of light curve data
         file_len = [len(data)]
@@ -242,7 +247,7 @@ class LightCurveDataset(Dataset):
                 this_data = pd.read_csv(
                     self.files[fl],
                     skiprows=self.header_nrows,
-                    delim_whitespace=self.delim_whitespace,
+                    sep=self.sep,
                     header=None)
                 data = pd.concat([data, this_data])
 
