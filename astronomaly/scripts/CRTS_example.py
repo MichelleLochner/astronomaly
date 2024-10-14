@@ -1,11 +1,20 @@
 # An example for the CRTS data
 from astronomaly.data_management import light_curve_reader
-from astronomaly.feature_extraction import feets_features
 from astronomaly.postprocessing import scaling
 from astronomaly.anomaly_detection import isolation_forest, human_loop_learning
-from astronomaly.visualisation import tsne_plot
+from astronomaly.visualisation import umap_plot
 import os
 import pandas as pd
+
+try:
+    from astronomaly.feature_extraction import feets_features
+    import_failed = False
+except ImportError:
+    print("""WARNING: Failed to import feets features.
+    Feets is no longer maintained and not compatible with the latest 
+    version of Astropy. Install astropy v5.3.4 in a virtual environment to 
+    run. Previously extracted features will now be read from file.""")
+    import_failed = True
 
 
 # Root directory for data
@@ -54,23 +63,28 @@ def run_pipeline():
         output_dir=output_dir
     )
 
-    # Creates a pipeline object for feature extraction
-    pipeline_feets = feets_features.Feets_Features(
-        exclude_features=['Period_fit', 'PercentDifferenceFluxPercentile',
-                          'FluxPercentileRatioMid20',
-                          'FluxPercentileRatioMid35',
-                          'FluxPercentileRatioMid50',
-                          'FluxPercentileRatioMid65',
-                          'FluxPercentileRatioMid80'],
-        compute_on_mags=True,
-        # Feets prints a lot of warnings to screen, set this to true to ignore
-        # You may also want to run with `python -W ignore` (with caution)
-        ignore_warnings=True,  
-        output_dir=output_dir,
-        force_rerun=force_rerun)
+    if not import_failed:
+        # Creates a pipeline object for feature extraction
+        pipeline_feets = feets_features.Feets_Features(
+            exclude_features=['Period_fit', 'PercentDifferenceFluxPercentile',
+                            'FluxPercentileRatioMid20',
+                            'FluxPercentileRatioMid35',
+                            'FluxPercentileRatioMid50',
+                            'FluxPercentileRatioMid65',
+                            'FluxPercentileRatioMid80'],
+            compute_on_mags=True,
+            # Feets prints a lot of warnings to screen, set this to true to ignore
+            # You may also want to run with `python -W ignore` (with caution)
+            ignore_warnings=True,  
+            output_dir=output_dir,
+            force_rerun=force_rerun)
 
-    # Actually runs the feature extraction
-    features = pipeline_feets.run_on_dataset(lc_dataset)
+        # Actually runs the feature extraction
+        features = pipeline_feets.run_on_dataset(lc_dataset)
+    else:
+        print("Reading features from file...")
+        features = pd.read_parquet(os.path.join(
+            data_dir, 'CRTS', 'Feets_Features_output.parquet'))
 
     # Now we rescale the features using the same procedure of first creating
     # the pipeline object, then running it on the feature set
@@ -110,17 +124,16 @@ def run_pipeline():
     pipeline_active_learning = human_loop_learning.NeighbourScore(
         alpha=1, output_dir=output_dir)
 
-    # We use TSNE for visualisation which is run in the same way as other parts
+    # We use UMAP for visualisation which is run in the same way as other parts
     # of the pipeline.
-    pipeline_tsne = tsne_plot.TSNE_Plot(
-        force_rerun=False,
-        output_dir=output_dir,
-        perplexity=100)
-    t_plot = pipeline_tsne.run(features)
+    pipeline_umap = umap_plot.UMAP_Plot(
+        force_rerun=force_rerun,
+        output_dir=output_dir)
+    vis_plot = pipeline_umap.run(features)
 
     # The run_pipeline function must return a dictionary with these keywords
     return {'dataset': lc_dataset,
             'features': features,
             'anomaly_scores': anomalies,
-            'visualisation': t_plot,
+            'visualisation': vis_plot,
             'active_learning': pipeline_active_learning}
