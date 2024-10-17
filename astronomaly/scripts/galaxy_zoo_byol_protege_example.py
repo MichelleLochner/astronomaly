@@ -1,4 +1,6 @@
-# An example with a subset of Galaxy Zoo data
+# An example with a subset of Galaxy Zoo data using BYOL features and Protege
+# Performance is not great with only 1000 training examples but this can be
+# used as a template for other applications.
 from astronomaly.data_management import image_reader
 from astronomaly.preprocessing import image_preprocessing
 from astronomaly.feature_extraction import byol_features
