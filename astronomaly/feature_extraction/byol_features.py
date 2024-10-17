@@ -321,7 +321,10 @@ class BYOL_Features(PipelineStage):
             train_loss.append(loss_ / len(train_loader))
 
             if epoch % 10 == 0:
-                print(f"Epoch: {epoch} Training Loss: {train_loss[-1]}")
+                t2 = (time.perf_counter() - t1) / 60
+                print(f"Epoch: {epoch}, "
+                      f"Training Loss: {train_loss[-1]:.6g}, "
+                      f"Time taken: {t2:.2f} minutes")
 
             if validation_image_dataset is not None:
                 val_loss_ = 0.0
