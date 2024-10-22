@@ -382,12 +382,7 @@ class BYOL_Features(PipelineStage):
             first using the train_byol function or load a previously trained 
             model.""")
 
-        # The transforms can't handle floats to convert to uint8
-        image = (image * 255).astype(np.uint8)
-        if len(image.shape) == 2:  # Greyscale
-            # Make a copy of this channel to all others
-            image = np.stack((image,) * 3, axis=-1)
-
+        image = torch.from_numpy(image)
         processed_image = self.transforms(image)
         # Add the extra alpha channel the nets expect
         processed_image = torch.unsqueeze(processed_image, 0).to(self.device)
