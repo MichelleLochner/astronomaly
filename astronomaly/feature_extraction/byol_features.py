@@ -189,6 +189,8 @@ class BYOL_Features(PipelineStage):
 
         if load_model:
             # Load a previously run model
+            print('Loading model from:')
+            print(self.model_file)
             checkpoint = torch.load(self.model_file)
             model.load_state_dict(checkpoint['model_state_dict'])
             self.trained = True
