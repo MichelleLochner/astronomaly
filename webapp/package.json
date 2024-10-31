@@ -1,6 +1,6 @@
 {
   "name": "astronomaly",
-  "version": "1.2.1",
+  "version": "2.0",
   "description": "",
   "main": "webpack.config.js",
   "scripts": {
