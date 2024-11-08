@@ -62,6 +62,7 @@ https://astronomaly.readthedocs.io/en/latest/
 ## Citation
 
 Please cite Lochner and Bassett (2020) if you use Astronomaly (https://arxiv.org/abs/2010.11202).<br>
+Please also cite Lochner and Rudnick (2024) is you use Protege (https://arxiv.org/abs/2411.04188). <br>
 Thank you to Sara Webb for designing the logo!
 
 
