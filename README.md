@@ -1,7 +1,8 @@
 <image src="Astronomaly_logo.png" width="200" align="left"/> 
 
 # Astronomaly
-A flexible framework for anomaly detection in astronomy.
+A flexible framework for anomaly detection in astronomy.<br>
+[![DOI](https://zenodo.org/badge/196393655.svg)](https://doi.org/10.5281/zenodo.14441057)
 
 <br>
 <br>
