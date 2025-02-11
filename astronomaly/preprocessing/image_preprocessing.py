@@ -189,7 +189,7 @@ def image_transform_gaussian_window(img, width=2.5):
         return new_img
 
 
-def image_transform_sigma_clipping(img, sigma=3, central=True):
+def image_transform_sigma_clipping(img, sigma=3):
     """
     Applies sigma clipping, fits contours and
 
@@ -221,18 +221,38 @@ def image_transform_sigma_clipping(img, sigma=3, central=True):
     contours, hierarchy = cv2.findContours(img_bin,
                                            cv2.RETR_EXTERNAL,
                                            cv2.CHAIN_APPROX_SIMPLE)
-
-    x0 = img.shape[0] // 2
-    y0 = img.shape[1] // 2
-
-    for c in contours:
-        if cv2.pointPolygonTest(c, (x0, y0), False) == 1:
-            break
-
+    
     contour_mask = np.zeros_like(img, dtype=np.uint8)
     if len(contours) == 0:
         # This happens if there's no data in the image so we just return zeros
         return contour_mask
+
+    x0 = img.shape[0] // 2
+    y0 = img.shape[1] // 2
+
+    contour_found = False
+    
+    for c in contours:
+        if cv2.pointPolygonTest(c, (x0, y0), False) == 1:
+            contour_found = True
+            break
+    
+    if not contour_found:
+        # This happens when the central pixel lies just outside the contour
+        # We then select the largest contour that lies less than 10% of the 
+        # image size from the centre
+        distances = np.zeros(len(contours))
+        lengths = np.zeros(len(contours))
+        for i in range(len(contours)):
+            c = contours[i]
+            distances[i] = cv2.pointPolygonTest(c, (x0, y0), True)
+            lengths[i] = len(c)
+        sorted_inds = np.argsort(lengths)[::-1]
+        for ind in sorted_inds:
+            if abs(distances[ind]) < 0.1 * min(img.shape):
+                c = contours[ind]
+                break
+    
     cv2.drawContours(contour_mask, [c], 0, (1, 1, 1), -1)
 
     new_img = np.zeros_like(img)
