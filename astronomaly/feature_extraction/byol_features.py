@@ -37,6 +37,7 @@ class AstronomalyDataset(Dataset):
 
         idx = self.image_dataset.index[i]
         image = self.image_dataset.get_sample(idx)
+        image = image.astype(np.float32)
         image = torch.from_numpy(image)
 
         if self.transform:
