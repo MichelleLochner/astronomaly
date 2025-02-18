@@ -390,7 +390,14 @@ class BYOL_Features(PipelineStage):
             first using the train_byol function or load a previously trained 
             model.""")
 
+        image = image.astype(np.float32)
         image = torch.from_numpy(image)
+
+        if len(image.shape) > 2 and image.shape[-1] <= 4:
+            # cvread reads in images with channel last but torch needs
+            # channel first
+            image = image.permute(2, 0, 1)
+        
         processed_image = self.transforms(image)
         # Add the extra alpha channel the nets expect
         processed_image = torch.unsqueeze(processed_image, 0).to(self.device)
