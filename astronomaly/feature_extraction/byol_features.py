@@ -290,6 +290,7 @@ class BYOL_Features(PipelineStage):
             train_dataset, 
             batch_size=self.batch_size, 
             shuffle=True,
+            drop_last=True,
             num_workers=self.num_workers)
 
         if validation_image_dataset is not None:
