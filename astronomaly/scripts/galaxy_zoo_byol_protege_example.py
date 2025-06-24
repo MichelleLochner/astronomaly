@@ -12,6 +12,7 @@ from astronomaly.visualisation import umap_plot
 from astronomaly.utils.utils import pca_based_initial_selection
 import os
 import pandas as pd
+import numpy as np
 import zipfile
 
 # Root directory for data

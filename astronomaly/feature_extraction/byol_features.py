@@ -63,6 +63,7 @@ class BYOL_Features(PipelineStage):
                 num_workers=16,
                 save_model=True,
                 load_model=False,
+                restart=False,
                 model_output_file_root="byol",
                 train_model=True,
                 augmentation_params=None,
@@ -99,6 +100,8 @@ class BYOL_Features(PipelineStage):
         load_model: bool
             Whether or not to load a model from a file. If True, the model will
             be loaded from the file specified in model_output_file_root.
+        restart: bool
+            If True, will restart training from a saved checkpoint.
         model_output_file_root: str
             The root name for the model output files. The model itself will be
             saved using this root name with the extension '_model.pt' and
@@ -193,6 +196,10 @@ class BYOL_Features(PipelineStage):
             model.classifier[1].weight.data.normal_(0, 0.01)
         self.model = model
 
+        if restart and load_model == False:
+            # You can't restart if the model is loaded
+            load_model = True
+
         if load_model:
             # Load a previously run model
             print('Loading model from:')
@@ -200,6 +207,20 @@ class BYOL_Features(PipelineStage):
             checkpoint = torch.load(self.model_file)
             model.load_state_dict(checkpoint['model_state_dict'])
             self.trained = True
+
+        if restart:
+            self.start_epoch = checkpoint['epoch'] + 1
+            loss_df = pd.read_csv(self.loss_file, index_col=0)
+            self.train_loss = loss_df['training_loss'].to_list()
+            if 'validation_loss' in loss_df.columns:
+                self.val_loss = loss_df['validation_loss'].to_list()
+            else:
+                self.val_loss = []
+
+        else:
+            self.start_epoch = 0
+            self.train_loss = []
+            self.val_loss = []
 
         # Set up the transforms
         transform_list = [transforms.ToPILImage()]
@@ -304,16 +325,13 @@ class BYOL_Features(PipelineStage):
                 num_workers=self.num_workers)
 
         # TRAIN THE MODEL
-        train_loss = []
-        val_loss = []
-        t1 = time.perf_counter()
-
         
+        t1 = time.perf_counter()
 
         opt = torch.optim.Adam(
             self.learner.parameters(), lr=self.learning_rate)
 
-        for epoch in range(self.n_epochs):
+        for epoch in range(self.start_epoch, self.n_epochs):
             loss_ = 0.0
             for i, image_batch in enumerate(train_loader):
                 image_batch = image_batch[0]
@@ -327,12 +345,12 @@ class BYOL_Features(PipelineStage):
                 opt.step()
                 self.learner.update_moving_average() 
                 loss_ += loss.item()
-            train_loss.append(loss_ / len(train_loader))
+            self.train_loss.append(loss_ / len(train_loader))
 
             if epoch % 10 == 0:
                 t2 = (time.perf_counter() - t1) / 60
                 print(f"Epoch: {epoch}, "
-                      f"Training Loss: {train_loss[-1]:.6g}, "
+                      f"Training Loss: {self.train_loss[-1]:.6g}, "
                       f"Total time taken: {t2:.2f} minutes")
 
             if validation_image_dataset is not None:
@@ -345,29 +363,28 @@ class BYOL_Features(PipelineStage):
                         loss = self.learner(images)
                         val_loss_ += loss.item()
                 self.learner.train()
-                val_loss.append(val_loss_ / len(validation_loader))
+                self.val_loss.append(val_loss_ / len(validation_loader))
 
                 if epoch % 10 == 0:
-                    print(f"Epoch: {epoch} Validation Loss: {val_loss[-1]}")
+                    print(f"Epoch: {epoch} Validation Loss: {self.val_loss[-1]}")
+            if self.save_model:
+                torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': self.model.state_dict(),
+                        'optimizer_state_dict': opt.state_dict(),
+                        'loss': loss,
+                        }, self.model_file)
+                loss_output = np.column_stack((
+                    np.arange(epoch+1), self.train_loss))
+                columns = ['epoch', 'training_loss']
+                if len(self.val_loss) > 0:
+                    loss_output = np.column_stack((loss_output, self.val_loss))
+                    columns += ['validation_loss']
+                df = pd.DataFrame(data=loss_output, columns=columns)
+                df.to_csv(self.loss_file)
 
         t2 = (time.perf_counter() - t1) / 60
         print(f'Time taken for {self.n_epochs} epochs: {t2} min')
-
-        if self.save_model:
-            torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': self.model.state_dict(),
-                    'optimizer_state_dict': opt.state_dict(),
-                    'loss': loss,
-                    }, self.model_file)
-            loss_output = np.column_stack((
-                np.arange(self.n_epochs), train_loss))
-            columns = ['epoch', 'training_loss']
-            if len(val_loss) > 0:
-                loss_output = np.column_stack((loss_output, val_loss))
-                columns += ['validation_loss']
-            df = pd.DataFrame(data=loss_output, columns=columns)
-            df.to_csv(self.loss_file)
 
         self.trained = True
         
