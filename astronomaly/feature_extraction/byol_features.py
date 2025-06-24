@@ -216,6 +216,7 @@ class BYOL_Features(PipelineStage):
                 self.val_loss = loss_df['validation_loss'].to_list()
             else:
                 self.val_loss = []
+            print('Restarting from epoch', self.start_epoch)
 
         else:
             self.start_epoch = 0
