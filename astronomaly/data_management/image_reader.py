@@ -14,37 +14,30 @@ from astronomaly.utils import utils
 mpl.use('Agg')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas  # noqa: E402, E501
 import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.figure import Figure
 
 
 def convert_array_to_image(arr, plot_cmap='hot', interpolation='bicubic'):
     """
-    Function to convert an array to a png image ready to be served on a web
-    page.
-
-    Parameters
-    ----------
-    arr : np.ndarray
-        Input image
-    plot_cmap : str, optional
-        Which colourmap to use
-    interpolation : str, optional
-        Allows interpolation so low res images don't look so blocky
-
-    Returns
-    -------
-    png image object
-        Object ready to be passed directly to the frontend
+    Convert a numpy array to a PNG image as a BytesIO object.
     """
-    with mpl.rc_context({'backend': 'Agg'}):
-        fig = plt.figure(figsize=(1, 1), dpi=4 * arr.shape[1])
-        ax = plt.Axes(fig, [0., 0., 1., 1.])
-        ax.set_axis_off()
-        fig.add_axes(ax)
-        plt.imshow(arr, cmap=plot_cmap, origin='lower',
-                   interpolation=interpolation)
-        output = io.BytesIO()
-        FigureCanvas(fig).print_png(output)
-        plt.close(fig)
+    fig = Figure(figsize=(1, 1), dpi=4 * arr.shape[1])
+    canvas = FigureCanvas(fig)
+    ax = fig.add_axes([0., 0., 1., 1.])
+    ax.set_axis_off()
+    ax.imshow(arr, cmap=plot_cmap, origin='lower', interpolation=interpolation)
+
+    output = io.BytesIO()
+    canvas.print_png(output)
+
+    # Explicit cleanup
+    ax.cla()
+    fig.clear()
+    del ax
+    del canvas
+    del fig
+
+    output.seek(0)
     return output
 
 
