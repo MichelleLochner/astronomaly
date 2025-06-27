@@ -8,8 +8,9 @@ from astronomaly.base import logging_tools
 
 class UMAP_Plot(PipelineStage):
     # https://umap-learn.readthedocs.io/en/latest/api.html
-    def __init__(self, min_dist=0.1, n_neighbors=15, max_samples=2000,
-                 metric='euclidean', shuffle=False, **kwargs):
+    def __init__(self, min_dist=0.1, n_neighbors=15, n_components=2,
+                 max_samples=2000, random_state=None, metric='euclidean', 
+                 shuffle=False, **kwargs):
         """
         Computes a UMAP visualisation of the data
 
@@ -30,6 +31,12 @@ class UMAP_Plot(PipelineStage):
             result in more global views of the manifold, while smaller values
             result in more local data being preserved. In general values
             should be in the range 2 to 100.
+        n_components: int (optional, default 2)
+            Number of components of resulting UMAP features. For visualisation
+            this should be 2. For dimensionality reduction, can be greater.
+        random_state: float (optional, default None)
+            Used for reproducibility. Note that if random_state is set, 
+            parallelisation switches off and UMAP is significantly slower.
         metric: string (optional, default 'euclidean')
             (Taken from UMAP documentation)
             The metric to use to compute distances in high dimensional space.
@@ -47,6 +54,7 @@ class UMAP_Plot(PipelineStage):
             False
         """
         super().__init__(min_dist=min_dist, n_neighbors=n_neighbors,
+                         n_components=n_components, random_state=random_state,
                          metric=metric, max_samples=max_samples, 
                          shuffle=shuffle, **kwargs)
         self.max_samples = max_samples
@@ -54,6 +62,8 @@ class UMAP_Plot(PipelineStage):
         self.min_dist = min_dist
         self.n_neighbors = n_neighbors
         self.metric = metric
+        self.n_components=n_components
+        self.random_state=random_state
 
     def _execute_function(self, features):
         """
@@ -85,8 +95,11 @@ class UMAP_Plot(PipelineStage):
                                         replace=False)
             features = features.loc[inds]
 
-        reducer = umap.UMAP(n_components=2, min_dist=self.min_dist,
-                            metric=self.metric, n_neighbors=self.n_neighbors)
+        reducer = umap.UMAP(n_components=self.n_components, 
+                            min_dist=self.min_dist,
+                            metric=self.metric, 
+                            n_neighbors=self.n_neighbors,
+                            random_state=self.random_state)
         logging_tools.log('Beginning umap transform')
         reduced_embed = reducer.fit_transform(features)
         logging_tools.log('umap transform complete')
