@@ -57,6 +57,7 @@ class BYOL_Features(PipelineStage):
                 model=None, 
                 projection_layer_size=100,
                 normalize=False,
+                grayscale=True,
                 base_learning_rate=5e-4,
                 n_epochs=100,
                 batch_size=32,
@@ -226,10 +227,14 @@ class BYOL_Features(PipelineStage):
         # Set up the transforms
         transform_list = [transforms.ToPILImage()]
 
+        if grayscale:
+            transform_list += [
+                transforms.Grayscale(num_output_channels=3)
+                ]
         transform_list += [
-            transforms.Grayscale(num_output_channels=3),
             transforms.ToTensor()
             ]
+        
         if normalize:
             transform_list += [transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]
