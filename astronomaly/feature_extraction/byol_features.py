@@ -190,40 +190,6 @@ class BYOL_Features(PipelineStage):
         else:
             self.device = torch.device("cpu")
 
-        ### Add code for loading a saved model
-        if model is None:
-            model = torchvision.models.efficientnet_b0(weights="IMAGENET1K_V1")
-            model.classifier[1] = torch.nn.Linear(1280, projection_layer_size)
-            model.classifier[1].weight.data.normal_(0, 0.01)
-        self.model = model
-
-        if restart and load_model == False:
-            # You can't restart if the model is loaded
-            load_model = True
-
-        if load_model:
-            # Load a previously run model
-            print('Loading model from:')
-            print(self.model_file)
-            checkpoint = torch.load(self.model_file)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            self.trained = True
-
-        if restart:
-            self.start_epoch = checkpoint['epoch'] + 1
-            loss_df = pd.read_csv(self.loss_file, index_col=0)
-            self.train_loss = loss_df['training_loss'].to_list()
-            if 'validation_loss' in loss_df.columns:
-                self.val_loss = loss_df['validation_loss'].to_list()
-            else:
-                self.val_loss = []
-            print('Restarting from epoch', self.start_epoch)
-
-        else:
-            self.start_epoch = 0
-            self.train_loss = []
-            self.val_loss = []
-
         # Set up the transforms
         transform_list = [transforms.ToPILImage()]
 
@@ -244,6 +210,13 @@ class BYOL_Features(PipelineStage):
         # Set up the augmentations
         self.augmentation_function = self.create_aug_function(aug_params)
 
+        ### Add code for loading a saved model
+        if model is None:
+            model = torchvision.models.efficientnet_b0(weights="IMAGENET1K_V1")
+            model.classifier[1] = torch.nn.Linear(1280, projection_layer_size)
+            model.classifier[1].weight.data.normal_(0, 0.01)
+        self.model = model
+
         self.learner = BYOL(
             self.model,
             image_size=self.image_size,
@@ -251,6 +224,38 @@ class BYOL_Features(PipelineStage):
             augment_fn=self.augmentation_function
         )
         self.learner.to(self.device)
+
+        self.opt = torch.optim.Adam(
+            self.learner.parameters(), lr=self.learning_rate)
+
+
+        if restart and load_model == False:
+            # You can't restart if the model is loaded
+            load_model = True
+
+        if load_model:
+            # Load a previously run model
+            print('Loading model from:')
+            print(self.model_file)
+            checkpoint = torch.load(self.model_file)
+            self.learner.load_state_dict(checkpoint['learner_state_dict'])
+            self.opt.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.trained = True
+
+        if restart:
+            self.start_epoch = checkpoint['epoch'] + 1
+            loss_df = pd.read_csv(self.loss_file, index_col=0)
+            self.train_loss = loss_df['training_loss'].to_list()
+            if 'validation_loss' in loss_df.columns:
+                self.val_loss = loss_df['validation_loss'].to_list()
+            else:
+                self.val_loss = []
+            print('Restarting from epoch', self.start_epoch)
+
+        else:
+            self.start_epoch = 0
+            self.train_loss = []
+            self.val_loss = []
 
 
     def create_aug_function(self, aug_params):
@@ -334,8 +339,7 @@ class BYOL_Features(PipelineStage):
         
         t1 = time.perf_counter()
 
-        opt = torch.optim.Adam(
-            self.learner.parameters(), lr=self.learning_rate)
+        
 
         for epoch in range(self.start_epoch, self.n_epochs):
             loss_ = 0.0
@@ -346,9 +350,9 @@ class BYOL_Features(PipelineStage):
                 loss = self.learner(images)
 
                 # optimization steps
-                opt.zero_grad()
+                self.opt.zero_grad()
                 loss.backward()
-                opt.step()
+                self.opt.step()
                 self.learner.update_moving_average() 
                 loss_ += loss.item()
             self.train_loss.append(loss_ / len(train_loader))
@@ -375,8 +379,8 @@ class BYOL_Features(PipelineStage):
             if self.save_model:
                 torch.save({
                         'epoch': epoch,
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': opt.state_dict(),
+                        'learner_state_dict': self.learner.state_dict(),
+                        'optimizer_state_dict': self.opt.state_dict(),
                         'loss': loss,
                         }, self.model_file)
                 loss_output = np.column_stack((
