@@ -397,7 +397,7 @@ class BYOL_Features(PipelineStage):
 
         self.trained = True
 
-    def extract_features_full_dataset(self, image_dataset):
+    def extract_features_batched(self, image_dataset):
         """
         Extracts features on a full dataset at once, making use of pytorch's
         DataLoader.
@@ -431,6 +431,8 @@ class BYOL_Features(PipelineStage):
         all_feats = []
         self.learner.eval()
 
+        t1 = time.perf_counter()
+
         with torch.no_grad():
             for i, image_batch in enumerate(data_loader):
                 image_batch = image_batch[0]
@@ -443,11 +445,17 @@ class BYOL_Features(PipelineStage):
                 feats = embedding.detach().cpu().numpy()
                 all_feats.append(feats)
 
+                t2 = (time.perf_counter() - t1) / 60
+                if i % 100 == 0:
+                    print(f"Processed batch {i+1}/{len(data_loader)}")
+                    print(f"Total time taken: {t2:.2f} minutes")
+                    print()
+
         # Concatenate all batches into one array
         all_feats = np.concatenate(all_feats, axis=0)
 
         if len(self.labels) == 0:
-            self.labels = [f'feat{i}' for i in range(len(feats))]
+            self.labels = [f'feat{i}' for i in range(len(all_feats[0]))]
 
         return pd.DataFrame(
             data=all_feats, index=image_dataset.index, columns=self.labels)
