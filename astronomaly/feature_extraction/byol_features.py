@@ -396,7 +396,61 @@ class BYOL_Features(PipelineStage):
         print(f'Time taken for {self.n_epochs} epochs: {t2} min')
 
         self.trained = True
+
+    def extract_features_full_dataset(self, image_dataset):
+        """
+        Extracts features on a full dataset at once, making use of pytorch's
+        DataLoader.
+
+        Parameters
+        ----------
+        image_dataset : Astronomaly ImageDataset object
+            The dataset to extract features for.
+
+        Returns
+        -------
+        array
+            Contains the extracted deep features
+        """
+
+        if not self.trained:
+            raise ValueError("""Model is untrained. Please train the model 
+            first using the train_byol function or load a previously trained 
+            model.""")
+
+        extraction_dataset = AstronomalyDataset(
+            image_dataset, self.transforms)
         
+        data_loader = DataLoader(
+            extraction_dataset, 
+            batch_size=self.batch_size, 
+            shuffle=False,
+            drop_last=False,
+            num_workers=self.num_workers)
+        
+        all_feats = []
+        self.learner.eval()
+
+        with torch.no_grad():
+            for i, image_batch in enumerate(data_loader):
+                image_batch = image_batch[0]
+                images = image_batch.to(self.device)
+
+                # Run model on batch
+                _, embedding = self.learner(images, return_embedding=True)
+
+                # Convert to numpy and collect
+                feats = embedding.detach().cpu().numpy()
+                all_feats.append(feats)
+
+        # Concatenate all batches into one array
+        all_feats = np.concatenate(all_feats, axis=0)
+
+        if len(self.labels) == 0:
+            self.labels = [f'feat{i}' for i in range(len(feats))]
+
+        return pd.DataFrame(
+            data=all_feats, index=image_dataset.index, columns=self.labels)
 
     def _execute_function(self, image):
         """
