@@ -163,8 +163,6 @@ class BYOL_Features(PipelineStage):
         self.train_model = train_model
         self.labels = []
 
-        if warmup_epochs != 0:
-            self.scheduler = LambdaLR(self.opt, lr_lambda=self.lr_schedule_fn)
 
         # Default augmentation parameters
         default_augmentation_params = {
@@ -247,7 +245,8 @@ class BYOL_Features(PipelineStage):
                 weight_decay=1e-4
             )
         
-
+        if warmup_epochs != 0:
+            self.scheduler = LambdaLR(self.opt, lr_lambda=self.lr_schedule_fn)
 
         if restart and load_model == False:
             # You can't restart if the model is loaded
