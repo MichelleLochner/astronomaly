@@ -152,6 +152,43 @@ def image_transform_crop(img, new_shape=[160, 160]):
     return img[delt_0:img.shape[0] - delt_0, delt_1:img.shape[1] - delt_1]
 
 
+def image_transform_trim(img):
+    """
+    Trims zeros around the edge of an image effectively zooming in. Only prunes the smallest axis of zeros.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image
+
+    Returns
+    -------
+    np.ndarray
+        Zoomed in image
+    """
+    npix = img.shape[0]
+    axis0 = np.all(img==0, axis=0)
+    axis1 = np.all(img==0, axis=1)
+    
+    if len(axis0.shape) > 1:
+        # RGB image
+        axis0 = axis0[:,0]
+        axis1 = axis1[:,0]
+    
+    N = min(
+            axis0[:npix//2].sum(), 
+            axis0[npix//2:].sum(), 
+            axis1[:npix//2].sum(), 
+            axis1[npix//2:].sum()
+        )
+
+    if N > 0:
+        new_img = img[N:-N, N:-N]
+    else:
+        new_img = img
+    return new_img
+
+
 def image_transform_gaussian_window(img, width=2.5):
     """
     Applies a Gaussian window of a given width to the image. This has the
