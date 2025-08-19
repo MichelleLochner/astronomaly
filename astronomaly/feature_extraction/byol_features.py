@@ -9,6 +9,7 @@ try:
     from torchvision.utils import make_grid
     from torchvision.utils import save_image
     from torchvision import transforms, models
+    from torch.optim.lr_scheduler import LambdaLR
     import torch
     from torch.utils.data import Dataset, DataLoader
     from byol_pytorch import BYOL
@@ -57,6 +58,7 @@ class BYOL_Features(PipelineStage):
                 model=None, 
                 strip_layer=False,
                 optimizer='Adam',
+                warmup_epochs=0,
                 projection_layer_size=100,
                 normalize=False,
                 grayscale=True,
@@ -140,6 +142,8 @@ class BYOL_Features(PipelineStage):
             normalize=normalize,
             base_learning_rate=base_learning_rate,
             n_epochs=n_epochs,
+            optimizer=optimizer,
+            warmup_epochs=warmup_epochs,
             batch_size=batch_size,
             model_output_file_root=model_output_file_root,
             augmentation_params=augmentation_params,
@@ -148,6 +152,7 @@ class BYOL_Features(PipelineStage):
         self.image_size = image_size
         self.learning_rate = base_learning_rate * batch_size / 256
         self.n_epochs = n_epochs
+        self.warmup_epochs = warmup_epochs
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.save_model = save_model
@@ -157,6 +162,9 @@ class BYOL_Features(PipelineStage):
                 self.output_dir, model_output_file_root + '_loss.csv')
         self.train_model = train_model
         self.labels = []
+
+        if warmup_epochs != 0:
+            self.scheduler = LambdaLR(self.opt, lr_lambda=self.lr_schedule_fn)
 
         # Default augmentation parameters
         default_augmentation_params = {
@@ -238,6 +246,7 @@ class BYOL_Features(PipelineStage):
                 lr=self.learning_rate, 
                 weight_decay=1e-4
             )
+        
 
 
         if restart and load_model == False:
@@ -268,6 +277,13 @@ class BYOL_Features(PipelineStage):
             self.train_loss = []
             self.val_loss = []
 
+
+    # Warmup + cosine decay
+    def lr_schedule_fn(self, current_epoch):
+        if current_epoch < self.warmup_epochs:
+            return float(current_epoch) / float(max(1, self.warmup_epochs))
+        progress = float(current_epoch - self.warmup_epochs) / float(max(1, self.n_epochs - self.warmup_epochs))
+        return 0.5 * (1. + np.cos(np.pi * progress))
 
     def create_aug_function(self, aug_params):
         """
@@ -363,7 +379,10 @@ class BYOL_Features(PipelineStage):
                 # optimization steps
                 self.opt.zero_grad()
                 loss.backward()
-                self.opt.step()
+                if self.warmup_epochs > 0:
+                    self.scheduler.step()
+                else:
+                    self.opt.step()
                 self.learner.update_moving_average() 
                 loss_ += loss.item()
             self.train_loss.append(loss_ / len(train_loader))
@@ -372,6 +391,10 @@ class BYOL_Features(PipelineStage):
             print(f"Epoch: {epoch}, "
                     f"Training Loss: {self.train_loss[-1]:.6g}, "
                     f"Total time taken: {t2:.2f} minutes")
+            if self.warmup_epochs > 0:
+                # print out learning rate
+                current_lr = self.scheduler.get_last_lr()[0]
+                print(f"Current learning rate: {current_lr:.6g}")
 
             if validation_image_dataset is not None:
                 val_loss_ = 0.0
