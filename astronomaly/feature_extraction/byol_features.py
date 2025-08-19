@@ -56,6 +56,7 @@ class BYOL_Features(PipelineStage):
                 image_size=128,
                 model=None, 
                 strip_layer=False,
+                optimizer='Adam',
                 projection_layer_size=100,
                 normalize=False,
                 grayscale=True,
@@ -228,8 +229,15 @@ class BYOL_Features(PipelineStage):
         )
         self.learner.to(self.device)
 
-        self.opt = torch.optim.Adam(
-            self.learner.parameters(), lr=self.learning_rate)
+        if optimizer == 'Adam':
+            self.opt = torch.optim.Adam(
+                self.learner.parameters(), lr=self.learning_rate)
+        else:
+            self.opt = torch.optim.AdamW(
+                self.learner.parameters(), 
+                lr=self.learning_rate, 
+                weight_decay=1e-4
+            )
 
 
         if restart and load_model == False:
