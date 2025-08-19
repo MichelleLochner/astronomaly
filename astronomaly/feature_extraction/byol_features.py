@@ -55,6 +55,7 @@ class BYOL_Features(PipelineStage):
                 self, 
                 image_size=128,
                 model=None, 
+                strip_layer=False,
                 projection_layer_size=100,
                 normalize=False,
                 grayscale=True,
@@ -213,8 +214,10 @@ class BYOL_Features(PipelineStage):
         ### Add code for loading a saved model
         if model is None:
             model = torchvision.models.efficientnet_b0(weights="IMAGENET1K_V1")
-            model.classifier[1] = torch.nn.Linear(1280, projection_layer_size)
-            model.classifier[1].weight.data.normal_(0, 0.01)
+            if strip_layer:
+                model.classifier[1] = torch.nn.Linear(
+                    1280, projection_layer_size)
+                model.classifier[1].weight.data.normal_(0, 0.01)
         self.model = model
 
         self.learner = BYOL(
