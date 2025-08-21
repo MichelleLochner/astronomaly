@@ -56,6 +56,7 @@ class BYOL_Features(PipelineStage):
                 self, 
                 image_size=128,
                 model=None, 
+                hidden_layer='avgpool',
                 strip_layer=False,
                 optimizer='Adam',
                 warmup_epochs=0,
@@ -230,7 +231,7 @@ class BYOL_Features(PipelineStage):
         self.learner = BYOL(
             self.model,
             image_size=self.image_size,
-            hidden_layer='avgpool',
+            hidden_layer=hidden_layer,
             augment_fn=self.augmentation_function
         )
         self.learner.to(self.device)
