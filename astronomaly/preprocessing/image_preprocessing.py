@@ -263,8 +263,9 @@ def image_transform_sigma_clipping(img, select_central_contour=True, sigma=3):
         
         contour_mask = np.zeros_like(img, dtype=np.uint8)
         if len(contours) == 0:
-            # This happens if there's no data in the image so we just return zeros
-            return contour_mask
+            # This happens if there's no data in the image or an artefact
+            # so we just return the original image
+            return img
     
         x0 = img.shape[0] // 2
         y0 = img.shape[1] // 2
@@ -296,7 +297,7 @@ def image_transform_sigma_clipping(img, select_central_contour=True, sigma=3):
     
         new_img = np.zeros_like(img)
         new_img[contour_mask == 1] = img[contour_mask == 1]
-    
+        
         return new_img
 
     else:
