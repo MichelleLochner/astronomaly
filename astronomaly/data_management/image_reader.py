@@ -609,9 +609,11 @@ class ImageDataset(Dataset):
         x_start = x0 - x_wid
         x_end = x0 + x_wid
 
-        invalid_y = y_start < 0 or y_end > this_image.metadata['NAXIS1']
-        invalid_x = x_start < 0 or x_end > this_image.metadata['NAXIS2']
+        invalid_x = x_start < 0 or x_end > this_image.metadata['NAXIS1']
+        invalid_y = y_start < 0 or y_end > this_image.metadata['NAXIS2']
+        
         if invalid_y or invalid_x:
+            print('invalid x or y')
             naxis3_present = 'NAXIS3' in this_image.metadata.keys()
             if naxis3_present and this_image.metadata['NAXIS3'] > 1:
                 shp = [self.window_size_y,
