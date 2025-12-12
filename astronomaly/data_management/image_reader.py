@@ -544,7 +544,7 @@ class ImageDataset(Dataset):
             self.catalogue['objid'] = np.arange(len(self.catalogue))
 
         if 'peak_flux' not in self.catalogue.columns:
-            self.catalogue['peak_flux'] = [np.NaN] * len(self.catalogue)
+            self.catalogue['peak_flux'] = [np.nan] * len(self.catalogue)
 
         cols = ['original_image', 'x', 'y']
 
